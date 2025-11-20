@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "bookmarked.fullname" . }}-api
+  name: {{ include "educationelly.fullname" . }}-api
   labels:
-    app: {{ include "bookmarked.name" . }}-api
-    {{- include "bookmarked.labels" . | nindent 4 }}
+    app: {{ include "educationelly.name" . }}-api
+    {{- include "educationelly.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      app: {{ include "bookmarked.name" . }}-api
-      {{- include "bookmarked.selectorLabels" . | nindent 6 }}
+      app: {{ include "educationelly.name" . }}-api
+      {{- include "educationelly.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -20,14 +20,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ include "bookmarked.name" . }}-api
-        {{- include "bookmarked.selectorLabels" . | nindent 8 }}
+        app: {{ include "educationelly.name" . }}-api
+        {{- include "educationelly.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "bookmarked.serviceAccountName" . }}
+      serviceAccountName: {{ include "educationelly.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:

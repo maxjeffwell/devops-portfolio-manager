@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "bookmarked.fullname" . }}-client
+  name: {{ include "educationelly-graphql.fullname" . }}-client
   labels:
-    app: {{ include "bookmarked.name" . }}-client
-    {{- include "bookmarked.labels" . | nindent 4 }}
+    app: {{ include "educationelly-graphql.name" . }}-client
+    {{- include "educationelly-graphql.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "bookmarked.name" . }}-client
-      {{- include "bookmarked.selectorLabels" . | nindent 6 }}
+      app: {{ include "educationelly-graphql.name" . }}-client
+      {{- include "educationelly-graphql.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        app: {{ include "bookmarked.name" . }}-client
-        {{- include "bookmarked.selectorLabels" . | nindent 8 }}
+        app: {{ include "educationelly-graphql.name" . }}-client
+        {{- include "educationelly-graphql.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "bookmarked.serviceAccountName" . }}
+      serviceAccountName: {{ include "educationelly-graphql.serviceAccountName" . }}
       containers:
       - name: client
         image: "{{ .Values.image.client.repository }}:{{ .Values.image.client.tag }}"
