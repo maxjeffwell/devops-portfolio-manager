@@ -1,0 +1,79 @@
+{{- if .Values.mongodb.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb-{{ include "intervalai.name" . }}
+  labels:
+    app: mongodb-{{ include "intervalai.name" . }}
+    chart: {{ include "intervalai.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  serviceName: mongodb-{{ include "intervalai.name" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb-{{ include "intervalai.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: mongodb-{{ include "intervalai.name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:7
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "root"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: {{ .Values.mongodb.auth.rootPassword | quote }}
+        - name: MONGO_INITDB_DATABASE
+          value: {{ .Values.mongodb.auth.database | quote }}
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+        resources:
+          {{- toYaml .Values.mongodb.resources | nindent 12 }}
+  {{- if .Values.mongodb.persistence.enabled }}
+  volumeClaimTemplates:
+  - metadata:
+      name: mongodb-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      {{- if .Values.mongodb.persistence.storageClass }}
+      storageClassName: {{ .Values.mongodb.persistence.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.mongodb.persistence.size }}
+  {{- else }}
+  volumes:
+  - name: mongodb-data
+    emptyDir: {}
+  {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-{{ include "intervalai.name" . }}
+  labels:
+    app: mongodb-{{ include "intervalai.name" . }}
+    chart: {{ include "intervalai.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 27017
+      targetPort: mongodb
+      protocol: TCP
+      name: mongodb
+  selector:
+    app: mongodb-{{ include "intervalai.name" . }}
+    release: {{ .Release.Name }}
+{{- end }}

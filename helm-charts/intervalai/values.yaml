@@ -1,0 +1,189 @@
+# Default values for IntervalAI
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 2
+
+image:
+  server:
+    repository: maxjeffwell/spaced-repetition-capstone-server
+    tag: latest
+    pullPolicy: Always
+  client:
+    repository: maxjeffwell/spaced-repetition-capstone-client
+    tag: latest
+    pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+
+service:
+  server:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30786
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30787
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: intervalai.el-jefe.me
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend:
+            service:
+              name: intervalai-server
+              port: 8080
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: intervalai-client
+              port: 80
+  tls:
+    - secretName: intervalai-tls
+      hosts:
+        - intervalai.el-jefe.me
+
+resources:
+  server:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# MongoDB configuration
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: "intervalai-root-password"
+    username: "intervalai"
+    password: "intervalai-password"
+    database: "intervalai"
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClass: ""
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Environment variables
+env:
+  server:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "8080"
+    - name: MONGODB_URI
+      valueFrom:
+        secretKeyRef:
+          name: intervalai-secret
+          key: MONGODB_URI
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: intervalai-secret
+          key: JWT_SECRET
+  client:
+    - name: REACT_APP_API_URL
+      value: "http://intervalai-server:8080"
+
+# Health check configuration
+livenessProbe:
+  httpGet:
+    path: /api
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /api
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# ConfigMap data
+configMap:
+  data:
+    ML_MODEL_PATH: "/app/ml/saved-model"
+    LOG_LEVEL: "info"
+    CACHE_ENABLED: "true"
+
+# Secret data (base64 encoded)
+# Note: In production, use external secret management
+secret:
+  data:
+    MONGODB_URI: "bW9uZ29kYjovL2ludGVydmFsYWk6aW50ZXJ2YWxhaS1wYXNzd29yZEBtb25nb2RiLWludGVydmFsYWk6MjcwMTcvaW50ZXJ2YWxhaQ=="
+    JWT_SECRET: "eW91ci1qd3Qtc2VjcmV0LWtleQ=="
+
+# Monitoring
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}

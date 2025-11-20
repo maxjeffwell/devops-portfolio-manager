@@ -1,0 +1,98 @@
+name: Helm Lint and Test
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'helm-charts/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'helm-charts/**'
+
+jobs:
+  lint-charts:
+    name: Lint Helm Charts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chart:
+          - intervalai
+          - bookmarked
+          - firebook
+          - educationelly
+          - educationelly-graphql
+          - code-talk
+          - orchestration-platform
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Lint ${{ matrix.chart }} chart
+        run: |
+          if [ -f "helm-charts/${{ matrix.chart }}/Chart.yaml" ]; then
+            echo "Linting ${{ matrix.chart }}..."
+            helm lint helm-charts/${{ matrix.chart }}
+          else
+            echo "Chart helm-charts/${{ matrix.chart }} not found, skipping..."
+          fi
+
+      - name: Template ${{ matrix.chart }} chart
+        run: |
+          if [ -f "helm-charts/${{ matrix.chart }}/Chart.yaml" ]; then
+            echo "Templating ${{ matrix.chart }}..."
+            helm template ${{ matrix.chart }} helm-charts/${{ matrix.chart }} --debug
+          fi
+
+      - name: Validate Kubernetes manifests
+        run: |
+          if [ -f "helm-charts/${{ matrix.chart }}/Chart.yaml" ]; then
+            echo "Validating generated manifests for ${{ matrix.chart }}..."
+            helm template ${{ matrix.chart }} helm-charts/${{ matrix.chart }} | kubectl apply --dry-run=client -f -
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint-charts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: 'helm-charts'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [lint-charts, security-scan]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "### Helm Chart Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Lint Status: ${{ needs.lint-charts.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security Scan: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.lint-charts.result }}" == "success" ] && [ "${{ needs.security-scan.result }}" == "success" ]; then
+            echo "✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some checks failed. Please review the logs." >> $GITHUB_STEP_SUMMARY
+          fi
