@@ -1,0 +1,81 @@
+# External Secrets Operator Installation
+# This file contains instructions and commands for installing ESO
+
+# Installation via Helm (Recommended)
+# =====================================
+
+# 1. Add the External Secrets Operator Helm repository
+# helm repo add external-secrets https://charts.external-secrets.io
+# helm repo update
+
+# 2. Install External Secrets Operator
+# helm install external-secrets \
+#   external-secrets/external-secrets \
+#   -n external-secrets-system \
+#   --create-namespace \
+#   --set installCRDs=true
+
+# Installation via kubectl (Alternative)
+# ========================================
+
+# 1. Install CRDs and operator
+# kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/main/deploy/crds/bundle.yaml
+
+# 2. Install the operator deployment
+# kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/main/deploy/external-secrets.yaml
+
+# Verify Installation
+# ===================
+
+# Check if the operator is running
+# kubectl get pods -n external-secrets-system
+
+# Check if CRDs are installed
+# kubectl get crd | grep external-secrets
+
+---
+# Alternative: Direct Kubernetes manifests for MicroK8s installation
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: external-secrets-system
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-secrets
+  namespace: external-secrets-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-secrets-controller
+rules:
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets", "secretstores", "clustersecretstores"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["external-secrets.io"]
+    resources: ["externalsecrets/status", "secretstores/status", "clustersecretstores/status"]
+    verbs: ["get", "update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-secrets-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-secrets-controller
+subjects:
+  - kind: ServiceAccount
+    name: external-secrets
+    namespace: external-secrets-system
