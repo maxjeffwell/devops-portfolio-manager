@@ -1,33 +1,33 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "intervalai.fullname" . }}-server
+  name: {{ include "code-talk.fullname" . }}-api
   labels:
-    app: {{ include "intervalai.name" . }}-server
-    chart: {{ include "intervalai.chart" . }}
+    app: {{ include "code-talk.name" . }}-api
+    chart: {{ include "code-talk.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  type: {{ .Values.service.server.type }}
+  type: {{ .Values.service.api.type }}
   ports:
-    - port: {{ .Values.service.server.port }}
+    - port: {{ .Values.service.api.port }}
       targetPort: http
       protocol: TCP
       name: http
-      {{- if and (eq .Values.service.server.type "NodePort") .Values.service.server.nodePort }}
-      nodePort: {{ .Values.service.server.nodePort }}
+      {{- if and (eq .Values.service.api.type "NodePort") .Values.service.api.nodePort }}
+      nodePort: {{ .Values.service.api.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "intervalai.name" . }}-server
+    app: {{ include "code-talk.name" . }}-api
     release: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "intervalai.fullname" . }}-client
+  name: {{ include "code-talk.fullname" . }}-client
   labels:
-    app: {{ include "intervalai.name" . }}-client
-    chart: {{ include "intervalai.chart" . }}
+    app: {{ include "code-talk.name" . }}-client
+    chart: {{ include "code-talk.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -41,5 +41,5 @@ spec:
       nodePort: {{ .Values.service.client.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "intervalai.name" . }}-client
+    app: {{ include "code-talk.name" . }}-client
     release: {{ .Release.Name }}
