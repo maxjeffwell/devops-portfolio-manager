@@ -1,0 +1,24 @@
+{
+  "name": "gitops-sync-service",
+  "version": "1.0.0",
+  "description": "GitOps sync service for automated Helm deployments",
+  "main": "sync.js",
+  "scripts": {
+    "start": "node sync.js",
+    "dev": "nodemon sync.js"
+  },
+  "keywords": [
+    "gitops",
+    "helm",
+    "kubernetes",
+    "sync"
+  ],
+  "author": "Jeff Maxwell",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

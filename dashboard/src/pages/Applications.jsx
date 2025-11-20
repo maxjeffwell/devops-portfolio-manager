@@ -7,6 +7,7 @@ export default function Applications() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [syncMessage, setSyncMessage] = useState(null);
 
   useEffect(() => {
     async function loadApplications() {
@@ -54,6 +55,32 @@ export default function Applications() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleSync = async (app) => {
+    try {
+      setSyncMessage({ type: 'info', text: `Syncing ${app.name}...` });
+
+      // Trigger ArgoCD sync
+      await api.syncArgoCDApplication(app.argocdApp);
+
+      setSyncMessage({ type: 'success', text: `Successfully synced ${app.name}` });
+
+      // Reload applications after 2 seconds to show updated status
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      setSyncMessage({
+        type: 'error',
+        text: `Failed to sync ${app.name}: ${err.message}`
+      });
+    }
+
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      setSyncMessage(null);
+    }, 5000);
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -69,6 +96,12 @@ export default function Applications() {
 
   return (
     <div className="applications-page">
+      {syncMessage && (
+        <div className={`sync-notification ${syncMessage.type}`}>
+          {syncMessage.text}
+        </div>
+      )}
+
       <div className="page-header">
         <h1>Applications</h1>
         <p className="page-subtitle">
@@ -78,7 +111,7 @@ export default function Applications() {
 
       <div className="applications-grid">
         {applications.map((app) => (
-          <ApplicationCard key={app.id} app={app} />
+          <ApplicationCard key={app.id} app={app} onSync={handleSync} />
         ))}
       </div>
     </div>

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import './ApplicationCard.css';
 
-export default function ApplicationCard({ app }) {
+export default function ApplicationCard({ app, onSync }) {
+  const [syncing, setSyncing] = useState(false);
+
   const getStatusColor = (status) => {
     if (!status) return 'var(--status-unknown)';
     const s = status.toLowerCase();
@@ -8,6 +11,17 @@ export default function ApplicationCard({ app }) {
     if (s.includes('degraded') || s.includes('error')) return 'var(--status-degraded)';
     if (s.includes('progressing')) return 'var(--status-progressing)';
     return 'var(--status-unknown)';
+  };
+
+  const handleSync = async () => {
+    if (syncing) return;
+
+    setSyncing(true);
+    try {
+      await onSync(app);
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -32,19 +46,42 @@ export default function ApplicationCard({ app }) {
             <span className="meta-label">Helm Chart:</span>
             <span className="meta-value">{app.helmChart}</span>
           </div>
+          {app.argoCDSyncStatus && (
+            <div className="meta-item">
+              <span className="meta-label">Sync Status:</span>
+              <span className="meta-value">{app.argoCDSyncStatus}</span>
+            </div>
+          )}
         </div>
 
         <div className="app-status">
           <span
             className="status-badge"
-            style={{ backgroundColor: getStatusColor(app.status) }}
+            style={{ backgroundColor: getStatusColor(app.argoCDStatus || app.status) }}
           >
-            {app.status || 'Unknown'}
+            {app.argoCDStatus || app.status || 'Unknown'}
           </span>
         </div>
       </div>
 
       <div className="app-card-footer">
+        <button
+          className={`sync-button ${syncing ? 'syncing' : ''}`}
+          onClick={handleSync}
+          disabled={syncing}
+        >
+          {syncing ? (
+            <>
+              <span className="sync-icon spinning">↻</span>
+              Syncing...
+            </>
+          ) : (
+            <>
+              <span className="sync-icon">↻</span>
+              Sync
+            </>
+          )}
+        </button>
         <a
           href={`https://github.com/${app.github.owner}/${app.github.repo}`}
           target="_blank"

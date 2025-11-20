@@ -2,6 +2,47 @@
   padding: 30px;
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
+}
+
+.sync-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+  max-width: 400px;
+}
+
+.sync-notification.info {
+  background: var(--accent-blue);
+  color: white;
+}
+
+.sync-notification.success {
+  background: var(--status-healthy);
+  color: white;
+}
+
+.sync-notification.error {
+  background: var(--status-degraded);
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .page-header {
