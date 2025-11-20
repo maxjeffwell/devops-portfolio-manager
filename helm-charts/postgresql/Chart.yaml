@@ -1,0 +1,18 @@
+apiVersion: v2
+name: postgresql
+description: PostgreSQL database infrastructure for portfolio applications
+type: application
+version: 1.0.0
+appVersion: "16.1"
+keywords:
+  - postgresql
+  - database
+  - sql
+  - infrastructure
+home: https://www.postgresql.org/
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me
+sources:
+  - https://github.com/postgres/postgres
+icon: https://www.postgresql.org/media/img/about/press/elephant.png

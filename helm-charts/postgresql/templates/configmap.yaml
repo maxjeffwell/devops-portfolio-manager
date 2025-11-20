@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgresql.fullname" . }}-config
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
+data:
+  postgresql.conf: |
+    {{- .Values.postgresql.extraConfig | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "postgresql.fullname" . }}-initdb
+  labels:
+    {{- include "postgresql.labels" . | nindent 4 }}
+data:
+  01-create-databases.sql: |
+    -- Create databases and users for portfolio applications
+    {{- range .Values.auth.databases }}
+
+    -- Database: {{ .name }}
+    CREATE DATABASE {{ .name }};
+    CREATE USER {{ .user }} WITH ENCRYPTED PASSWORD '{{ .password }}';
+    GRANT ALL PRIVILEGES ON DATABASE {{ .name }} TO {{ .user }};
+
+    -- Connect to the database and grant schema privileges
+    \c {{ .name }}
+    GRANT ALL ON SCHEMA public TO {{ .user }};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO {{ .user }};
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO {{ .user }};
+
+    {{- end }}
+
+    -- Return to postgres database
+    \c postgres

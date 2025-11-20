@@ -1,0 +1,189 @@
+# Default values for PostgreSQL infrastructure
+# This chart creates a shared PostgreSQL instance for multiple applications
+
+# Image configuration
+image:
+  repository: postgres
+  tag: "16.1-alpine"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 5432
+
+# PostgreSQL configuration
+auth:
+  # Root/superuser password
+  postgresPassword: "postgres-root-password"
+
+  # Application-specific databases and users
+  databases:
+    - name: bookmarked
+      user: bookmarked
+      password: bookmarked-password
+    - name: codetalk
+      user: codetalk
+      password: codetalk-password
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+  annotations: {}
+
+# Resource limits
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+# PostgreSQL specific configuration
+postgresql:
+  # Maximum number of connections
+  maxConnections: 100
+
+  # Shared buffers (25% of memory is recommended)
+  sharedBuffers: "512MB"
+
+  # Effective cache size (50-75% of memory)
+  effectiveCacheSize: "1536MB"
+
+  # Maintenance work memory
+  maintenanceWorkMem: "128MB"
+
+  # Work memory per operation
+  workMem: "5MB"
+
+  # Write-ahead log configuration
+  walBuffers: "16MB"
+  minWalSize: "1GB"
+  maxWalSize: "4GB"
+
+  # Additional PostgreSQL configuration
+  extraConfig: |
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 100MB
+    log_statement = 'mod'
+    log_duration = off
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+
+    # Connection settings
+    max_connections = 100
+    superuser_reserved_connections = 3
+
+    # Memory settings
+    shared_buffers = 512MB
+    effective_cache_size = 1536MB
+    maintenance_work_mem = 128MB
+    work_mem = 5MB
+
+    # WAL settings
+    wal_buffers = 16MB
+    min_wal_size = 1GB
+    max_wal_size = 4GB
+    checkpoint_completion_target = 0.9
+
+    # Query planner
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+
+    # Performance
+    default_statistics_target = 100
+
+# Security context
+podSecurityContext:
+  fsGroup: 999
+  runAsUser: 999
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+
+# Health checks
+livenessProbe:
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - pg_isready -U postgres
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+
+readinessProbe:
+  exec:
+    command:
+      - /bin/sh
+      - -c
+      - pg_isready -U postgres
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Backup configuration
+backup:
+  enabled: false
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: 7  # Keep 7 days of backups
+  storageClass: ""
+  size: 50Gi
+
+# Monitoring
+metrics:
+  enabled: false
+  image:
+    repository: prometheuscommunity/postgres-exporter
+    tag: v0.15.0
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "5432"
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""

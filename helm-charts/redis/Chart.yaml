@@ -1,0 +1,19 @@
+apiVersion: v2
+name: redis
+description: Redis cache infrastructure for portfolio applications
+type: application
+version: 1.0.0
+appVersion: "7.2.4"
+keywords:
+  - redis
+  - cache
+  - key-value
+  - database
+  - infrastructure
+home: https://redis.io/
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me
+sources:
+  - https://github.com/redis/redis
+icon: https://redis.io/images/redis-logo.svg
