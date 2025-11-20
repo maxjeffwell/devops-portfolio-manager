@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "bookmarked.name" -}}
+{{- define "code-talk.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "bookmarked.fullname" -}}
+{{- define "code-talk.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "bookmarked.chart" -}}
+{{- define "code-talk.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "bookmarked.labels" -}}
-helm.sh/chart: {{ include "bookmarked.chart" . }}
-{{ include "bookmarked.selectorLabels" . }}
+{{- define "code-talk.labels" -}}
+helm.sh/chart: {{ include "code-talk.chart" . }}
+{{ include "code-talk.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,17 +43,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "bookmarked.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "bookmarked.name" . }}
+{{- define "code-talk.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "code-talk.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "bookmarked.serviceAccountName" -}}
+{{- define "code-talk.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "bookmarked.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "code-talk.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
