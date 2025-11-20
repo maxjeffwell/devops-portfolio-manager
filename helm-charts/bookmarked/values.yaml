@@ -140,3 +140,11 @@ secret:
     DATABASE_URL: "REPLACE_WITH_YOUR_CLOUD_DATABASE_URL"
     # JWT Secret for authentication (base64 encoded)
     JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
+
+# External Secrets configuration
+externalSecrets:
+  enabled: false
+
+# Secret data (only used if externalSecrets.enabled is false)
+secret:
+  data: {}
