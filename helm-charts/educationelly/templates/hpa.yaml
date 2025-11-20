@@ -2,17 +2,17 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "intervalai.fullname" . }}-server
+  name: {{ include "educationelly.fullname" . }}-api
   labels:
-    app: {{ include "intervalai.name" . }}-server
-    chart: {{ include "intervalai.chart" . }}
+    app: {{ include "educationelly.name" . }}-api
+    chart: {{ include "educationelly.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "intervalai.fullname" . }}-server
+    name: {{ include "educationelly.fullname" . }}-api
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:
