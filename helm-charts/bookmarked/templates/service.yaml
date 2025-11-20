@@ -1,24 +1,24 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "bookmarked.fullname" . }}-server
+  name: {{ include "bookmarked.fullname" . }}-api
   labels:
-    app: {{ include "bookmarked.name" . }}-server
+    app: {{ include "bookmarked.name" . }}-api
     chart: {{ include "bookmarked.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  type: {{ .Values.service.server.type }}
+  type: {{ .Values.service.api.type }}
   ports:
-    - port: {{ .Values.service.server.port }}
+    - port: {{ .Values.service.api.port }}
       targetPort: http
       protocol: TCP
       name: http
-      {{- if and (eq .Values.service.server.type "NodePort") .Values.service.server.nodePort }}
-      nodePort: {{ .Values.service.server.nodePort }}
+      {{- if and (eq .Values.service.api.type "NodePort") .Values.service.api.nodePort }}
+      nodePort: {{ .Values.service.api.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "bookmarked.name" . }}-server
+    app: {{ include "bookmarked.name" . }}-api
     release: {{ .Release.Name }}
 ---
 apiVersion: v1
