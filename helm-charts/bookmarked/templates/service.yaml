@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "intervalai.fullname" . }}-server
+  name: {{ include "bookmarked.fullname" . }}-server
   labels:
-    app: {{ include "intervalai.name" . }}-server
-    chart: {{ include "intervalai.chart" . }}
+    app: {{ include "bookmarked.name" . }}-server
+    chart: {{ include "bookmarked.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -18,16 +18,16 @@ spec:
       nodePort: {{ .Values.service.server.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "intervalai.name" . }}-server
+    app: {{ include "bookmarked.name" . }}-server
     release: {{ .Release.Name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "intervalai.fullname" . }}-client
+  name: {{ include "bookmarked.fullname" . }}-client
   labels:
-    app: {{ include "intervalai.name" . }}-client
-    chart: {{ include "intervalai.chart" . }}
+    app: {{ include "bookmarked.name" . }}-client
+    chart: {{ include "bookmarked.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
@@ -41,5 +41,5 @@ spec:
       nodePort: {{ .Values.service.client.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "intervalai.name" . }}-client
+    app: {{ include "bookmarked.name" . }}-client
     release: {{ .Release.Name }}
