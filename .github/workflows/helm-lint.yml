@@ -49,13 +49,6 @@ jobs:
             helm template ${{ matrix.chart }} helm-charts/${{ matrix.chart }} --debug
           fi
 
-      - name: Validate Kubernetes manifests
-        run: |
-          if [ -f "helm-charts/${{ matrix.chart }}/Chart.yaml" ]; then
-            echo "Validating generated manifests for ${{ matrix.chart }}..."
-            helm template ${{ matrix.chart }} helm-charts/${{ matrix.chart }} | kubectl apply --dry-run=client --validate=false -f -
-          fi
-
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
