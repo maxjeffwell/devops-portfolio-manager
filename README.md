@@ -1,5 +1,14 @@
 # DevOps Portfolio Manager
 
+[![Helm Lint and Test](https://github.com/maxjeffwell/devops-portfolio-manager/actions/workflows/helm-lint.yml/badge.svg)](https://github.com/maxjeffwell/devops-portfolio-manager/actions/workflows/helm-lint.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Helm](https://img.shields.io/badge/Helm-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Maintained](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/maxjeffwell/devops-portfolio-manager/graphs/commit-activity)
+
 Automated DevOps platform implementing GitOps workflows for portfolio applications. Features CI/CD pipelines with GitHub Actions, automated Kubernetes deployments, rollback capabilities, and infrastructure-as-code with Helm charts.
 
 ## Features
