@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-portfolio-api
+  namespace: default
+  labels:
+    app: devops-portfolio-api
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-portfolio-api
+  template:
+    metadata:
+      labels:
+        app: devops-portfolio-api
+        component: backend
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: api
+        image: maxjeffwell/devops-portfolio-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5001
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "5001"
+        - name: NODE_ENV
+          value: "production"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-service:9090"
+        - name: ARGOCD_SERVER
+          value: "argocd-server.argocd.svc.cluster.local"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devops-portfolio-api
+  namespace: default
+  labels:
+    app: devops-portfolio-api
+spec:
+  type: NodePort
+  selector:
+    app: devops-portfolio-api
+  ports:
+  - protocol: TCP
+    port: 5001
+    targetPort: 5001
+    nodePort: 31256
