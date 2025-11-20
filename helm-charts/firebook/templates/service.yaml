@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "intervalai.fullname" . }}-server
+  labels:
+    app: {{ include "intervalai.name" . }}-server
+    chart: {{ include "intervalai.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.server.type }}
+  ports:
+    - port: {{ .Values.service.server.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      {{- if and (eq .Values.service.server.type "NodePort") .Values.service.server.nodePort }}
+      nodePort: {{ .Values.service.server.nodePort }}
+      {{- end }}
+  selector:
+    app: {{ include "intervalai.name" . }}-server
+    release: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "intervalai.fullname" . }}-client
+  labels:
+    app: {{ include "intervalai.name" . }}-client
+    chart: {{ include "intervalai.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.client.type }}
+  ports:
+    - port: {{ .Values.service.client.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      {{- if and (eq .Values.service.client.type "NodePort") .Values.service.client.nodePort }}
+      nodePort: {{ .Values.service.client.nodePort }}
+      {{- end }}
+  selector:
+    app: {{ include "intervalai.name" . }}-client
+    release: {{ .Release.Name }}

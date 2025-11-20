@@ -1,0 +1,102 @@
+replicaCount: 2
+image:
+  api:
+    repository: maxjeffwell/code-talk-api
+    tag: latest
+    pullPolicy: Always
+  client:
+    repository: maxjeffwell/code-talk-client
+    tag: latest
+    pullPolicy: Always
+service:
+  api:
+    type: ClusterIP
+    port: 5000
+    targetPort: 5000
+    nodePort: 30005
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 3000
+    nodePort: 30006
+resources:
+  api:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+env:
+  api:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "5000"
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: code-talk-secret
+          key: DATABASE_URL
+    - name: REDIS_URL
+      valueFrom:
+        secretKeyRef:
+          name: code-talk-secret
+          key: REDIS_URL
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: code-talk-secret
+          key: JWT_SECRET
+  client:
+    - name: REACT_APP_API_URL
+      value: "http://code-talk-api:5000"
+serviceAccount:
+  create: true
+podSecurityContext:
+  fsGroup: 2000
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 5000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 5000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# Cloud Database Configuration
+# IMPORTANT: Replace these with your actual cloud database credentials
+# These are placeholder values - update before deployment
+secret:
+  data:
+    # AWS RDS PostgreSQL or similar cloud database (base64 encoded)
+    # Example: postgresql://username:password@hostname:5432/codetalk
+    DATABASE_URL: "REPLACE_WITH_YOUR_CLOUD_DATABASE_URL"
+    # Redis Cloud or ElastiCache connection string (base64 encoded)
+    # Example: redis://username:password@hostname:6379
+    REDIS_URL: "REPLACE_WITH_YOUR_REDIS_CLOUD_URL"
+    # JWT Secret for authentication (base64 encoded)
+    JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"

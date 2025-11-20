@@ -1,0 +1,76 @@
+replicaCount: 2
+image:
+  api:
+    repository: maxjeffwell/firebook-api
+    tag: latest
+    pullPolicy: Always
+  client:
+    repository: maxjeffwell/firebook-client
+    tag: latest
+    pullPolicy: Always
+service:
+  api:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    nodePort: 30003
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30004
+resources:
+  api:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+env:
+  api:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "8080"
+  client:
+    - name: REACT_APP_API_URL
+      value: "http://firebook-api:8080"
+serviceAccount:
+  create: true
+podSecurityContext:
+  fsGroup: 2000
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+secret:
+  data:
+    JWT_SECRET: "ZmlyZWJvb2stand0LXNlY3JldC1rZXk="

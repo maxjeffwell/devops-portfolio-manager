@@ -1,0 +1,14 @@
+apiVersion: v2
+name: firebook
+description: FireBook - Social networking platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - firebook
+  - social-network
+  - react
+home: https://github.com/maxjeffwell/firebook
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me

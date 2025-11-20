@@ -1,0 +1,16 @@
+apiVersion: v2
+name: educationelly
+description: EducationELLy - Educational platform for language learners
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - educationelly
+  - education
+  - language-learning
+  - react
+  - nodejs
+home: https://github.com/maxjeffwell/educationELLy
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me

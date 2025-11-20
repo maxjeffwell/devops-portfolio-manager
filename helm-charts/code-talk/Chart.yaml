@@ -1,0 +1,17 @@
+apiVersion: v2
+name: code-talk
+description: Code Talk - Code collaboration and review platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - code-talk
+  - collaboration
+  - code-review
+  - nodejs
+  - react
+home: https://github.com/maxjeffwell/code-talk
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me
+# Note: Uses cloud-hosted databases (AWS RDS PostgreSQL, Redis Cloud, etc.)

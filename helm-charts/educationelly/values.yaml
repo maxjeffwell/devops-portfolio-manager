@@ -1,0 +1,94 @@
+replicaCount: 2
+image:
+  api:
+    repository: maxjeffwell/educationelly-api
+    tag: latest
+    pullPolicy: Always
+  client:
+    repository: maxjeffwell/educationelly-client
+    tag: latest
+    pullPolicy: Always
+service:
+  api:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    nodePort: 30007
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30008
+resources:
+  api:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+env:
+  api:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "8000"
+    - name: MONGODB_URI
+      valueFrom:
+        secretKeyRef:
+          name: educationelly-secret
+          key: MONGODB_URI
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: educationelly-secret
+          key: JWT_SECRET
+  client:
+    - name: REACT_APP_API_URL
+      value: "http://educationelly-api:8000"
+serviceAccount:
+  create: true
+podSecurityContext:
+  fsGroup: 2000
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# Cloud Database Configuration
+# IMPORTANT: Replace these with your actual cloud database credentials
+# These are placeholder values - update before deployment
+secret:
+  data:
+    # MongoDB Atlas connection string (base64 encoded)
+    # Example: mongodb+srv://<username>:<password>@cluster.mongodb.net/educationelly
+    MONGODB_URI: "REPLACE_WITH_YOUR_MONGODB_ATLAS_URI"
+    # JWT Secret for authentication (base64 encoded)
+    JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"

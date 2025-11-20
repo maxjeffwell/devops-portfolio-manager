@@ -1,0 +1,94 @@
+replicaCount: 2
+image:
+  api:
+    repository: maxjeffwell/educationelly-graphql-api
+    tag: latest
+    pullPolicy: Always
+  client:
+    repository: maxjeffwell/educationelly-graphql-client
+    tag: latest
+    pullPolicy: Always
+service:
+  api:
+    type: ClusterIP
+    port: 4000
+    targetPort: 4000
+    nodePort: 30009
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30010
+resources:
+  api:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+env:
+  api:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "4000"
+    - name: MONGODB_URI
+      valueFrom:
+        secretKeyRef:
+          name: educationelly-graphql-secret
+          key: MONGODB_URI
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: educationelly-graphql-secret
+          key: JWT_SECRET
+  client:
+    - name: REACT_APP_GRAPHQL_URL
+      value: "http://educationelly-graphql-api:4000/graphql"
+serviceAccount:
+  create: true
+podSecurityContext:
+  fsGroup: 2000
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1001
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 4000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 4000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+# Cloud Database Configuration
+# IMPORTANT: Replace these with your actual cloud database credentials
+# These are placeholder values - update before deployment
+secret:
+  data:
+    # MongoDB Atlas connection string (base64 encoded)
+    # Example: mongodb+srv://<username>:<password>@cluster.mongodb.net/educationelly-graphql
+    MONGODB_URI: "REPLACE_WITH_YOUR_MONGODB_ATLAS_URI"
+    # JWT Secret for authentication (base64 encoded)
+    JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
