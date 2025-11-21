@@ -3,20 +3,73 @@ import MetabaseQuestion from '../components/MetabaseQuestion';
 import './Analytics.css';
 
 function Analytics() {
-  // Example: You can pass parameters to filter dashboards/questions
-  // const dashboardParams = { environment: 'production', date_range: 'last-7-days' };
+  // KPI data - these would come from your API in production
+  const kpis = [
+    {
+      title: 'Deployments Today',
+      value: '24',
+      change: '+15.3%',
+      icon: '🚀',
+      color: '#3b82f6',
+      bgColor: '#eff6ff',
+    },
+    {
+      title: 'Success Rate',
+      value: '98.5%',
+      change: '+2.1%',
+      icon: '✓',
+      color: '#10b981',
+      bgColor: '#f0fdf4',
+    },
+    {
+      title: 'Avg Deploy Time',
+      value: '4.2m',
+      change: '-12.5%',
+      icon: '⚡',
+      color: '#f59e0b',
+      bgColor: '#fffbeb',
+    },
+    {
+      title: 'Active Pipelines',
+      value: '18',
+      change: '+3',
+      icon: '⚙️',
+      color: '#8b5cf6',
+      bgColor: '#faf5ff',
+    },
+  ];
 
   return (
     <div className="analytics-page">
+      {/* Header */}
       <div className="page-header">
-        <h1>Analytics & Metrics</h1>
+        <h1>DevOps Analytics & Metrics</h1>
         <p className="page-description">
-          Monitor your DevOps metrics, deployment statistics, and system health
+          Monitor deployments, track CI/CD performance, and gain insights into your development workflow
         </p>
       </div>
 
+      {/* KPI Cards */}
+      <div className="kpi-grid">
+        {kpis.map((kpi, index) => (
+          <div key={index} className="kpi-card" style={{ borderLeftColor: kpi.color }}>
+            <div className="kpi-icon" style={{ backgroundColor: kpi.bgColor }}>
+              {kpi.icon}
+            </div>
+            <div className="kpi-content">
+              <div className="kpi-title">{kpi.title}</div>
+              <div className="kpi-value" style={{ color: kpi.color }}>{kpi.value}</div>
+              <div className={`kpi-change ${kpi.change.startsWith('+') || kpi.change.startsWith('-') ?
+                (kpi.change.startsWith('+') ? 'positive' : 'negative') : 'neutral'}`}>
+                {kpi.change} from last week
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main Dashboard */}
       <div className="analytics-grid">
-        {/* Example: Embed a full dashboard */}
         <div className="analytics-section full-width">
           <MetabaseDashboard
             dashboardId={1}
@@ -25,7 +78,7 @@ function Analytics() {
           />
         </div>
 
-        {/* Example: Embed individual questions/charts side by side */}
+        {/* Charts Grid */}
         <div className="analytics-section">
           <MetabaseQuestion
             questionId={1}
