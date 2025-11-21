@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import Applications from './pages/Applications';
 import Pipelines from './pages/Pipelines';
+import Analytics from './pages/Analytics';
 import './App.css';
 
 function App() {
@@ -18,6 +19,9 @@ function App() {
             <NavLink to="/pipelines" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
               CI/CD Pipelines
             </NavLink>
+            <NavLink to="/analytics" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+              Analytics
+            </NavLink>
           </div>
         </nav>
 
@@ -26,6 +30,7 @@ function App() {
             <Route path="/" element={<Navigate to="/applications" />} />
             <Route path="/applications" element={<Applications />} />
             <Route path="/pipelines" element={<Pipelines />} />
+            <Route path="/analytics" element={<Analytics />} />
           </Routes>
         </main>
       </div>
