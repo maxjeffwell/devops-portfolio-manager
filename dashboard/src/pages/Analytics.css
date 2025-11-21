@@ -109,6 +109,26 @@
   grid-column: 1 / -1;
 }
 
+.metabase-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.metabase-content {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
 .analytics-info {
   margin-top: 48px;
   padding: 24px;
