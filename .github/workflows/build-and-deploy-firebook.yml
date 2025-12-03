@@ -129,60 +129,22 @@ jobs:
 
           echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
 
-  deploy-argocd-app:
-    name: Deploy ArgoCD Application
-    runs-on: ubuntu-latest
-    needs: update-gitops-manifest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install ArgoCD CLI
-        run: |
-          curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-          sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-          rm argocd-linux-amd64
-
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.28.0'
-
-      - name: Configure kubectl
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Apply ArgoCD Application
-        run: |
-          kubectl apply -f gitops/applications/firebook.yaml
-          echo "✅ ArgoCD application deployed successfully"
-
-      - name: Sync ArgoCD Application
-        if: ${{ secrets.ARGOCD_SERVER != '' && secrets.ARGOCD_TOKEN != '' }}
-        run: |
-          argocd login ${{ secrets.ARGOCD_SERVER }} --auth-token ${{ secrets.ARGOCD_TOKEN }} --grpc-web
-          argocd app sync firebook --force
-          argocd app wait firebook --timeout 300
-          echo "✅ ArgoCD application synced successfully"
-
   notify:
     name: Notify Status
     runs-on: ubuntu-latest
-    needs: [build-and-push-image, update-gitops-manifest, deploy-argocd-app]
+    needs: [build-and-push-image, update-gitops-manifest]
     if: always()
     steps:
       - name: Success
-        if: needs.deploy-argocd-app.result == 'success'
+        if: needs.update-gitops-manifest.result == 'success'
         run: |
-          echo "✅ FireBook deployed successfully!"
+          echo "✅ FireBook image built and GitOps manifest updated successfully!"
           echo "Image tag: ${{ needs.build-and-push-image.outputs.image-tag }}"
-          echo "ArgoCD application has been applied and synced to your cluster."
+          echo "ArgoCD will automatically deploy the changes to your cluster."
           echo "Frontend connects to Firebase backend services."
 
       - name: Failed
-        if: needs.deploy-argocd-app.result == 'failure' || needs.update-gitops-manifest.result == 'failure'
+        if: needs.update-gitops-manifest.result == 'failure'
         run: |
           echo "❌ FireBook workflow failed!"
           exit 1
