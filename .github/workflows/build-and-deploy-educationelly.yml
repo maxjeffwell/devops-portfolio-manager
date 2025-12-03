@@ -58,7 +58,7 @@ jobs:
       - name: Checkout educationELLy repository
         uses: actions/checkout@v4
         with:
-          repository: maxjeffwell/educationELLy
+          repository: maxjeffwell/educationELLy-Docker
           ref: main
           path: educationelly-source
 
