@@ -27,6 +27,7 @@ spec:
       - name: client
         securityContext:
           runAsNonRoot: false
+          runAsUser: 0
         image: "{{ .Values.image.client.repository }}:{{ .Values.image.client.tag }}"
         imagePullPolicy: {{ .Values.image.client.pullPolicy }}
         ports:
