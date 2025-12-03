@@ -31,7 +31,11 @@ spec:
       containers:
       - name: {{ .Chart.Name }}-client
         securityContext:
+          {{- if .Values.securityContextClient }}
+          {{- toYaml .Values.securityContextClient | nindent 12 }}
+          {{- else }}
           {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- end }}
         image: "{{ .Values.image.client.repository }}:{{ .Values.image.client.tag | default .Chart.AppVersion }}"
         imagePullPolicy: {{ .Values.image.client.pullPolicy }}
         ports:

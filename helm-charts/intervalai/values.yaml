@@ -39,6 +39,13 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 1001
 
+# Client-specific security context (nginx needs to bind to port 80)
+securityContextClient:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+
 service:
   server:
     type: ClusterIP
