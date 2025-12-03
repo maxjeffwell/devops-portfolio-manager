@@ -2,11 +2,11 @@ replicaCount: 2
 image:
   api:
     repository: maxjeffwell/educationelly-api
-    tag: latest
+    tag: 20251203-123819-87990d2
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-client
-    tag: latest
+    tag: 20251203-123819-87990d2
     pullPolicy: Always
 service:
   api:
