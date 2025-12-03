@@ -55,11 +55,19 @@ jobs:
     outputs:
       image-tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - name: Checkout Code Talk repository
+      - name: Checkout server repository
         uses: actions/checkout@v4
         with:
-          repository: maxjeffwell/code-talk-Docker
-          path: codetalk-source
+          repository: maxjeffwell/code-talk-graphql-server
+          ref: main
+          path: server-source
+
+      - name: Checkout client repository
+        uses: actions/checkout@v4
+        with:
+          repository: maxjeffwell/code-talk-graphql-client
+          ref: main
+          path: client-source
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -84,8 +92,7 @@ jobs:
       - name: Build and push server image
         uses: docker/build-push-action@v5
         with:
-          context: ./codetalk-source
-          file: ./codetalk-source/Dockerfile.server
+          context: ./server-source
           target: production
           push: true
           tags: |
@@ -97,8 +104,7 @@ jobs:
       - name: Build and push client image
         uses: docker/build-push-action@v5
         with:
-          context: ./codetalk-source
-          file: ./codetalk-source/Dockerfile.client
+          context: ./client-source
           target: production
           push: true
           tags: |
