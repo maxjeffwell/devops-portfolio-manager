@@ -125,6 +125,7 @@ jobs:
 
           git add helm-charts/firebook/values.yaml
           git commit -m "Update FireBook client image tag to ${IMAGE_TAG}"
+          git pull --rebase
           git push
 
           echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
