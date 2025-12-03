@@ -59,14 +59,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: maxjeffwell/code-talk-graphql-server
-          ref: main
+          ref: master
           path: server-source
 
       - name: Checkout client repository
         uses: actions/checkout@v4
         with:
           repository: maxjeffwell/code-talk-graphql-client
-          ref: main
+          ref: master
           path: client-source
 
       - name: Set up Docker Buildx
