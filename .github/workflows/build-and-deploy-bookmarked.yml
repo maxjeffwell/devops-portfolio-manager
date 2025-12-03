@@ -1,0 +1,162 @@
+name: Build and Deploy Bookmarked
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'helm-charts/bookmarked/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      version:
+        description: 'Version tag (leave empty for latest)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME_API: maxjeffwell/bookmarked-api
+  IMAGE_NAME_CLIENT: maxjeffwell/bookmarked-client
+
+jobs:
+  lint-and-validate:
+    name: Lint Helm Charts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Lint Helm charts
+        run: |
+          helm lint helm-charts/bookmarked
+          helm template bookmarked helm-charts/bookmarked --debug
+
+  build-and-push-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout Bookmarked repository
+        uses: actions/checkout@v4
+        with:
+          repository: maxjeffwell/bookmarks-react-hooks
+          ref: master
+          path: bookmarked-source
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            TAG="${{ github.event.inputs.version }}"
+          else
+            TAG="$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Building with tag: ${TAG}"
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bookmarked-source/server
+          target: production
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_API }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_NAME_API }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME_API }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME_API }}:buildcache,mode=max
+
+      - name: Build and push client image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bookmarked-source
+          dockerfile: ./bookmarked-source/Dockerfile
+          target: production
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_CLIENT }}:${{ steps.meta.outputs.tag }}
+            ${{ env.IMAGE_NAME_CLIENT }}:latest
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache,mode=max
+
+  update-gitops-manifest:
+    name: Update GitOps Manifest
+    runs-on: ubuntu-latest
+    needs: build-and-push-images
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update image tags in values.yaml
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
+
+          echo "Updating Bookmarked image tags to: ${IMAGE_TAG}"
+
+          # Update both API and client image tags
+          sed -i "s|tag: .*|tag: ${IMAGE_TAG}|" helm-charts/bookmarked/values.yaml
+
+          # Show the changes
+          git diff helm-charts/bookmarked/values.yaml
+
+      - name: Commit and push changes
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add helm-charts/bookmarked/values.yaml
+          git commit -m "Update Bookmarked image tags to ${IMAGE_TAG}"
+          git push
+
+          echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
+
+  notify:
+    name: Notify Status
+    runs-on: ubuntu-latest
+    needs: [build-and-push-images, update-gitops-manifest]
+    if: always()
+    steps:
+      - name: Success
+        if: needs.update-gitops-manifest.result == 'success'
+        run: |
+          echo "✅ Bookmarked images built and GitOps manifest updated successfully!"
+          echo "Image tag: ${{ needs.build-and-push-images.outputs.image-tag }}"
+          echo "ArgoCD will automatically deploy the changes to your cluster."
+
+      - name: Failed
+        if: needs.update-gitops-manifest.result == 'failure'
+        run: |
+          echo "❌ Bookmarked workflow failed!"
+          exit 1
