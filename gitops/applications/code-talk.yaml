@@ -3,17 +3,15 @@ kind: Application
 metadata:
   name: code-talk
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app: code-talk
+    portfolio: "true"
 spec:
   project: default
   source:
     repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
     targetRevision: main
     path: helm-charts/code-talk
-    helm:
-      valueFiles:
-        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default
@@ -23,7 +21,7 @@ spec:
       selfHeal: true
       allowEmpty: false
     syncOptions:
-      - CreateNamespace=true
+      - CreateNamespace=false
     retry:
       limit: 5
       backoff:

@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "code-talk.fullname" . }}-api
+  name: {{ include "code-talk.fullname" . }}-server
   labels:
-    app: {{ include "code-talk.name" . }}-api
+    app: {{ include "code-talk.name" . }}-server
     {{- include "code-talk.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
@@ -11,7 +11,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app: {{ include "code-talk.name" . }}-api
+      app: {{ include "code-talk.name" . }}-server
       {{- include "code-talk.selectorLabels" . | nindent 6 }}
   template:
     metadata:
@@ -20,7 +20,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ include "code-talk.name" . }}-api
+        app: {{ include "code-talk.name" . }}-server
         {{- include "code-talk.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -34,14 +34,14 @@ spec:
       - name: api
         securityContext:
           {{- toYaml .Values.securityContext | nindent 12 }}
-        image: "{{ .Values.image.api.repository }}:{{ .Values.image.api.tag }}"
-        imagePullPolicy: {{ .Values.image.api.pullPolicy }}
+        image: "{{ .Values.image.server.repository }}:{{ .Values.image.server.tag }}"
+        imagePullPolicy: {{ .Values.image.server.pullPolicy }}
         ports:
         - name: http
-          containerPort: {{ .Values.service.api.targetPort }}
+          containerPort: {{ .Values.service.server.targetPort }}
           protocol: TCP
         env:
-        {{- range .Values.env.api }}
+        {{- range .Values.env.server }}
         - name: {{ .name }}
           {{- if .value }}
           value: {{ .value | quote }}
@@ -55,7 +55,7 @@ spec:
         readinessProbe:
           {{- toYaml .Values.readinessProbe | nindent 12 }}
         resources:
-          {{- toYaml .Values.resources.api | nindent 12 }}
+          {{- toYaml .Values.resources.server | nindent 12 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

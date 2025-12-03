@@ -1,24 +1,24 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "code-talk.fullname" . }}-api
+  name: {{ include "code-talk.fullname" . }}-server
   labels:
-    app: {{ include "code-talk.name" . }}-api
+    app: {{ include "code-talk.name" . }}-server
     chart: {{ include "code-talk.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 spec:
-  type: {{ .Values.service.api.type }}
+  type: {{ .Values.service.server.type }}
   ports:
-    - port: {{ .Values.service.api.port }}
+    - port: {{ .Values.service.server.port }}
       targetPort: http
       protocol: TCP
       name: http
-      {{- if and (eq .Values.service.api.type "NodePort") .Values.service.api.nodePort }}
-      nodePort: {{ .Values.service.api.nodePort }}
+      {{- if and (eq .Values.service.server.type "NodePort") .Values.service.server.nodePort }}
+      nodePort: {{ .Values.service.server.nodePort }}
       {{- end }}
   selector:
-    app: {{ include "code-talk.name" . }}-api
+    app: {{ include "code-talk.name" . }}-server
     release: {{ .Release.Name }}
 ---
 apiVersion: v1

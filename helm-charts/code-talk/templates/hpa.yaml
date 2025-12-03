@@ -2,9 +2,9 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "code-talk.fullname" . }}-api
+  name: {{ include "code-talk.fullname" . }}-server
   labels:
-    app: {{ include "code-talk.name" . }}-api
+    app: {{ include "code-talk.name" . }}-server
     chart: {{ include "code-talk.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
@@ -12,7 +12,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "code-talk.fullname" . }}-api
+    name: {{ include "code-talk.fullname" . }}-server
   minReplicas: {{ .Values.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   metrics:

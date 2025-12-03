@@ -1,26 +1,26 @@
 replicaCount: 2
 image:
-  api:
-    repository: maxjeffwell/code-talk-api
+  server:
+    repository: maxjeffwell/code-talk-graphql-server
     tag: latest
     pullPolicy: Always
   client:
-    repository: maxjeffwell/code-talk-client
+    repository: maxjeffwell/code-talk-graphql-client
     tag: latest
     pullPolicy: Always
 service:
-  api:
+  server:
     type: ClusterIP
-    port: 5000
-    targetPort: 5000
+    port: 8000
+    targetPort: 8000
     nodePort: 30005
   client:
     type: NodePort
     port: 80
-    targetPort: 3000
+    targetPort: 5000
     nodePort: 30006
 resources:
-  api:
+  server:
     limits:
       cpu: 500m
       memory: 512Mi
@@ -40,29 +40,37 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 env:
-  api:
+  server:
     - name: NODE_ENV
       value: "production"
     - name: PORT
-      value: "5000"
+      value: "8000"
     - name: DATABASE_URL
       valueFrom:
         secretKeyRef:
           name: code-talk-secret
           key: DATABASE_URL
-    - name: REDIS_URL
-      valueFrom:
-        secretKeyRef:
-          name: code-talk-secret
-          key: REDIS_URL
     - name: JWT_SECRET
       valueFrom:
         secretKeyRef:
           name: code-talk-secret
           key: JWT_SECRET
+    - name: REDIS_HOST
+      value: "code-talk-redis"
+    - name: REDIS_PORT
+      value: "6379"
+    - name: REDIS_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: code-talk-secret
+          key: REDIS_PASSWORD
+    - name: ALLOWED_ORIGINS
+      value: "http://localhost:3000,http://localhost:80"
   client:
-    - name: REACT_APP_API_URL
-      value: "http://code-talk-api:5000"
+    - name: REACT_APP_GRAPHQL_HTTP_URI
+      value: "http://code-talk-server:8000/graphql"
+    - name: REACT_APP_GRAPHQL_WS_URI
+      value: "ws://code-talk-server:8000/graphql"
 serviceAccount:
   create: true
 podSecurityContext:
@@ -76,14 +84,14 @@ securityContext:
   runAsUser: 1001
 livenessProbe:
   httpGet:
-    path: /api/health
-    port: 5000
+    path: /health
+    port: 8000
   initialDelaySeconds: 30
   periodSeconds: 10
 readinessProbe:
   httpGet:
-    path: /api/health
-    port: 5000
+    path: /health
+    port: 8000
   initialDelaySeconds: 10
   periodSeconds: 5
 
@@ -92,11 +100,10 @@ readinessProbe:
 # These are placeholder values - update before deployment
 secret:
   data:
-    # AWS RDS PostgreSQL or similar cloud database (base64 encoded)
+    # PostgreSQL database connection string (base64 encoded)
     # Example: postgresql://username:password@hostname:5432/codetalk
     DATABASE_URL: "REPLACE_WITH_YOUR_CLOUD_DATABASE_URL"
-    # Redis Cloud or ElastiCache connection string (base64 encoded)
-    # Example: redis://username:password@hostname:6379
-    REDIS_URL: "REPLACE_WITH_YOUR_REDIS_CLOUD_URL"
     # JWT Secret for authentication (base64 encoded)
     JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
+    # Redis password (base64 encoded)
+    REDIS_PASSWORD: "REPLACE_WITH_YOUR_REDIS_PASSWORD"
