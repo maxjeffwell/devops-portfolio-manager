@@ -135,16 +135,11 @@ readinessProbe:
 # These are placeholder values - update before deployment
 secret:
   data:
-    # AWS RDS PostgreSQL or similar cloud database (base64 encoded)
-    # Example: postgresql://username:password@hostname:5432/bookmarked
-    DATABASE_URL: "REPLACE_WITH_YOUR_CLOUD_DATABASE_URL"
+    # Neon PostgreSQL database connection string (base64 encoded)
+    DATABASE_URL: "cG9zdGdyZXM6Ly9uZW9uZGJfb3duZXI6bnBnX0dlcVUwdlBvM1RhRkBlcC1mbGF0LXJlc29uYW5jZS1hMTRkYi1wb29sZXIudXMtZWFzdC0xLmF3cy5uZW9uLnRlY2gvbmVvbmRiP3NzbG1vZGU9cmVxdWlyZQ=="
     # JWT Secret for authentication (base64 encoded)
-    JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
+    JWT_SECRET: "ZTU5NjhmZTVjZGQ3YjlkZWRkMjA0NTc0ZTQ1Y2E5OGEwZWU4NDAzMTBjMTQ1MDZmMzEzMzhmOGI2YjE3MDA4Ng=="
 
 # External Secrets configuration
 externalSecrets:
   enabled: false
-
-# Secret data (only used if externalSecrets.enabled is false)
-secret:
-  data: {}
