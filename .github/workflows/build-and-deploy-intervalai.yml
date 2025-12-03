@@ -86,6 +86,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./intervalai-source/spaced-repetition-capstone-server
+          target: production
           push: true
           tags: |
             ${{ env.IMAGE_NAME_SERVER }}:${{ steps.meta.outputs.tag }}
@@ -97,6 +98,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./intervalai-source/spaced-repetition-capstone-client
+          target: production
           push: true
           tags: |
             ${{ env.IMAGE_NAME_CLIENT }}:${{ steps.meta.outputs.tag }}
