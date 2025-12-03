@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: maxjeffwell/bookmarks-capstone-api
-          ref: main
+          ref: master
           path: firebook-source
 
       - name: Set up Docker Buildx
