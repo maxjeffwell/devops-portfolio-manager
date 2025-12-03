@@ -10,7 +10,7 @@ const applications = [
     namespace: 'default',
     helmChart: 'bookmarked',
     argocdApp: 'bookmarked',
-    github: { owner: 'maxjeffwell', repo: 'bookmarks-capstone-api' }
+    github: { owner: 'maxjeffwell', repo: 'bookmarks-react-hooks' }
   },
   {
     id: 'code-talk',
@@ -46,7 +46,7 @@ const applications = [
     namespace: 'default',
     helmChart: 'firebook',
     argocdApp: 'firebook',
-    github: { owner: 'maxjeffwell', repo: 'firebook' }
+    github: { owner: 'maxjeffwell', repo: 'bookmarks-capstone-api' }
   },
   {
     id: 'intervalai',
