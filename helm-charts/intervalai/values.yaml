@@ -178,7 +178,7 @@ configMap:
 # Note: In production, use external secret management
 secret:
   data:
-    MONGODB_URI: "bW9uZ29kYjovL2ludGVydmFsYWk6aW50ZXJ2YWxhaS1wYXNzd29yZEBtb25nb2RiLWludGVydmFsYWk6MjcwMTcvaW50ZXJ2YWxhaQ=="
+    MONGODB_URI: "bW9uZ29kYitzcnY6Ly9tYXhqZWZmd2VsbDI6ODhaSUFodHAzQHNwYWNlZC1yZXBldGl0aW9uLmp1djh3dmYubW9uZ29kYi5uZXQvc3BhY2VkLXJlcGV0aXRpb24/YXBwTmFtZT1zcGFjZWQtcmVwZXRpdGlvbg=="
     JWT_SECRET: "eW91ci1qd3Qtc2VjcmV0LWtleQ=="
 
 # Monitoring
