@@ -138,6 +138,7 @@ jobs:
 
           git add helm-charts/educationelly-graphql/values.yaml
           git commit -m "Update EducationELLy-GraphQL image tags to ${IMAGE_TAG}"
+          git pull --rebase
           git push
 
           echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
