@@ -1,0 +1,6 @@
+apiVersion: v2
+name: educationelly-graphql
+description: A Helm chart for EducationELLy GraphQL Application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
