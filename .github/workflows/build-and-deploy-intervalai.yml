@@ -54,7 +54,7 @@ jobs:
       - name: Checkout IntervalAI repository
         uses: actions/checkout@v4
         with:
-          repository: maxjeffwell/spaced-repetition-capstone
+          repository: maxjeffwell/spaced-repetition-capstone-Docker
           path: intervalai-source
 
       - name: Set up Docker Buildx
