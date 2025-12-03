@@ -2,11 +2,11 @@ replicaCount: 2
 image:
   api:
     repository: maxjeffwell/educationelly-graphql-api
-    tag: 20251203-131229-1fddf29
+    tag: 20251203-131717-0f1cc22
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-graphql-client
-    tag: 20251203-131229-1fddf29
+    tag: 20251203-131717-0f1cc22
     pullPolicy: Always
 service:
   api:
