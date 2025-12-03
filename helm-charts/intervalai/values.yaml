@@ -150,8 +150,7 @@ env:
 
 # Health check configuration
 livenessProbe:
-  httpGet:
-    path: /api
+  tcpSocket:
     port: 8080
   initialDelaySeconds: 30
   periodSeconds: 10
@@ -159,8 +158,7 @@ livenessProbe:
   failureThreshold: 3
 
 readinessProbe:
-  httpGet:
-    path: /api
+  tcpSocket:
     port: 8080
   initialDelaySeconds: 10
   periodSeconds: 5
