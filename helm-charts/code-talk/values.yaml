@@ -55,15 +55,11 @@ env:
         secretKeyRef:
           name: code-talk-secret
           key: JWT_SECRET
-    - name: REDIS_HOST
-      value: "code-talk-redis"
-    - name: REDIS_PORT
-      value: "6379"
-    - name: REDIS_PASSWORD
+    - name: REDIS_URL
       valueFrom:
         secretKeyRef:
           name: code-talk-secret
-          key: REDIS_PASSWORD
+          key: REDIS_URL
     - name: ALLOWED_ORIGINS
       value: "http://localhost:3000,http://localhost:80"
   client:
