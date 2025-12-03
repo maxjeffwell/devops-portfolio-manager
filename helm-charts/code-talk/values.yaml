@@ -96,14 +96,8 @@ readinessProbe:
   periodSeconds: 5
 
 # Cloud Database Configuration
-# IMPORTANT: Replace these with your actual cloud database credentials
-# These are placeholder values - update before deployment
-secret:
-  data:
-    # PostgreSQL database connection string (base64 encoded)
-    # Example: postgresql://username:password@hostname:5432/codetalk
-    DATABASE_URL: "REPLACE_WITH_YOUR_CLOUD_DATABASE_URL"
-    # JWT Secret for authentication (base64 encoded)
-    JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
-    # Redis password (base64 encoded)
-    REDIS_PASSWORD: "REPLACE_WITH_YOUR_REDIS_PASSWORD"
+# Secret is manually managed outside of Helm chart
+# Create with: kubectl create secret generic code-talk-secret \
+#   --from-literal=DATABASE_URL=<url> \
+#   --from-literal=JWT_SECRET=<secret> \
+#   --from-literal=REDIS_URL=<url>
