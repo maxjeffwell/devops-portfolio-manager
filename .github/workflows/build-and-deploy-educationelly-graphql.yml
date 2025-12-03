@@ -86,7 +86,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./educationelly-graphql-source/educationELLy-graphql-server
-          file: Dockerfile
           target: production
           push: true
           tags: |
@@ -99,7 +98,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./educationelly-graphql-source/educationELLy-graphql-client
-          file: Dockerfile
           target: production
           push: true
           tags: |
