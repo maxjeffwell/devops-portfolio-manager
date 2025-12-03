@@ -78,18 +78,20 @@ securityContext:
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1001
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8000
-  initialDelaySeconds: 30
-  periodSeconds: 10
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8000
-  initialDelaySeconds: 10
-  periodSeconds: 5
+# Health probes disabled - GraphQL server doesn't have /health endpoint
+# TODO: Add health endpoint to server or use GraphQL introspection query
+# livenessProbe:
+#   httpGet:
+#     path: /health
+#     port: 8000
+#   initialDelaySeconds: 30
+#   periodSeconds: 10
+# readinessProbe:
+#   httpGet:
+#     path: /health
+#     port: 8000
+#   initialDelaySeconds: 10
+#   periodSeconds: 5
 
 # Cloud Database Configuration
 # Secret is manually managed outside of Helm chart
