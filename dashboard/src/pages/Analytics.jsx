@@ -15,8 +15,8 @@ function Analytics() {
         marginTop: '2rem',
         textAlign: 'center'
       }}>
-        <h2>Coming Soon</h2>
-        <p>Analytics integration with Grafana and Prometheus will be added here.</p>
+        <h2 style={{ color: '#1a1a1a' }}>Coming Soon</h2>
+        <p style={{ color: '#2a2a2a' }}>Analytics integration with Grafana and Prometheus will be added here.</p>
       </div>
     </div>
   );

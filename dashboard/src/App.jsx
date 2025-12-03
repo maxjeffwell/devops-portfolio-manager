@@ -10,7 +10,10 @@ function App() {
       <div className="app">
         <nav className="top-nav">
           <div className="nav-brand">
-            <h2>DevOps Portfolio Manager</h2>
+            <h2>PodRick</h2>
+          </div>
+          <div className="nav-title">
+            <h1>DevOps Portfolio Manager</h1>
           </div>
           <div className="nav-links">
             <NavLink to="/applications" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>

@@ -16,6 +16,11 @@
   top: 0;
   z-index: 100;
   gap: 30px;
+  position: relative;
+}
+
+.nav-brand {
+  flex: 0 0 auto;
 }
 
 .nav-brand h2 {
@@ -25,10 +30,24 @@
   margin: 0;
 }
 
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav-title h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 .nav-links {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-left: auto;
 }
 
 .nav-link {
