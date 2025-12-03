@@ -11,13 +11,13 @@ image:
 service:
   api:
     type: ClusterIP
-    port: 8000
-    targetPort: 8000
+    port: 8080
+    targetPort: 8080
     nodePort: 30007
   client:
     type: NodePort
     port: 80
-    targetPort: 80
+    targetPort: 3000
     nodePort: 30008
 resources:
   api:
@@ -44,7 +44,7 @@ env:
     - name: NODE_ENV
       value: "production"
     - name: PORT
-      value: "8000"
+      value: "8080"
     - name: MONGODB_URI
       valueFrom:
         secretKeyRef:
@@ -57,7 +57,7 @@ env:
           key: JWT_SECRET
   client:
     - name: REACT_APP_API_URL
-      value: "http://educationelly-api:8000"
+      value: "http://educationelly-api:8080"
 serviceAccount:
   create: true
 podSecurityContext:
@@ -71,14 +71,14 @@ securityContext:
   runAsUser: 1001
 livenessProbe:
   httpGet:
-    path: /api/health
-    port: 8000
+    path: /health
+    port: 8080
   initialDelaySeconds: 30
   periodSeconds: 10
 readinessProbe:
   httpGet:
-    path: /api/health
-    port: 8000
+    path: /health
+    port: 8080
   initialDelaySeconds: 10
   periodSeconds: 5
 
