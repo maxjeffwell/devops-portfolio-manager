@@ -5,11 +5,11 @@ replicaCount: 2
 image:
   api:
     repository: maxjeffwell/bookmarked-api
-    tag: 20251203-105859-22f2e9c
+    tag: 20251203-133729-dfada3e
     pullPolicy: Always
   client:
     repository: maxjeffwell/bookmarked-client
-    tag: 20251203-105859-22f2e9c
+    tag: 20251203-133729-dfada3e
     pullPolicy: Always
 
 imagePullSecrets: []
