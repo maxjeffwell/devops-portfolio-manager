@@ -34,6 +34,11 @@ spec:
           value: "http://prometheus-service:9090"
         - name: ARGOCD_SERVER
           value: "argocd-server.argocd.svc.cluster.local"
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: devops-portfolio-secrets
+              key: github-token
         resources:
           requests:
             memory: "256Mi"
