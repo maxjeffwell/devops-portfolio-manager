@@ -80,8 +80,7 @@ devops-portfolio-manager/
 │   ├── educationelly/
 │   ├── educationelly-graphql/
 │   ├── code-talk/
-│   ├── intervalai/
-│   └── orchestration-platform/
+│   └── intervalai/
 ├── gitops/
 │   ├── applications/           # Application manifests
 │   │   ├── bookmarked.yaml
@@ -116,7 +115,6 @@ This DevOps platform manages deployments for:
 4. **EducationELLy GraphQL** - GraphQL API for EducationELLy
 5. **Code Talk** - Code collaboration and review platform
 6. **IntervalAI** - ML-powered spaced repetition system
-7. **Orchestration Platform** - Kubernetes management dashboard
 
 ## Quick Start
 

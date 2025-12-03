@@ -23,7 +23,6 @@ jobs:
           - educationelly
           - educationelly-graphql
           - code-talk
-          - orchestration-platform
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
