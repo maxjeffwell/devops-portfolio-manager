@@ -69,18 +69,20 @@ securityContext:
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1001
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-  initialDelaySeconds: 30
-  periodSeconds: 10
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-  initialDelaySeconds: 10
-  periodSeconds: 5
+# Health probes disabled - API server doesn't have /health endpoint
+# TODO: Add health endpoint to server
+# livenessProbe:
+#   httpGet:
+#     path: /health
+#     port: 8080
+#   initialDelaySeconds: 30
+#   periodSeconds: 10
+# readinessProbe:
+#   httpGet:
+#     path: /health
+#     port: 8080
+#   initialDelaySeconds: 10
+#   periodSeconds: 5
 
 # Cloud Database Configuration
 # IMPORTANT: Replace these with your actual cloud database credentials
