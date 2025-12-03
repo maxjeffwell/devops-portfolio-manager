@@ -56,6 +56,7 @@ jobs:
         with:
           repository: maxjeffwell/spaced-repetition-capstone-Docker
           path: intervalai-source
+          submodules: recursive
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
