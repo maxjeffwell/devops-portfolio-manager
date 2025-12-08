@@ -13,9 +13,42 @@ const PORT = process.env.PORT || 5001;
 // Create logger
 const logger = createLogger('API', process.env.LOG_LEVEL || 'INFO');
 
+// CORS Configuration
+// Restrict origins to prevent unauthorized cross-origin requests
+const corsOptions = {
+  // Parse allowed origins from environment variable, fallback to localhost for development
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+      : ['http://localhost:3000', 'http://localhost:31256'];
+
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn('CORS request blocked', { origin, allowedOrigins });
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  // Enable credentials (cookies, authorization headers)
+  credentials: true,
+  // Restrict HTTP methods
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  // Allow specific headers
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  // Cache preflight requests for 24 hours
+  maxAge: 86400,
+  // Expose headers to the client
+  exposedHeaders: ['X-Total-Count', 'X-Page-Number']
+};
+
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Logging middleware
 if (process.env.NODE_ENV === 'production') {
