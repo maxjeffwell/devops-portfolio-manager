@@ -146,7 +146,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ inputs.frontend-context }}
-          dockerfile: ${{ inputs.frontend-dockerfile || format('{0}/Dockerfile', inputs.frontend-context) }}
+          file: ${{ inputs.frontend-dockerfile || format('{0}/Dockerfile', inputs.frontend-context) }}
           target: ${{ inputs.build-target }}
           push: true
           tags: |
