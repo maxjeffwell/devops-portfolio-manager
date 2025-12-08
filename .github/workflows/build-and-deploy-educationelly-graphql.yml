@@ -27,6 +27,9 @@ permissions:
 
 jobs:
   build-deploy:
+    permissions:
+      contents: write
+      packages: write
     uses: ./.github/workflows/reusable-build-deploy.yml
     with:
       app-name: educationelly-graphql
