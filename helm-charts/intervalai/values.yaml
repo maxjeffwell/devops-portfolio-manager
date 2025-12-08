@@ -203,12 +203,42 @@ configMap:
     LOG_LEVEL: "info"
     CACHE_ENABLED: "true"
 
+# ⚠️ CRITICAL SECURITY WARNING ⚠️
+# NEVER commit real secrets to Git repositories!
+# Use one of these secure alternatives:
+#
+# Option 1: External Secrets Operator (Recommended for production)
+# externalSecret:
+#   enabled: true
+#   backendType: gcpSecretsManager  # or awsSecretsManager, azureKeyVault
+#   projectID: your-project-id
+#   data:
+#     - key: intervalai-mongodb-uri
+#       name: MONGODB_URI
+#     - key: intervalai-jwt-secret
+#       name: JWT_SECRET
+#
+# Option 2: Sealed Secrets (GitOps-friendly)
+# kubectl create secret generic intervalai-secret \
+#   --from-literal=MONGODB_URI='your-uri' \
+#   --from-literal=JWT_SECRET='your-secret' \
+#   --dry-run=client -o yaml | \
+#   kubeseal -o yaml > sealed-secret.yaml
+#
+# Option 3: Helm values override at deploy time (for development)
+# helm install intervalai . --set secret.data.MONGODB_URI='...' --set secret.data.JWT_SECRET='...'
+#
 # Secret data (base64 encoded)
-# Note: In production, use external secret management
+# IMPORTANT: Replace these placeholders before deployment
 secret:
   data:
-    MONGODB_URI: "bW9uZ29kYitzcnY6Ly9tYXhqZWZmd2VsbDI6ODhaSUFodHAzQHNwYWNlZC1yZXBldGl0aW9uLmp1djh3dmYubW9uZ29kYi5uZXQvc3BhY2VkLXJlcGV0aXRpb24/YXBwTmFtZT1zcGFjZWQtcmVwZXRpdGlvbg=="
-    JWT_SECRET: "eW91ci1qd3Qtc2VjcmV0LWtleQ=="
+    # Base64 encode your MongoDB connection string:
+    # echo -n "mongodb+srv://user:pass@cluster.mongodb.net/db" | base64
+    MONGODB_URI: "REPLACE_WITH_BASE64_ENCODED_MONGODB_URI"
+
+    # Base64 encode your JWT secret (use strong random string):
+    # openssl rand -base64 32 | base64
+    JWT_SECRET: "REPLACE_WITH_BASE64_ENCODED_JWT_SECRET"
 
 # Monitoring
 serviceMonitor:

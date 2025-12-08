@@ -93,16 +93,42 @@ readinessProbe:
   initialDelaySeconds: 10
   periodSeconds: 5
 
+# ⚠️ CRITICAL SECURITY WARNING ⚠️
+# NEVER commit real secrets to Git repositories!
+# Use one of these secure alternatives:
+#
+# Option 1: External Secrets Operator (Recommended for production)
+# externalSecret:
+#   enabled: true
+#   backendType: gcpSecretsManager  # or awsSecretsManager, azureKeyVault
+#   projectID: your-project-id
+#   data:
+#     - key: educationelly-graphql-mongodb-uri
+#       name: MONGODB_URI
+#     - key: educationelly-graphql-jwt-secret
+#       name: JWT_SECRET
+#
+# Option 2: Sealed Secrets (GitOps-friendly)
+# kubectl create secret generic educationelly-graphql-secret \
+#   --from-literal=MONGODB_URI='your-uri' \
+#   --from-literal=JWT_SECRET='your-secret' \
+#   --dry-run=client -o yaml | \
+#   kubeseal -o yaml > sealed-secret.yaml
+#
+# Option 3: Helm values override at deploy time (for development)
+# helm install educationelly-graphql . --set secret.data.MONGODB_URI='...' --set secret.data.JWT_SECRET='...'
+#
 # Cloud Database Configuration
-# IMPORTANT: Replace these with your actual cloud database credentials
-# These are placeholder values - update before deployment
+# IMPORTANT: Replace these placeholders before deployment
 secret:
   data:
-    # MongoDB Atlas connection string (base64 encoded)
-    # Example: mongodb+srv://<username>:<password>@cluster.mongodb.net/educationelly-graphql
-    MONGODB_URI: "REPLACE_WITH_YOUR_MONGODB_ATLAS_URI"
-    # JWT Secret for authentication (base64 encoded)
-    JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
+    # Base64 encode your MongoDB Atlas connection string:
+    # echo -n "mongodb+srv://user:pass@cluster.mongodb.net/educationelly-graphql" | base64
+    MONGODB_URI: "REPLACE_WITH_BASE64_ENCODED_MONGODB_ATLAS_URI"
+
+    # Base64 encode your JWT secret (use strong random string):
+    # openssl rand -base64 32 | base64
+    JWT_SECRET: "REPLACE_WITH_BASE64_ENCODED_JWT_SECRET"
 
 # MongoDB Connection Pool Configuration
 # These settings prevent connection exhaustion under load
