@@ -1,0 +1,9 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: devops-api-stripprefix
+  namespace: default
+spec:
+  stripPrefix:
+    prefixes:
+      - /devops-api
