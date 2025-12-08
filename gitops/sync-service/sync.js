@@ -7,6 +7,47 @@ const path = require('path');
 const yaml = require('js-yaml');
 const execAsync = promisify(exec);
 
+// Default timeout for git operations (30 seconds)
+const GIT_OPERATION_TIMEOUT = 30000;
+// Default concurrency for parallel syncing (3 applications at a time)
+const DEFAULT_CONCURRENCY = 3;
+
+/**
+ * Execute command with timeout
+ */
+async function execWithTimeout(command, timeout = GIT_OPERATION_TIMEOUT) {
+  return Promise.race([
+    execAsync(command),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Command timed out after ${timeout}ms: ${command}`)), timeout)
+    )
+  ]);
+}
+
+/**
+ * Run tasks with concurrency limit
+ */
+async function runWithConcurrency(tasks, concurrency = DEFAULT_CONCURRENCY) {
+  const results = [];
+  const executing = [];
+
+  for (const task of tasks) {
+    const promise = task().then(result => {
+      executing.splice(executing.indexOf(promise), 1);
+      return result;
+    });
+
+    results.push(promise);
+    executing.push(promise);
+
+    if (executing.length >= concurrency) {
+      await Promise.race(executing);
+    }
+  }
+
+  return Promise.allSettled(results);
+}
+
 /**
  * Sync result tracking
  */
@@ -161,12 +202,32 @@ class GitOpsSyncService {
   async cloneRepository() {
     try {
       await fs.access(this.repoPath);
-      console.log('Repository already exists, pulling latest changes...');
-      await execAsync(`cd ${this.repoPath} && git pull origin ${this.config.git.branch}`);
+      console.log('Repository already exists, fetching latest changes...');
+      await this.updateRepository();
     } catch {
       console.log('Cloning repository...');
-      await execAsync(`git clone ${this.config.git.repository} ${this.repoPath}`);
-      await execAsync(`cd ${this.repoPath} && git checkout ${this.config.git.branch}`);
+      await execWithTimeout(`git clone ${this.config.git.repository} ${this.repoPath}`);
+      await execWithTimeout(`cd ${this.repoPath} && git checkout ${this.config.git.branch}`);
+    }
+  }
+
+  async updateRepository() {
+    const branch = this.config.git.branch;
+
+    try {
+      // Fetch latest changes with timeout
+      await execWithTimeout(`cd ${this.repoPath} && git fetch origin ${branch}`);
+
+      // Reset to latest remote branch (safer than pull)
+      await execWithTimeout(`cd ${this.repoPath} && git reset --hard origin/${branch}`);
+
+      // Clean any untracked files
+      await execWithTimeout(`cd ${this.repoPath} && git clean -fd`);
+
+      this.logger.info('Repository updated successfully', { branch });
+    } catch (error) {
+      this.logger.error('Failed to update repository', error);
+      throw error;
     }
   }
 
@@ -330,12 +391,12 @@ class GitOpsSyncService {
     try {
       this.logger.info('Starting sync cycle...');
 
-      // Pull latest changes
+      // Update repository with timeout
       try {
-        await execAsync(`cd ${this.repoPath} && git pull origin ${this.config.git.branch}`);
+        await this.updateRepository();
       } catch (error) {
-        this.logger.error('Failed to pull git changes', error);
-        throw new Error(`Git pull failed: ${error.message}`);
+        this.logger.error('Failed to update git repository', error);
+        throw new Error(`Git update failed: ${error.message}`);
       }
 
       // Check for changes
@@ -347,15 +408,32 @@ class GitOpsSyncService {
         return summary;
       }
 
-      this.logger.info('Changes detected, syncing applications...', {
+      this.logger.info('Changes detected, syncing applications in parallel...', {
         commit: this.lastCommit,
-        appCount: this.config.applications.length
+        appCount: this.config.applications.length,
+        concurrency: this.config.sync.concurrency || DEFAULT_CONCURRENCY
       });
 
-      // Sync each application and track results
-      for (const app of this.config.applications) {
-        const result = await this.syncApplication(app);
-        summary.addResult(result);
+      // Create sync tasks for parallel execution
+      const syncTasks = this.config.applications.map(app => {
+        return () => this.syncApplication(app);
+      });
+
+      // Execute syncs in parallel with concurrency control
+      const concurrency = this.config.sync.concurrency || DEFAULT_CONCURRENCY;
+      const results = await runWithConcurrency(syncTasks, concurrency);
+
+      // Process results
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          summary.addResult(result.value);
+        } else {
+          // Handle rejected promises (shouldn't happen as syncApplication catches errors)
+          this.logger.error('Unexpected sync failure', result.reason);
+          const errorResult = new SyncResult('unknown');
+          errorResult.markFailure(result.reason);
+          summary.addResult(errorResult);
+        }
       }
 
       summary.complete();
@@ -401,10 +479,13 @@ class GitOpsSyncService {
   async start() {
     console.log('Starting GitOps Sync Service...');
     const interval = this.parseInterval(this.config.sync.interval);
+    const concurrency = this.config.sync.concurrency || DEFAULT_CONCURRENCY;
 
     console.log(`Sync interval: ${this.config.sync.interval} (${interval}ms)`);
+    console.log(`Parallel concurrency: ${concurrency} applications`);
     console.log(`Auto-rollback: ${this.config.sync.autoRollback ? 'enabled' : 'disabled'}`);
     console.log(`Dry-run mode: ${this.config.sync.dryRun ? 'enabled' : 'disabled'}`);
+    console.log(`Git operation timeout: ${GIT_OPERATION_TIMEOUT / 1000}s`);
 
     // Initial sync
     await this.syncAll();

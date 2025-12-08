@@ -3,6 +3,7 @@ sync:
   branch: main
   autoRollback: true  # Automatically rollback failed deployments
   dryRun: false  # Set to true to test without applying changes
+  concurrency: 3  # Number of applications to sync in parallel (default: 3)
 
 git:
   repository: https://github.com/maxjeffwell/devops-portfolio-manager.git
