@@ -74,3 +74,6 @@ healthCheck:
   enabled: true
   timeout: 300s  # Wait up to 5 minutes for deployment to become healthy
   retries: 3
+  initialDelay: 5000  # Start with 5s delay between retries
+  backoffFactor: 2  # Double delay each retry (5s, 10s, 20s, ...)
+  maxDelay: 60000  # Cap delay at 60s

@@ -352,27 +352,35 @@ class GitOpsSyncService {
   }
 
   async healthCheck(app) {
-    console.log(`Performing health check for ${app.name}...`);
+    this.logger.info(`Performing health check for ${app.name}...`);
     const maxRetries = this.config.healthCheck.retries;
-    const timeout = 30000; // 30 seconds between retries
+    const initialDelay = this.config.healthCheck.initialDelay || 5000; // Default 5s
+    const backoffFactor = this.config.healthCheck.backoffFactor || 2; // Default 2x
+    const maxDelay = this.config.healthCheck.maxDelay || 60000; // Default 60s
 
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const { stdout } = await execAsync(
-          `kubectl get deployment -n ${app.namespace} -l app=${app.name} -o jsonpath='{.items[0].status.conditions[?(@.type=="Available")].status}'`
+        // Use kubectl wait for more efficient checking
+        // This waits for the condition instead of polling repeatedly
+        const timeout = 30; // 30 seconds timeout for kubectl wait
+        await execAsync(
+          `kubectl wait --for=condition=Available deployment -n ${app.namespace} -l app=${app.name} --timeout=${timeout}s`
         );
 
-        if (stdout.includes('True')) {
-          console.log(`Health check passed for ${app.name}`);
-          return;
-        }
+        this.logger.info(`Health check passed for ${app.name}`);
+        return;
       } catch (error) {
-        console.warn(`Health check attempt ${i + 1}/${maxRetries} failed for ${app.name}`);
-      }
+        this.logger.warn(`Health check attempt ${i + 1}/${maxRetries} failed for ${app.name}`);
 
-      if (i < maxRetries - 1) {
-        console.log(`Waiting ${timeout / 1000}s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, timeout));
+        if (i < maxRetries - 1) {
+          // Calculate exponential backoff delay
+          const delay = Math.min(
+            initialDelay * Math.pow(backoffFactor, i),
+            maxDelay
+          );
+          this.logger.info(`Retrying in ${(delay / 1000).toFixed(1)}s...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
       }
     }
 
