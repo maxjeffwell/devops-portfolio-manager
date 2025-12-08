@@ -1,0 +1,64 @@
+# Portfolio Applications Configuration
+# This file defines all applications managed by the DevOps Portfolio Manager
+# Each application includes metadata for deployment, monitoring, and CI/CD integration
+
+applications:
+  - id: bookmarked
+    name: Bookmarked
+    description: Bookmark management application
+    namespace: default
+    helmChart: bookmarked
+    argocdApp: bookmarked
+    github:
+      owner: maxjeffwell
+      repo: bookmarks-react-hooks
+
+  - id: code-talk
+    name: Code Talk
+    description: Code collaboration and review platform
+    namespace: default
+    helmChart: code-talk
+    argocdApp: code-talk
+    github:
+      owner: maxjeffwell
+      repo: code-talk
+
+  - id: educationelly
+    name: EducationELLy
+    description: Language learning application
+    namespace: default
+    helmChart: educationelly
+    argocdApp: educationelly
+    github:
+      owner: maxjeffwell
+      repo: educationelly
+
+  - id: educationelly-graphql
+    name: EducationELLy GraphQL
+    description: GraphQL-based education platform
+    namespace: default
+    helmChart: educationelly-graphql
+    argocdApp: educationelly-graphql
+    github:
+      owner: maxjeffwell
+      repo: educationelly-graphql
+
+  - id: firebook
+    name: FireBook
+    description: Social networking platform
+    namespace: default
+    helmChart: firebook
+    argocdApp: firebook
+    github:
+      owner: maxjeffwell
+      repo: bookmarks-capstone-api
+
+  - id: intervalai
+    name: IntervalAI
+    description: Spaced repetition learning with AI
+    namespace: default
+    helmChart: intervalai
+    argocdApp: intervalai
+    github:
+      owner: maxjeffwell
+      repo: spaced-repetition-capstone

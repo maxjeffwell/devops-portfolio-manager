@@ -1,0 +1,210 @@
+name: Reusable Build and Deploy
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        description: 'Application name (lowercase, e.g., bookmarked, intervalai)'
+        required: true
+        type: string
+      app-display-name:
+        description: 'Application display name (e.g., Bookmarked, IntervalAI)'
+        required: true
+        type: string
+      helm-chart-path:
+        description: 'Path to Helm chart (e.g., helm-charts/bookmarked)'
+        required: true
+        type: string
+      source-repo:
+        description: 'Source code repository (e.g., maxjeffwell/bookmarks-react-hooks)'
+        required: true
+        type: string
+      source-repo-ref:
+        description: 'Branch or ref to checkout (e.g., master, main)'
+        required: false
+        type: string
+        default: 'main'
+      image-name-backend:
+        description: 'Docker Hub image name for backend (e.g., maxjeffwell/bookmarked-api)'
+        required: true
+        type: string
+      image-name-frontend:
+        description: 'Docker Hub image name for frontend (e.g., maxjeffwell/bookmarked-client)'
+        required: true
+        type: string
+      backend-context:
+        description: 'Build context path for backend (e.g., ./source/server)'
+        required: true
+        type: string
+      frontend-context:
+        description: 'Build context path for frontend (e.g., ./source)'
+        required: true
+        type: string
+      frontend-dockerfile:
+        description: 'Dockerfile path for frontend (optional, e.g., ./source/Dockerfile)'
+        required: false
+        type: string
+      build-target:
+        description: 'Docker build target (e.g., production)'
+        required: false
+        type: string
+        default: 'production'
+      checkout-submodules:
+        description: 'Whether to checkout git submodules'
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: 'Version tag (leave empty for auto-generated)'
+        required: false
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+    outputs:
+      image-tag:
+        description: 'Generated image tag'
+        value: ${{ jobs.build-and-push-images.outputs.image-tag }}
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  lint-and-validate:
+    name: Lint Helm Charts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.0'
+
+      - name: Update Helm dependencies
+        run: |
+          cd ${{ inputs.helm-chart-path }}
+          helm dependency update
+
+      - name: Lint Helm charts
+        run: |
+          helm lint ${{ inputs.helm-chart-path }}
+          helm template ${{ inputs.app-name }} ${{ inputs.helm-chart-path }} --debug
+
+  build-and-push-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.source-repo }}
+          ref: ${{ inputs.source-repo-ref }}
+          path: source
+          submodules: ${{ inputs.checkout-submodules && 'recursive' || 'false' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            TAG="${{ inputs.version }}"
+          else
+            TAG="$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Building with tag: ${TAG}"
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.backend-context }}
+          target: ${{ inputs.build-target }}
+          push: true
+          tags: |
+            ${{ inputs.image-name-backend }}:${{ steps.meta.outputs.tag }}
+            ${{ inputs.image-name-backend }}:latest
+          cache-from: type=registry,ref=${{ inputs.image-name-backend }}:buildcache
+          cache-to: type=registry,ref=${{ inputs.image-name-backend }}:buildcache,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.frontend-context }}
+          dockerfile: ${{ inputs.frontend-dockerfile || format('{0}/Dockerfile', inputs.frontend-context) }}
+          target: ${{ inputs.build-target }}
+          push: true
+          tags: |
+            ${{ inputs.image-name-frontend }}:${{ steps.meta.outputs.tag }}
+            ${{ inputs.image-name-frontend }}:latest
+          cache-from: type=registry,ref=${{ inputs.image-name-frontend }}:buildcache
+          cache-to: type=registry,ref=${{ inputs.image-name-frontend }}:buildcache,mode=max
+
+  update-gitops-manifest:
+    name: Update GitOps Manifest
+    runs-on: ubuntu-latest
+    needs: build-and-push-images
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update image tags in values.yaml
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
+
+          echo "Updating ${{ inputs.app-display-name }} image tags to: ${IMAGE_TAG}"
+
+          # Update image tags
+          sed -i "s|tag: .*|tag: ${IMAGE_TAG}|" ${{ inputs.helm-chart-path }}/values.yaml
+
+          # Show the changes
+          git diff ${{ inputs.helm-chart-path }}/values.yaml
+
+      - name: Commit and push changes
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add ${{ inputs.helm-chart-path }}/values.yaml
+          git commit -m "Update ${{ inputs.app-display-name }} image tag to ${IMAGE_TAG}"
+          git push
+
+          echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
+
+  notify:
+    name: Notify Status
+    runs-on: ubuntu-latest
+    needs: [build-and-push-images, update-gitops-manifest]
+    if: always()
+    steps:
+      - name: Success
+        if: needs.update-gitops-manifest.result == 'success'
+        run: |
+          echo "✅ ${{ inputs.app-display-name }} images built and GitOps manifest updated successfully!"
+          echo "Image tag: ${{ needs.build-and-push-images.outputs.image-tag }}"
+          echo "ArgoCD will automatically deploy the changes to your cluster."
+
+      - name: Failed
+        if: needs.update-gitops-manifest.result == 'failure'
+        run: |
+          echo "❌ ${{ inputs.app-display-name }} workflow failed!"
+          exit 1

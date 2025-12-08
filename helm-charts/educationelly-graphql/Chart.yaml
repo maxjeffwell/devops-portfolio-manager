@@ -4,3 +4,7 @@ description: A Helm chart for EducationELLy GraphQL Application
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
+dependencies:
+  - name: portfolio-common
+    version: 1.0.0
+    repository: "file://../portfolio-common"

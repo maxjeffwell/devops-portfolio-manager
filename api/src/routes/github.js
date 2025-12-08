@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { validators } = require('../middleware/validation');
 
 const GITHUB_API = 'https://api.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -8,7 +9,7 @@ const GITHUB_OWNER = process.env.GITHUB_OWNER || 'maxjeffwell';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'devops-portfolio-manager';
 
 // Get workflow runs
-router.get('/workflows/:workflow_id/runs', async (req, res) => {
+router.get('/workflows/:workflow_id/runs', validators.github.getWorkflowRuns, async (req, res) => {
   try {
     const { workflow_id } = req.params;
     const response = await axios.get(
@@ -39,7 +40,7 @@ router.get('/workflows', async (req, res) => {
 });
 
 // Trigger workflow
-router.post('/workflows/:workflow_id/dispatches', async (req, res) => {
+router.post('/workflows/:workflow_id/dispatches', validators.github.triggerWorkflow, async (req, res) => {
   try {
     const { workflow_id } = req.params;
     const { ref, inputs } = req.body;

@@ -7,6 +7,108 @@ const path = require('path');
 const yaml = require('js-yaml');
 const execAsync = promisify(exec);
 
+/**
+ * Sync result tracking
+ */
+class SyncResult {
+  constructor(appName) {
+    this.appName = appName;
+    this.success = false;
+    this.error = null;
+    this.startTime = Date.now();
+    this.endTime = null;
+    this.action = null; // 'install', 'upgrade', 'skip'
+    this.rolledBack = false;
+  }
+
+  markSuccess(action) {
+    this.success = true;
+    this.action = action;
+    this.endTime = Date.now();
+  }
+
+  markFailure(error, rolledBack = false) {
+    this.success = false;
+    this.error = {
+      message: error.message,
+      stack: error.stack
+    };
+    this.rolledBack = rolledBack;
+    this.endTime = Date.now();
+  }
+
+  getDuration() {
+    return this.endTime ? this.endTime - this.startTime : Date.now() - this.startTime;
+  }
+
+  toJSON() {
+    return {
+      appName: this.appName,
+      success: this.success,
+      action: this.action,
+      error: this.error,
+      rolledBack: this.rolledBack,
+      duration: this.getDuration()
+    };
+  }
+}
+
+/**
+ * Sync cycle summary
+ */
+class SyncCycleSummary {
+  constructor() {
+    this.results = [];
+    this.startTime = Date.now();
+    this.endTime = null;
+  }
+
+  addResult(result) {
+    this.results.push(result);
+  }
+
+  complete() {
+    this.endTime = Date.now();
+  }
+
+  getSuccessCount() {
+    return this.results.filter(r => r.success).length;
+  }
+
+  getFailureCount() {
+    return this.results.filter(r => !r.success).length;
+  }
+
+  getSkippedCount() {
+    return this.results.filter(r => r.action === 'skip').length;
+  }
+
+  getDuration() {
+    return this.endTime ? this.endTime - this.startTime : Date.now() - this.startTime;
+  }
+
+  toJSON() {
+    return {
+      totalApps: this.results.length,
+      successful: this.getSuccessCount(),
+      failed: this.getFailureCount(),
+      skipped: this.getSkippedCount(),
+      duration: this.getDuration(),
+      results: this.results.map(r => r.toJSON())
+    };
+  }
+
+  getSummaryString() {
+    const total = this.results.length;
+    const success = this.getSuccessCount();
+    const failed = this.getFailureCount();
+    const skipped = this.getSkippedCount();
+    const duration = (this.getDuration() / 1000).toFixed(2);
+
+    return `Sync completed: ${success}/${total} succeeded, ${failed} failed, ${skipped} skipped (${duration}s)`;
+  }
+}
+
 class GitOpsSyncService {
   constructor(configPath) {
     this.configPath = configPath;
@@ -14,6 +116,33 @@ class GitOpsSyncService {
     this.repoPath = '/tmp/gitops-repo';
     this.lastCommit = null;
     this.syncInProgress = false;
+    this.logger = this.createLogger();
+  }
+
+  createLogger() {
+    return {
+      info: (msg, data = {}) => {
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] INFO: ${msg}`, data.error ? '' : JSON.stringify(data));
+      },
+      error: (msg, error, data = {}) => {
+        const timestamp = new Date().toISOString();
+        console.error(`[${timestamp}] ERROR: ${msg}`);
+        if (error) {
+          console.error('  Error:', error.message);
+          if (error.stack) {
+            console.error('  Stack:', error.stack);
+          }
+        }
+        if (Object.keys(data).length > 0) {
+          console.error('  Details:', JSON.stringify(data));
+        }
+      },
+      warn: (msg, data = {}) => {
+        const timestamp = new Date().toISOString();
+        console.warn(`[${timestamp}] WARN: ${msg}`, JSON.stringify(data));
+      }
+    };
   }
 
   async init() {
@@ -55,24 +184,30 @@ class GitOpsSyncService {
   }
 
   async syncApplication(app) {
+    const result = new SyncResult(app.name);
+
     if (!app.enabled || !app.autoSync) {
-      console.log(`Skipping ${app.name} (auto-sync disabled)`);
-      return;
+      this.logger.info(`Skipping ${app.name} (auto-sync disabled)`);
+      result.markSuccess('skip');
+      return result;
     }
 
-    console.log(`Syncing application: ${app.name}`);
+    this.logger.info(`Syncing application: ${app.name}`);
     const chartPath = path.join(this.repoPath, app.path);
+    let releaseExists = false;
 
     try {
       // Check if Helm release exists
-      const releaseExists = await this.helmReleaseExists(app.name, app.namespace);
+      releaseExists = await this.helmReleaseExists(app.name, app.namespace);
 
       if (releaseExists) {
-        console.log(`Upgrading existing release: ${app.name}`);
+        this.logger.info(`Upgrading existing release: ${app.name}`);
         await this.helmUpgrade(app, chartPath);
+        result.markSuccess('upgrade');
       } else {
-        console.log(`Installing new release: ${app.name}`);
+        this.logger.info(`Installing new release: ${app.name}`);
         await this.helmInstall(app, chartPath);
+        result.markSuccess('install');
       }
 
       // Perform health check
@@ -80,15 +215,33 @@ class GitOpsSyncService {
         await this.healthCheck(app);
       }
 
-      console.log(`Successfully synced ${app.name}`);
-    } catch (error) {
-      console.error(`Failed to sync ${app.name}:`, error.message);
+      this.logger.info(`Successfully synced ${app.name}`, {
+        action: result.action,
+        duration: result.getDuration()
+      });
 
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to sync ${app.name}`, error, {
+        action: releaseExists ? 'upgrade' : 'install'
+      });
+
+      let rolledBack = false;
+
+      // Attempt auto-rollback if enabled and release existed
       if (this.config.sync.autoRollback && releaseExists) {
-        console.log(`Auto-rolling back ${app.name}...`);
-        await this.rollback(app);
+        this.logger.info(`Auto-rolling back ${app.name}...`);
+        try {
+          await this.rollback(app);
+          rolledBack = true;
+          this.logger.info(`Successfully rolled back ${app.name}`);
+        } catch (rollbackError) {
+          this.logger.error(`Failed to rollback ${app.name}`, rollbackError);
+        }
       }
-      throw error;
+
+      result.markFailure(error, rolledBack);
+      return result;
     }
   }
 
@@ -167,39 +320,66 @@ class GitOpsSyncService {
 
   async syncAll() {
     if (this.syncInProgress) {
-      console.log('Sync already in progress, skipping...');
-      return;
+      this.logger.warn('Sync already in progress, skipping...');
+      return null;
     }
 
     this.syncInProgress = true;
+    const summary = new SyncCycleSummary();
 
     try {
+      this.logger.info('Starting sync cycle...');
+
       // Pull latest changes
-      await execAsync(`cd ${this.repoPath} && git pull origin ${this.config.git.branch}`);
+      try {
+        await execAsync(`cd ${this.repoPath} && git pull origin ${this.config.git.branch}`);
+      } catch (error) {
+        this.logger.error('Failed to pull git changes', error);
+        throw new Error(`Git pull failed: ${error.message}`);
+      }
 
       // Check for changes
       const hasChanges = await this.checkForChanges();
 
       if (!hasChanges && this.lastCommit) {
-        console.log('No changes detected, skipping sync');
-        return;
+        this.logger.info('No changes detected, skipping sync');
+        summary.complete();
+        return summary;
       }
 
-      console.log('Starting sync for all applications...');
+      this.logger.info('Changes detected, syncing applications...', {
+        commit: this.lastCommit,
+        appCount: this.config.applications.length
+      });
 
-      // Sync each application
+      // Sync each application and track results
       for (const app of this.config.applications) {
-        try {
-          await this.syncApplication(app);
-        } catch (error) {
-          console.error(`Failed to sync ${app.name}:`, error.message);
-          // Continue with other applications
-        }
+        const result = await this.syncApplication(app);
+        summary.addResult(result);
       }
 
-      console.log('Sync cycle completed');
+      summary.complete();
+
+      // Log summary
+      this.logger.info(summary.getSummaryString());
+
+      // Log failures in detail
+      const failures = summary.results.filter(r => !r.success && r.action !== 'skip');
+      if (failures.length > 0) {
+        this.logger.error('Failed applications:', null, {
+          failures: failures.map(f => ({
+            app: f.appName,
+            error: f.error.message,
+            rolledBack: f.rolledBack
+          }))
+        });
+      }
+
+      return summary;
     } catch (error) {
-      console.error('Sync cycle failed:', error.message);
+      this.logger.error('Sync cycle failed', error);
+      summary.complete();
+      return summary;
     } finally {
       this.syncInProgress = false;
     }

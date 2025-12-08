@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const { validators } = require('../middleware/validation');
 
 const execAsync = promisify(exec);
 
@@ -16,7 +17,7 @@ router.get('/releases', async (req, res) => {
 });
 
 // Get specific release
-router.get('/releases/:namespace/:name', async (req, res) => {
+router.get('/releases/:namespace/:name', validators.helm.getRelease, async (req, res) => {
   try {
     const { namespace, name } = req.params;
     const { stdout } = await execAsync(`helm get all ${name} -n ${namespace} -o json`);
@@ -27,7 +28,7 @@ router.get('/releases/:namespace/:name', async (req, res) => {
 });
 
 // Get release history
-router.get('/releases/:namespace/:name/history', async (req, res) => {
+router.get('/releases/:namespace/:name/history', validators.helm.getReleaseHistory, async (req, res) => {
   try {
     const { namespace, name } = req.params;
     const { stdout } = await execAsync(`helm history ${name} -n ${namespace} -o json`);
@@ -38,7 +39,7 @@ router.get('/releases/:namespace/:name/history', async (req, res) => {
 });
 
 // Rollback release
-router.post('/releases/:namespace/:name/rollback', async (req, res) => {
+router.post('/releases/:namespace/:name/rollback', validators.helm.rollbackRelease, async (req, res) => {
   try {
     const { namespace, name } = req.params;
     const { revision } = req.body;
@@ -51,7 +52,7 @@ router.post('/releases/:namespace/:name/rollback', async (req, res) => {
 });
 
 // Get release values
-router.get('/releases/:namespace/:name/values', async (req, res) => {
+router.get('/releases/:namespace/:name/values', validators.helm.getReleaseValues, async (req, res) => {
   try {
     const { namespace, name } = req.params;
     const { stdout } = await execAsync(`helm get values ${name} -n ${namespace} -o json`);

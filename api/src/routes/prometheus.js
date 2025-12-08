@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { validators } = require('../middleware/validation');
 
 const PROMETHEUS_URL = process.env.PROMETHEUS_URL || 'http://localhost:30090';
 
 // Query Prometheus
-router.get('/query', async (req, res) => {
+router.get('/query', validators.prometheus.query, async (req, res) => {
   try {
     const { query, time } = req.query;
     const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query`, {
@@ -18,7 +19,7 @@ router.get('/query', async (req, res) => {
 });
 
 // Query range
-router.get('/query_range', async (req, res) => {
+router.get('/query_range', validators.prometheus.queryRange, async (req, res) => {
   try {
     const { query, start, end, step } = req.query;
     const response = await axios.get(`${PROMETHEUS_URL}/api/v1/query_range`, {
@@ -31,7 +32,7 @@ router.get('/query_range', async (req, res) => {
 });
 
 // Get application metrics
-router.get('/metrics/:namespace/:deployment', async (req, res) => {
+router.get('/metrics/:namespace/:deployment', validators.prometheus.getMetrics, async (req, res) => {
   try {
     const { namespace, deployment } = req.params;
 

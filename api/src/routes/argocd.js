@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const { validators } = require('../middleware/validation');
 
 const ARGOCD_API = `https://${process.env.ARGOCD_SERVER || 'localhost:30443'}/api/v1`;
 
@@ -37,7 +38,7 @@ router.get('/applications', async (req, res) => {
 });
 
 // Get specific application
-router.get('/applications/:name', async (req, res) => {
+router.get('/applications/:name', validators.argocd.getApplication, async (req, res) => {
   try {
     const token = await getArgoCDToken();
     const response = await axios.get(`${ARGOCD_API}/applications/${req.params.name}`, {
@@ -51,7 +52,7 @@ router.get('/applications/:name', async (req, res) => {
 });
 
 // Sync application
-router.post('/applications/:name/sync', async (req, res) => {
+router.post('/applications/:name/sync', validators.argocd.syncApplication, async (req, res) => {
   try {
     const token = await getArgoCDToken();
     const response = await axios.post(
@@ -69,7 +70,7 @@ router.post('/applications/:name/sync', async (req, res) => {
 });
 
 // Get application history
-router.get('/applications/:name/history', async (req, res) => {
+router.get('/applications/:name/history', validators.argocd.getApplicationHistory, async (req, res) => {
   try {
     const token = await getArgoCDToken();
     const response = await axios.get(`${ARGOCD_API}/applications/${req.params.name}`, {

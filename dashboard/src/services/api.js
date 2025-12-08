@@ -1,83 +1,179 @@
+import {
+  APIError,
+  ServiceUnavailableError,
+  Result,
+  handleResponse,
+  safeAPICall,
+  logError
+} from '../utils/errors';
+
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:31256';
 
+/**
+ * Make API request with proper error handling
+ */
+async function makeRequest(url, options = {}) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    });
+
+    return await handleResponse(response);
+  } catch (error) {
+    // Network error or fetch failed
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new APIError('Unable to connect to API server', 0, {
+        url,
+        originalError: error.message
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Make API request for optional services (returns Result instead of throwing)
+ */
+async function makeOptionalRequest(serviceName, url, options = {}) {
+  return safeAPICall(
+    async () => {
+      try {
+        return await makeRequest(url, options);
+      } catch (error) {
+        // Wrap as ServiceUnavailableError for optional services
+        if (error instanceof APIError && error.isServiceUnavailable()) {
+          throw new ServiceUnavailableError(serviceName, {
+            url,
+            statusCode: error.statusCode,
+            originalMessage: error.message
+          });
+        }
+        throw error;
+      }
+    },
+    {
+      onError: (error) => {
+        logError(`${serviceName} API`, error, { url });
+      }
+    }
+  );
+}
+
 export const api = {
-  // Applications
+  // Applications (required service - throws on error)
   async getApplications() {
-    const response = await fetch(`${API_BASE}/api/applications`);
-    if (!response.ok) throw new Error('Failed to fetch applications');
-    return response.json();
+    return makeRequest(`${API_BASE}/api/applications`);
   },
 
   async getApplication(id) {
-    const response = await fetch(`${API_BASE}/api/applications/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch application');
-    return response.json();
+    return makeRequest(`${API_BASE}/api/applications/${id}`);
   },
 
-  // ArgoCD
+  // ArgoCD (optional service - returns Result)
   async getArgoCDApplications() {
-    try {
-      const response = await fetch(`${API_BASE}/api/argocd/applications`);
-      if (!response.ok) return [];
-      return response.json();
-    } catch (error) {
-      console.error('ArgoCD not available:', error);
-      return [];
-    }
+    const result = await makeOptionalRequest(
+      'ArgoCD',
+      `${API_BASE}/api/argocd/applications`
+    );
+
+    // Return empty array for UI compatibility, but log the error
+    return result.unwrapOr([]);
   },
 
   async getArgoCDApplication(name) {
-    const response = await fetch(`${API_BASE}/api/argocd/applications/${name}`);
-    if (!response.ok) throw new Error('Failed to fetch ArgoCD application');
-    return response.json();
+    return makeRequest(`${API_BASE}/api/argocd/applications/${name}`);
   },
 
   async syncArgoCDApplication(name) {
-    const response = await fetch(`${API_BASE}/api/argocd/applications/${name}/sync`, {
+    return makeRequest(`${API_BASE}/api/argocd/applications/${name}/sync`, {
       method: 'POST'
     });
-    if (!response.ok) throw new Error('Failed to sync application');
-    return response.json();
   },
 
-  // Helm
+  // Helm (optional service - returns Result)
   async getHelmReleases() {
-    try {
-      const response = await fetch(`${API_BASE}/api/helm/releases`);
-      if (!response.ok) return [];
-      return response.json();
-    } catch (error) {
-      console.error('Helm not available:', error);
-      return [];
-    }
+    const result = await makeOptionalRequest(
+      'Helm',
+      `${API_BASE}/api/helm/releases`
+    );
+
+    return result.unwrapOr([]);
   },
 
   async getHelmRelease(namespace, name) {
-    const response = await fetch(`${API_BASE}/api/helm/releases/${namespace}/${name}`);
-    if (!response.ok) throw new Error('Failed to fetch release');
-    return response.json();
+    return makeRequest(`${API_BASE}/api/helm/releases/${namespace}/${name}`);
   },
 
-  // GitHub
+  async rollbackHelmRelease(namespace, name, revision = null) {
+    return makeRequest(`${API_BASE}/api/helm/releases/${namespace}/${name}/rollback`, {
+      method: 'POST',
+      body: JSON.stringify({ revision })
+    });
+  },
+
+  // GitHub (optional service - returns Result)
   async getGitHubWorkflows() {
-    try {
-      const response = await fetch(`${API_BASE}/api/github/workflows`);
-      if (!response.ok) return { workflows: [] };
-      return response.json();
-    } catch (error) {
-      console.error('GitHub not available:', error);
-      return { workflows: [] };
-    }
+    const result = await makeOptionalRequest(
+      'GitHub',
+      `${API_BASE}/api/github/workflows`
+    );
+
+    return result.unwrapOr({ workflows: [] });
   },
 
   async getRecentRuns() {
-    try {
-      const response = await fetch(`${API_BASE}/api/github/runs/recent`);
-      if (!response.ok) return { workflow_runs: [] };
-      return response.json();
-    } catch (error) {
-      console.error('GitHub not available:', error);
-      return { workflow_runs: [] };
-    }
+    const result = await makeOptionalRequest(
+      'GitHub',
+      `${API_BASE}/api/github/runs/recent`
+    );
+
+    return result.unwrapOr({ workflow_runs: [] });
+  },
+
+  async triggerWorkflow(workflowId, ref = 'main', inputs = {}) {
+    return makeRequest(`${API_BASE}/api/github/workflows/${workflowId}/dispatches`, {
+      method: 'POST',
+      body: JSON.stringify({ ref, inputs })
+    });
+  },
+
+  // Prometheus (optional service - returns Result)
+  async queryPrometheus(query, time = null) {
+    const params = new URLSearchParams({ query });
+    if (time) params.append('time', time);
+
+    const result = await makeOptionalRequest(
+      'Prometheus',
+      `${API_BASE}/api/prometheus/query?${params}`
+    );
+
+    return result.unwrapOr({ data: { result: [] } });
+  },
+
+  async getMetrics(namespace, deployment) {
+    const result = await makeOptionalRequest(
+      'Prometheus',
+      `${API_BASE}/api/prometheus/metrics/${namespace}/${deployment}`
+    );
+
+    return result.unwrapOr({ cpu: [], memory: [] });
+  },
+
+  async getClusterOverview() {
+    const result = await makeOptionalRequest(
+      'Prometheus',
+      `${API_BASE}/api/prometheus/cluster/overview`
+    );
+
+    return result.unwrapOr({
+      totalNodes: '0',
+      totalPods: '0',
+      cpuUsage: '0',
+      memoryUsage: '0'
+    });
   }
 };

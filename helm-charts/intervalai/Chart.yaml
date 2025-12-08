@@ -15,4 +15,7 @@ maintainers:
     email: jeff@el-jefe.me
 sources:
   - https://github.com/maxjeffwell/spaced-repetition-capstone
-dependencies: []
+dependencies:
+  - name: portfolio-common
+    version: 1.0.0
+    repository: "file://../portfolio-common"

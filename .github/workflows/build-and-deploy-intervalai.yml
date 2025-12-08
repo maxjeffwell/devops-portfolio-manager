@@ -21,141 +21,22 @@ on:
         required: false
         type: string
 
-permissions:
-  contents: write
-  packages: write
-
-env:
-  REGISTRY: docker.io
-  IMAGE_NAME_SERVER: maxjeffwell/spaced-repetition-capstone-server
-  IMAGE_NAME_CLIENT: maxjeffwell/spaced-repetition-capstone-client
-
 jobs:
-  lint-and-validate:
-    name: Lint Helm Charts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.12.0'
-
-      - name: Lint Helm charts
-        run: |
-          helm lint helm-charts/intervalai
-          helm template intervalai helm-charts/intervalai --debug
-
-  build-and-push-images:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: lint-and-validate
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tag }}
-    steps:
-      - name: Checkout IntervalAI repository
-        uses: actions/checkout@v4
-        with:
-          repository: maxjeffwell/spaced-repetition-capstone-Docker
-          path: intervalai-source
-          submodules: recursive
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Extract metadata
-        id: meta
-        run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            TAG="${{ github.event.inputs.version }}"
-          else
-            TAG="$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
-          fi
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Building with tag: ${TAG}"
-
-      - name: Build and push server image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./intervalai-source/spaced-repetition-capstone-server
-          target: production
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME_SERVER }}:${{ steps.meta.outputs.tag }}
-            ${{ env.IMAGE_NAME_SERVER }}:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME_SERVER }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME_SERVER }}:buildcache,mode=max
-
-      - name: Build and push client image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./intervalai-source/spaced-repetition-capstone-client
-          target: production
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME_CLIENT }}:${{ steps.meta.outputs.tag }}
-            ${{ env.IMAGE_NAME_CLIENT }}:latest
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache,mode=max
-
-  update-gitops-manifest:
-    name: Update GitOps Manifest
-    runs-on: ubuntu-latest
-    needs: build-and-push-images
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update image tags in values.yaml
-        run: |
-          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
-
-          echo "Updating IntervalAI image tags to: ${IMAGE_TAG}"
-
-          # Update server image tag
-          sed -i "s|tag: .*|tag: ${IMAGE_TAG}|" helm-charts/intervalai/values.yaml
-
-          # Show the changes
-          git diff helm-charts/intervalai/values.yaml
-
-      - name: Commit and push changes
-        run: |
-          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          git add helm-charts/intervalai/values.yaml
-          git commit -m "Update IntervalAI image tags to ${IMAGE_TAG}"
-          git push
-
-          echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
-
-  notify:
-    name: Notify Status
-    runs-on: ubuntu-latest
-    needs: [build-and-push-images, update-gitops-manifest]
-    if: always()
-    steps:
-      - name: Success
-        if: needs.update-gitops-manifest.result == 'success'
-        run: |
-          echo "✅ IntervalAI images built and GitOps manifest updated successfully!"
-          echo "Image tag: ${{ needs.build-and-push-images.outputs.image-tag }}"
-          echo "ArgoCD will automatically deploy the changes to your cluster."
-
-      - name: Failed
-        if: needs.update-gitops-manifest.result == 'failure'
-        run: |
-          echo "❌ IntervalAI workflow failed!"
-          exit 1
+  build-deploy:
+    uses: ./.github/workflows/reusable-build-deploy.yml
+    with:
+      app-name: intervalai
+      app-display-name: IntervalAI
+      helm-chart-path: helm-charts/intervalai
+      source-repo: maxjeffwell/spaced-repetition-capstone-Docker
+      source-repo-ref: main
+      image-name-backend: maxjeffwell/spaced-repetition-capstone-server
+      image-name-frontend: maxjeffwell/spaced-repetition-capstone-client
+      backend-context: ./source/spaced-repetition-capstone-server
+      frontend-context: ./source/spaced-repetition-capstone-client
+      build-target: production
+      checkout-submodules: true
+      version: ${{ inputs.version || '' }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

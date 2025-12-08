@@ -1,0 +1,13 @@
+apiVersion: v2
+name: portfolio-common
+description: A Helm library chart with common templates for portfolio applications
+type: library
+version: 1.0.0
+appVersion: "1.0"
+keywords:
+  - library
+  - common
+  - portfolio
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@example.com

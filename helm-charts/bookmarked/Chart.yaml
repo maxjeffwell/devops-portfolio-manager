@@ -14,3 +14,7 @@ maintainers:
   - name: Jeff Maxwell
     email: jeff@el-jefe.me
 # Note: Uses cloud-hosted database (AWS RDS, etc.)
+dependencies:
+  - name: portfolio-common
+    version: 1.0.0
+    repository: "file://../portfolio-common"
