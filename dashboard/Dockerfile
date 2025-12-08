@@ -14,20 +14,19 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html/devops
 
 # Create nginx config
 RUN echo 'server { \
     listen 80; \
-    location /devops { \
-    alias /usr/share/nginx/html/; \
-    index index.html; \
-    try_files $uri $uri/ /devops/index.html; \
-    } \
-    location / { \
     root /usr/share/nginx/html; \
+    location / { \
     index index.html; \
     try_files $uri $uri/ /index.html; \
+    } \
+    location /devops/ { \
+    index index.html; \
+    try_files $uri $uri/ /devops/index.html; \
     } \
     }' > /etc/nginx/conf.d/default.conf
 
