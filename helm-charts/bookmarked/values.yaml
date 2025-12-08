@@ -131,14 +131,32 @@ readinessProbe:
   periodSeconds: 5
 
 # Cloud Database Configuration
-# IMPORTANT: Replace these with your actual cloud database credentials
-# These are placeholder values - update before deployment
+# ⚠️  SECURITY: Never commit real secrets to Git!
+#
+# Use one of these secure methods to provide secrets:
+#
+# Option 1: External Secrets Operator (Recommended for production)
+#   Enable externalSecrets below and configure your secret store
+#
+# Option 2: Helm install with --set flags
+#   helm install bookmarked . \
+#     --set secret.data.DATABASE_URL=$(echo -n "your-connection-string" | base64) \
+#     --set secret.data.JWT_SECRET=$(echo -n "your-jwt-secret" | base64)
+#
+# Option 3: Create secret manually before deployment
+#   kubectl create secret generic bookmarked-secret \
+#     --from-literal=DATABASE_URL='postgres://...' \
+#     --from-literal=JWT_SECRET='your-secret'
+#
 secret:
+  # Set to false if creating secrets manually or using External Secrets
+  create: true
   data:
-    # Neon PostgreSQL database connection string (base64 encoded)
-    DATABASE_URL: "cG9zdGdyZXM6Ly9uZW9uZGJfb3duZXI6bnBnX0dlcVUwdlBvM1RhRkBlcC1mbGF0LXJlc29uYW5jZS1hZGRpZWtkYi1wb29sZXIuYy0yLnVzLWVhc3QtMS5hd3MubmVvbi50ZWNoL25lb25kYj9zc2xtb2RlPXJlcXVpcmU="
-    # JWT Secret for authentication (base64 encoded)
-    JWT_SECRET: "ZTU5NjhmZTVjZGQ3YjlkZWRkMjA0NTc0ZTQ1Y2E5OGEwZWU4NDAzMTBjMTQ1MDZmMzEzMzhmOGI2YjE3MDA4Ng=="
+    # Placeholder values - MUST be overridden at deploy time
+    # echo -n "your-postgres-connection-string" | base64
+    DATABASE_URL: "REPLACE_AT_DEPLOY_TIME"
+    # echo -n "your-jwt-secret" | base64
+    JWT_SECRET: "REPLACE_AT_DEPLOY_TIME"
 
 # External Secrets configuration
 externalSecrets:

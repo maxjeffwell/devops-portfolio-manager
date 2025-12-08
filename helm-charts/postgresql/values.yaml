@@ -17,18 +17,41 @@ service:
   port: 5432
 
 # PostgreSQL configuration
+# ⚠️  SECURITY: Never commit real passwords to Git!
+#
+# Provide passwords at deploy time using one of these methods:
+#
+# Option 1: Helm install with --set flags
+#   helm install postgresql . \
+#     --set auth.postgresPassword="$(openssl rand -base64 32)" \
+#     --set auth.databases[0].password="$(openssl rand -base64 24)" \
+#     --set auth.databases[1].password="$(openssl rand -base64 24)"
+#
+# Option 2: Create secret manually before deployment
+#   kubectl create secret generic postgresql-auth \
+#     --from-literal=postgres-password='your-root-password' \
+#     --from-literal=bookmarked-password='your-password' \
+#     --from-literal=codetalk-password='your-password'
+#
+# Option 3: Use External Secrets Operator
+#
 auth:
-  # Root/superuser password
-  postgresPassword: "postgres-root-password"
+  # Root/superuser password - MUST be overridden at deploy time
+  postgresPassword: "REPLACE_AT_DEPLOY_TIME"
+
+  # Use existing secret instead of creating one
+  existingSecret: ""
+  secretKeys:
+    postgresPassword: postgres-password
 
   # Application-specific databases and users
   databases:
     - name: bookmarked
       user: bookmarked
-      password: bookmarked-password
+      password: "REPLACE_AT_DEPLOY_TIME"
     - name: codetalk
       user: codetalk
-      password: codetalk-password
+      password: "REPLACE_AT_DEPLOY_TIME"
 
 # Persistence configuration
 persistence:

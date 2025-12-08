@@ -19,8 +19,10 @@ spec:
     spec:
       containers:
       - name: dashboard
-        image: maxjeffwell/devops-portfolio-dashboard:latest
-        imagePullPolicy: Always
+        # Use versioned tags for reproducible deployments
+        # Update this tag when deploying new versions
+        image: maxjeffwell/devops-portfolio-dashboard:v1.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
           protocol: TCP

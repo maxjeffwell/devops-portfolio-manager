@@ -1,0 +1,63 @@
+# Pod Disruption Budgets for high availability
+# These ensure that a minimum number of pods remain available during
+# voluntary disruptions (upgrades, node drains, etc.)
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: devops-portfolio-api-pdb
+  namespace: default
+spec:
+  # At least 1 pod must be available during disruption
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: devops-portfolio-api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: devops-portfolio-dashboard-pdb
+  namespace: default
+spec:
+  # At least 1 pod must be available during disruption
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: devops-portfolio-dashboard
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgresql-pdb
+  namespace: default
+spec:
+  # Database must always be available
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: postgresql
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: default
+spec:
+  # Cache must always be available
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: redis
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mongodb-pdb
+  namespace: default
+spec:
+  # MongoDB must always be available
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: mongodb

@@ -20,8 +20,10 @@ spec:
       serviceAccountName: default
       containers:
       - name: api
-        image: maxjeffwell/devops-portfolio-api:latest
-        imagePullPolicy: Always
+        # Use versioned tags for reproducible deployments
+        # Update this tag when deploying new versions
+        image: maxjeffwell/devops-portfolio-api:v1.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 5001
           protocol: TCP

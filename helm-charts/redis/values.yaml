@@ -20,9 +20,26 @@ service:
   port: 6379
 
 # Redis configuration
+# ⚠️  SECURITY: Never commit real passwords to Git!
+#
+# Provide password at deploy time using one of these methods:
+#
+# Option 1: Helm install with --set flag
+#   helm install redis . --set auth.password="$(openssl rand -base64 32)"
+#
+# Option 2: Create secret manually before deployment
+#   kubectl create secret generic redis-auth --from-literal=redis-password='your-password'
+#   Then set auth.existingSecret: "redis-auth"
+#
+# Option 3: Use External Secrets Operator
+#
 auth:
   enabled: true
-  password: "redis-password"
+  # Password - MUST be overridden at deploy time
+  password: "REPLACE_AT_DEPLOY_TIME"
+  # Use existing secret instead of creating one
+  existingSecret: ""
+  existingSecretPasswordKey: "redis-password"
 
 # Persistence configuration
 persistence:
