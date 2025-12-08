@@ -32,6 +32,17 @@ jobs:
         with:
           version: 'v3.12.0'
 
+      - name: Update ${{ matrix.chart }} dependencies
+        run: |
+          if [ -f "helm-charts/${{ matrix.chart }}/Chart.yaml" ]; then
+            echo "Updating dependencies for ${{ matrix.chart }}..."
+            cd helm-charts/${{ matrix.chart }}
+            helm dependency update
+            cd ../..
+          else
+            echo "Chart helm-charts/${{ matrix.chart }} not found, skipping dependency update..."
+          fi
+
       - name: Lint ${{ matrix.chart }} chart
         run: |
           if [ -f "helm-charts/${{ matrix.chart }}/Chart.yaml" ]; then
