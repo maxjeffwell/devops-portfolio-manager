@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import './ApplicationCard.css';
 
 export default function ApplicationCard({ app, onSync }) {
@@ -94,3 +95,21 @@ export default function ApplicationCard({ app, onSync }) {
     </div>
   );
 }
+
+ApplicationCard.propTypes = {
+  app: PropTypes.shape({
+    id: PropTypes.string,
+    name: PropTypes.string.isRequired,
+    description: PropTypes.string,
+    namespace: PropTypes.string.isRequired,
+    helmChart: PropTypes.string.isRequired,
+    argoCDSyncStatus: PropTypes.string,
+    argoCDStatus: PropTypes.string,
+    status: PropTypes.string,
+    github: PropTypes.shape({
+      owner: PropTypes.string.isRequired,
+      repo: PropTypes.string.isRequired,
+    }).isRequired,
+  }).isRequired,
+  onSync: PropTypes.func.isRequired,
+};

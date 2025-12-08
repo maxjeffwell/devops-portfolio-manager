@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import './PipelineTimeline.css';
 
 export default function PipelineTimeline({ runs }) {
@@ -113,3 +114,23 @@ export default function PipelineTimeline({ runs }) {
     </div>
   );
 }
+
+PipelineTimeline.propTypes = {
+  runs: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      name: PropTypes.string.isRequired,
+      status: PropTypes.string.isRequired,
+      conclusion: PropTypes.string,
+      created_at: PropTypes.string.isRequired,
+      updated_at: PropTypes.string,
+      head_branch: PropTypes.string.isRequired,
+      head_sha: PropTypes.string,
+      actor: PropTypes.shape({
+        login: PropTypes.string.isRequired,
+      }),
+      event: PropTypes.string,
+      html_url: PropTypes.string,
+    })
+  ).isRequired,
+};

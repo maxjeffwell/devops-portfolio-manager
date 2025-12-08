@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import './WorkflowCard.css';
 
 export default function WorkflowCard({ workflow }) {
@@ -58,3 +59,14 @@ export default function WorkflowCard({ workflow }) {
     </div>
   );
 }
+
+WorkflowCard.propTypes = {
+  workflow: PropTypes.shape({
+    id: PropTypes.number.isRequired,
+    name: PropTypes.string.isRequired,
+    path: PropTypes.string.isRequired,
+    state: PropTypes.string.isRequired,
+    badge_url: PropTypes.string,
+    html_url: PropTypes.string.isRequired,
+  }).isRequired,
+};
