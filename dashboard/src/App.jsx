@@ -1,8 +1,11 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
-import Applications from './pages/Applications';
-import Pipelines from './pages/Pipelines';
-import Analytics from './pages/Analytics';
 import './App.css';
+
+// Lazy load page components for code splitting
+const Applications = lazy(() => import('./pages/Applications'));
+const Pipelines = lazy(() => import('./pages/Pipelines'));
+const Analytics = lazy(() => import('./pages/Analytics'));
 
 function App() {
   return (
@@ -29,12 +32,19 @@ function App() {
         </nav>
 
         <main className="main-content">
-          <Routes>
-            <Route path="/" element={<Navigate to="/applications" />} />
-            <Route path="/applications" element={<Applications />} />
-            <Route path="/pipelines" element={<Pipelines />} />
-            <Route path="/analytics" element={<Analytics />} />
-          </Routes>
+          <Suspense fallback={
+            <div className="loading-container">
+              <div className="spinner"></div>
+              <p>Loading...</p>
+            </div>
+          }>
+            <Routes>
+              <Route path="/" element={<Navigate to="/applications" />} />
+              <Route path="/applications" element={<Applications />} />
+              <Route path="/pipelines" element={<Pipelines />} />
+              <Route path="/analytics" element={<Analytics />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </BrowserRouter>
