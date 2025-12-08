@@ -16,6 +16,8 @@ spec:
       labels:
         app: devops-portfolio-dashboard
         component: frontend
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2024-12-09T00:35:00Z"
     spec:
       containers:
       - name: dashboard
