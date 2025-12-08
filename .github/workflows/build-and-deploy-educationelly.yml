@@ -21,6 +21,10 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   build-deploy:
     uses: ./.github/workflows/reusable-build-deploy.yml
