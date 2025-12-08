@@ -55,6 +55,17 @@ env:
         secretKeyRef:
           name: educationelly-secret
           key: JWT_SECRET
+    # MongoDB Connection Pool Configuration
+    - name: MONGODB_POOL_MIN_SIZE
+      value: "10"
+    - name: MONGODB_POOL_MAX_SIZE
+      value: "50"
+    - name: MONGODB_MAX_IDLE_TIME_MS
+      value: "30000"
+    - name: MONGODB_WAIT_QUEUE_TIMEOUT_MS
+      value: "5000"
+    - name: MONGODB_SERVER_SELECTION_TIMEOUT_MS
+      value: "5000"
   client:
     - name: REACT_APP_API_URL
       value: "http://educationelly-api:8080"
@@ -94,3 +105,18 @@ secret:
     MONGODB_URI: "REPLACE_WITH_YOUR_MONGODB_ATLAS_URI"
     # JWT Secret for authentication (base64 encoded)
     JWT_SECRET: "REPLACE_WITH_YOUR_JWT_SECRET"
+
+# MongoDB Connection Pool Configuration
+# These settings prevent connection exhaustion under load
+mongodb:
+  pool:
+    # Minimum number of connections to maintain
+    minSize: 10
+    # Maximum number of connections allowed
+    maxSize: 50
+    # Time (ms) before idle connections are closed
+    maxIdleTimeMs: 30000
+    # Timeout (ms) for waiting for available connection
+    waitQueueTimeoutMs: 5000
+    # Timeout (ms) for server selection
+    serverSelectionTimeoutMs: 5000
