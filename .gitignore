@@ -1,0 +1,88 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# Build outputs
+dist/
+build/
+out/
+.vite/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Kubernetes secrets (be careful with sensitive configs)
+*-secret.yaml
+*secret*.yaml
+secrets/
+*.key
+*.crt
+*.pem
+
+# Helm
+charts/*/charts/
+*.tgz
+
+# ArtiForge
+.artiforge/
+
+# Misc
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vercel
+.netlify
