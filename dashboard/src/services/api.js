@@ -10,6 +10,57 @@ import {
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:31256';
 
 /**
+ * Simple cache with TTL support
+ */
+class Cache {
+  constructor() {
+    this.cache = new Map();
+  }
+
+  set(key, value, ttlMs) {
+    const expiresAt = Date.now() + ttlMs;
+    this.cache.set(key, { value, expiresAt });
+  }
+
+  get(key) {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.value;
+  }
+
+  clear(keyPrefix = null) {
+    if (keyPrefix) {
+      // Clear entries matching prefix
+      for (const key of this.cache.keys()) {
+        if (key.startsWith(keyPrefix)) {
+          this.cache.delete(key);
+        }
+      }
+    } else {
+      // Clear all
+      this.cache.clear();
+    }
+  }
+}
+
+const cache = new Cache();
+
+// Cache TTL configurations (in milliseconds)
+const CACHE_TTL = {
+  APPLICATIONS: 5 * 60 * 1000,     // 5 minutes - static data
+  HELM_RELEASES: 2 * 60 * 1000,    // 2 minutes - semi-static
+  GITHUB_WORKFLOWS: 5 * 60 * 1000, // 5 minutes - static
+  GITHUB_RUNS: 30 * 1000,          // 30 seconds - frequently updated
+  PROMETHEUS: 15 * 1000,           // 15 seconds - real-time metrics
+};
+
+/**
  * Make API request with proper error handling
  */
 async function makeRequest(url, options = {}) {
@@ -33,6 +84,25 @@ async function makeRequest(url, options = {}) {
     }
     throw error;
   }
+}
+
+/**
+ * Make cached API request
+ */
+async function makeCachedRequest(cacheKey, ttl, requestFn) {
+  // Check cache first
+  const cached = cache.get(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Cache miss - make request
+  const result = await requestFn();
+
+  // Cache the result
+  cache.set(cacheKey, result, ttl);
+
+  return result;
 }
 
 /**
@@ -66,7 +136,11 @@ async function makeOptionalRequest(serviceName, url, options = {}) {
 export const api = {
   // Applications (required service - throws on error)
   async getApplications() {
-    return makeRequest(`${API_BASE}/api/applications`);
+    return makeCachedRequest(
+      'applications',
+      CACHE_TTL.APPLICATIONS,
+      () => makeRequest(`${API_BASE}/api/applications`)
+    );
   },
 
   async getApplication(id) {
@@ -75,13 +149,17 @@ export const api = {
 
   // ArgoCD (optional service - returns Result)
   async getArgoCDApplications() {
-    const result = await makeOptionalRequest(
-      'ArgoCD',
-      `${API_BASE}/api/argocd/applications`
+    return makeCachedRequest(
+      'argocd:applications',
+      CACHE_TTL.APPLICATIONS,
+      async () => {
+        const result = await makeOptionalRequest(
+          'ArgoCD',
+          `${API_BASE}/api/argocd/applications`
+        );
+        return result.unwrapOr([]);
+      }
     );
-
-    // Return empty array for UI compatibility, but log the error
-    return result.unwrapOr([]);
   },
 
   async getArgoCDApplication(name) {
@@ -89,6 +167,8 @@ export const api = {
   },
 
   async syncArgoCDApplication(name) {
+    // Clear cache after sync action
+    cache.clear('argocd:');
     return makeRequest(`${API_BASE}/api/argocd/applications/${name}/sync`, {
       method: 'POST'
     });
@@ -96,12 +176,17 @@ export const api = {
 
   // Helm (optional service - returns Result)
   async getHelmReleases() {
-    const result = await makeOptionalRequest(
-      'Helm',
-      `${API_BASE}/api/helm/releases`
+    return makeCachedRequest(
+      'helm:releases',
+      CACHE_TTL.HELM_RELEASES,
+      async () => {
+        const result = await makeOptionalRequest(
+          'Helm',
+          `${API_BASE}/api/helm/releases`
+        );
+        return result.unwrapOr([]);
+      }
     );
-
-    return result.unwrapOr([]);
   },
 
   async getHelmRelease(namespace, name) {
@@ -109,6 +194,8 @@ export const api = {
   },
 
   async rollbackHelmRelease(namespace, name, revision = null) {
+    // Clear cache after rollback action
+    cache.clear('helm:');
     return makeRequest(`${API_BASE}/api/helm/releases/${namespace}/${name}/rollback`, {
       method: 'POST',
       body: JSON.stringify({ revision })
@@ -117,24 +204,36 @@ export const api = {
 
   // GitHub (optional service - returns Result)
   async getGitHubWorkflows() {
-    const result = await makeOptionalRequest(
-      'GitHub',
-      `${API_BASE}/api/github/workflows`
+    return makeCachedRequest(
+      'github:workflows',
+      CACHE_TTL.GITHUB_WORKFLOWS,
+      async () => {
+        const result = await makeOptionalRequest(
+          'GitHub',
+          `${API_BASE}/api/github/workflows`
+        );
+        return result.unwrapOr({ workflows: [] });
+      }
     );
-
-    return result.unwrapOr({ workflows: [] });
   },
 
   async getRecentRuns() {
-    const result = await makeOptionalRequest(
-      'GitHub',
-      `${API_BASE}/api/github/runs/recent`
+    return makeCachedRequest(
+      'github:runs:recent',
+      CACHE_TTL.GITHUB_RUNS,
+      async () => {
+        const result = await makeOptionalRequest(
+          'GitHub',
+          `${API_BASE}/api/github/runs/recent`
+        );
+        return result.unwrapOr({ workflow_runs: [] });
+      }
     );
-
-    return result.unwrapOr({ workflow_runs: [] });
   },
 
   async triggerWorkflow(workflowId, ref = 'main', inputs = {}) {
+    // Clear cache after workflow trigger
+    cache.clear('github:runs');
     return makeRequest(`${API_BASE}/api/github/workflows/${workflowId}/dispatches`, {
       method: 'POST',
       body: JSON.stringify({ ref, inputs })
@@ -146,34 +245,58 @@ export const api = {
     const params = new URLSearchParams({ query });
     if (time) params.append('time', time);
 
-    const result = await makeOptionalRequest(
-      'Prometheus',
-      `${API_BASE}/api/prometheus/query?${params}`
-    );
+    const cacheKey = `prometheus:query:${query}:${time || 'now'}`;
 
-    return result.unwrapOr({ data: { result: [] } });
+    return makeCachedRequest(
+      cacheKey,
+      CACHE_TTL.PROMETHEUS,
+      async () => {
+        const result = await makeOptionalRequest(
+          'Prometheus',
+          `${API_BASE}/api/prometheus/query?${params}`
+        );
+        return result.unwrapOr({ data: { result: [] } });
+      }
+    );
   },
 
   async getMetrics(namespace, deployment) {
-    const result = await makeOptionalRequest(
-      'Prometheus',
-      `${API_BASE}/api/prometheus/metrics/${namespace}/${deployment}`
-    );
+    const cacheKey = `prometheus:metrics:${namespace}:${deployment}`;
 
-    return result.unwrapOr({ cpu: [], memory: [] });
+    return makeCachedRequest(
+      cacheKey,
+      CACHE_TTL.PROMETHEUS,
+      async () => {
+        const result = await makeOptionalRequest(
+          'Prometheus',
+          `${API_BASE}/api/prometheus/metrics/${namespace}/${deployment}`
+        );
+        return result.unwrapOr({ cpu: [], memory: [] });
+      }
+    );
   },
 
   async getClusterOverview() {
-    const result = await makeOptionalRequest(
-      'Prometheus',
-      `${API_BASE}/api/prometheus/cluster/overview`
+    return makeCachedRequest(
+      'prometheus:cluster:overview',
+      CACHE_TTL.PROMETHEUS,
+      async () => {
+        const result = await makeOptionalRequest(
+          'Prometheus',
+          `${API_BASE}/api/prometheus/cluster/overview`
+        );
+        return result.unwrapOr({
+          totalNodes: '0',
+          totalPods: '0',
+          cpuUsage: '0',
+          memoryUsage: '0'
+        });
+      }
     );
+  },
 
-    return result.unwrapOr({
-      totalNodes: '0',
-      totalPods: '0',
-      cpuUsage: '0',
-      memoryUsage: '0'
-    });
+  // Cache management
+  clearCache(prefix = null) {
+    cache.clear(prefix);
   }
 };
