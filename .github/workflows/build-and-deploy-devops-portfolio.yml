@@ -1,0 +1,29 @@
+name: Build and Deploy DevOps Portfolio
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'api/**'
+      - 'dashboard/**'
+      - 'k8s/**'
+      - '.github/workflows/build-and-deploy-devops-portfolio.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    uses: ./.github/workflows/reusable-build-deploy.yml
+    with:
+      app-name: 'devops-portfolio'
+      app-display-name: 'DevOps Portfolio Manager'
+      helm-chart-path: 'k8s/charts/devops-portfolio' 
+      source-repo: 'maxjeffwell/devops-portfolio-manager'
+      image-name-backend: 'maxjeffwell/devops-portfolio-api'
+      image-name-frontend: 'maxjeffwell/devops-portfolio-dashboard'
+      backend-context: './api'
+      frontend-context: './dashboard'
+      frontend-build-args: |
+        VITE_API_URL=http://86.48.29.183/devops-api
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

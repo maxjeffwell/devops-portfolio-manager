@@ -58,6 +58,10 @@ on:
         description: 'Version tag (leave empty for auto-generated)'
         required: false
         type: string
+      frontend-build-args:
+        description: 'Build arguments for frontend Dockerfile'
+        required: false
+        type: string
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -148,6 +152,7 @@ jobs:
           context: ${{ inputs.frontend-context }}
           file: ${{ inputs.frontend-dockerfile || format('{0}/Dockerfile', inputs.frontend-context) }}
           target: ${{ inputs.build-target }}
+          build-args: ${{ inputs.frontend-build-args }}
           push: true
           tags: |
             ${{ inputs.image-name-frontend }}:${{ steps.meta.outputs.tag }}
