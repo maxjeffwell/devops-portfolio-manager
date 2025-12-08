@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 const { promisify } = require('util');
 const fs = require('fs').promises;
 const path = require('path');
@@ -11,6 +11,102 @@ const execAsync = promisify(exec);
 const GIT_OPERATION_TIMEOUT = 30000;
 // Default concurrency for parallel syncing (3 applications at a time)
 const DEFAULT_CONCURRENCY = 3;
+
+/**
+ * Input validation to prevent command injection
+ */
+const InputValidator = {
+  // Kubernetes resource name: lowercase alphanumeric, hyphens, max 253 chars
+  isValidK8sName(name) {
+    return /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name) && name.length <= 253;
+  },
+
+  // Git branch name: alphanumeric, hyphens, slashes, underscores, dots
+  isValidBranchName(branch) {
+    return /^[a-zA-Z0-9/_.-]+$/.test(branch) && branch.length <= 255 && !branch.includes('..');
+  },
+
+  // Path validation: no traversal attempts
+  isValidPath(pathStr) {
+    const normalized = path.normalize(pathStr);
+    return !normalized.includes('..') && !normalized.startsWith('/');
+  },
+
+  // Validate and sanitize input
+  validate(value, type, fieldName) {
+    if (!value || typeof value !== 'string') {
+      throw new Error(`Invalid ${fieldName}: must be a non-empty string`);
+    }
+
+    switch (type) {
+      case 'k8sName':
+        if (!this.isValidK8sName(value)) {
+          throw new Error(
+            `Invalid ${fieldName}: "${value}" - must match Kubernetes naming conventions (lowercase alphanumeric and hyphens only)`
+          );
+        }
+        break;
+      case 'branch':
+        if (!this.isValidBranchName(value)) {
+          throw new Error(
+            `Invalid ${fieldName}: "${value}" - contains invalid characters or path traversal`
+          );
+        }
+        break;
+      case 'path':
+        if (!this.isValidPath(value)) {
+          throw new Error(
+            `Invalid ${fieldName}: "${value}" - contains path traversal or absolute path`
+          );
+        }
+        break;
+      default:
+        throw new Error(`Unknown validation type: ${type}`);
+    }
+
+    return value;
+  }
+};
+
+/**
+ * Safe command execution using spawn
+ */
+function spawnCommand(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: options.captureOutput ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'inherit', 'inherit'],
+      ...options
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    if (options.captureOutput) {
+      child.stdout.on('data', data => stdout += data.toString());
+      child.stderr.on('data', data => stderr += data.toString());
+    }
+
+    child.on('error', err => {
+      reject(new Error(`Failed to execute ${command}: ${err.message}`));
+    });
+
+    child.on('close', code => {
+      if (code === 0) {
+        resolve({ stdout: stdout.trim(), stderr: stderr.trim() });
+      } else {
+        reject(new Error(`Command ${command} exited with code ${code}${stderr ? ': ' + stderr : ''}`));
+      }
+    });
+
+    // Handle timeout
+    if (options.timeout) {
+      setTimeout(() => {
+        child.kill('SIGTERM');
+        reject(new Error(`Command ${command} timed out after ${options.timeout}ms`));
+      }, options.timeout);
+    }
+  });
+}
 
 /**
  * Execute command with timeout
@@ -196,7 +292,21 @@ class GitOpsSyncService {
   async loadConfig() {
     const configContent = await fs.readFile(this.configPath, 'utf8');
     this.config = yaml.load(configContent);
-    console.log(`Loaded configuration for ${this.config.applications.length} applications`);
+
+    // Validate configuration to prevent command injection
+    InputValidator.validate(this.config.git.branch, 'branch', 'git.branch');
+
+    this.config.applications.forEach((app, index) => {
+      try {
+        InputValidator.validate(app.name, 'k8sName', `applications[${index}].name`);
+        InputValidator.validate(app.namespace, 'k8sName', `applications[${index}].namespace`);
+        InputValidator.validate(app.path, 'path', `applications[${index}].path`);
+      } catch (error) {
+        throw new Error(`Configuration validation failed for application at index ${index}: ${error.message}`);
+      }
+    });
+
+    console.log(`Loaded and validated configuration for ${this.config.applications.length} applications`);
   }
 
   async cloneRepository() {
@@ -206,8 +316,13 @@ class GitOpsSyncService {
       await this.updateRepository();
     } catch {
       console.log('Cloning repository...');
-      await execWithTimeout(`git clone ${this.config.git.repository} ${this.repoPath}`);
-      await execWithTimeout(`cd ${this.repoPath} && git checkout ${this.config.git.branch}`);
+      await spawnCommand('git', ['clone', this.config.git.repository, this.repoPath], {
+        timeout: GIT_OPERATION_TIMEOUT
+      });
+      await spawnCommand('git', ['checkout', this.config.git.branch], {
+        cwd: this.repoPath,
+        timeout: GIT_OPERATION_TIMEOUT
+      });
     }
   }
 
@@ -216,13 +331,22 @@ class GitOpsSyncService {
 
     try {
       // Fetch latest changes with timeout
-      await execWithTimeout(`cd ${this.repoPath} && git fetch origin ${branch}`);
+      await spawnCommand('git', ['fetch', 'origin', branch], {
+        cwd: this.repoPath,
+        timeout: GIT_OPERATION_TIMEOUT
+      });
 
       // Reset to latest remote branch (safer than pull)
-      await execWithTimeout(`cd ${this.repoPath} && git reset --hard origin/${branch}`);
+      await spawnCommand('git', ['reset', '--hard', `origin/${branch}`], {
+        cwd: this.repoPath,
+        timeout: GIT_OPERATION_TIMEOUT
+      });
 
       // Clean any untracked files
-      await execWithTimeout(`cd ${this.repoPath} && git clean -fd`);
+      await spawnCommand('git', ['clean', '-fd'], {
+        cwd: this.repoPath,
+        timeout: GIT_OPERATION_TIMEOUT
+      });
 
       this.logger.info('Repository updated successfully', { branch });
     } catch (error) {
@@ -232,7 +356,10 @@ class GitOpsSyncService {
   }
 
   async checkForChanges() {
-    const { stdout } = await execAsync(`cd ${this.repoPath} && git rev-parse HEAD`);
+    const { stdout } = await spawnCommand('git', ['rev-parse', 'HEAD'], {
+      cwd: this.repoPath,
+      captureOutput: true
+    });
     const currentCommit = stdout.trim();
 
     if (this.lastCommit && this.lastCommit === currentCommit) {
@@ -308,7 +435,9 @@ class GitOpsSyncService {
 
   async helmReleaseExists(name, namespace) {
     try {
-      await execAsync(`helm status ${name} -n ${namespace}`);
+      await spawnCommand('helm', ['status', name, '-n', namespace], {
+        captureOutput: true
+      });
       return true;
     } catch {
       return false;
@@ -316,26 +445,46 @@ class GitOpsSyncService {
   }
 
   async helmInstall(app, chartPath) {
-    const valueFiles = app.valueFiles.map(f => `-f ${path.join(chartPath, f)}`).join(' ');
-    const dryRun = this.config.sync.dryRun ? '--dry-run' : '';
+    const args = ['install', app.name, chartPath, '-n', app.namespace];
 
-    const command = `helm install ${app.name} ${chartPath} -n ${app.namespace} ${valueFiles} ${dryRun} --create-namespace --wait`;
+    // Add value files as separate arguments
+    app.valueFiles.forEach(f => {
+      args.push('-f', path.join(chartPath, f));
+    });
 
-    console.log(`Executing: ${command}`);
-    const { stdout, stderr } = await execAsync(command);
+    if (this.config.sync.dryRun) {
+      args.push('--dry-run');
+    }
+
+    args.push('--create-namespace', '--wait');
+
+    console.log(`Executing: helm ${args.join(' ')}`);
+    const { stdout, stderr } = await spawnCommand('helm', args, {
+      captureOutput: true
+    });
 
     if (stdout) console.log(stdout);
     if (stderr) console.error(stderr);
   }
 
   async helmUpgrade(app, chartPath) {
-    const valueFiles = app.valueFiles.map(f => `-f ${path.join(chartPath, f)}`).join(' ');
-    const dryRun = this.config.sync.dryRun ? '--dry-run' : '';
+    const args = ['upgrade', app.name, chartPath, '-n', app.namespace];
 
-    const command = `helm upgrade ${app.name} ${chartPath} -n ${app.namespace} ${valueFiles} ${dryRun} --wait`;
+    // Add value files as separate arguments
+    app.valueFiles.forEach(f => {
+      args.push('-f', path.join(chartPath, f));
+    });
 
-    console.log(`Executing: ${command}`);
-    const { stdout, stderr } = await execAsync(command);
+    if (this.config.sync.dryRun) {
+      args.push('--dry-run');
+    }
+
+    args.push('--wait');
+
+    console.log(`Executing: helm ${args.join(' ')}`);
+    const { stdout, stderr } = await spawnCommand('helm', args, {
+      captureOutput: true
+    });
 
     if (stdout) console.log(stdout);
     if (stderr) console.error(stderr);
@@ -344,7 +493,7 @@ class GitOpsSyncService {
   async rollback(app) {
     try {
       console.log(`Rolling back ${app.name} to previous revision...`);
-      await execAsync(`helm rollback ${app.name} -n ${app.namespace} --wait`);
+      await spawnCommand('helm', ['rollback', app.name, '-n', app.namespace, '--wait']);
       console.log(`Successfully rolled back ${app.name}`);
     } catch (error) {
       console.error(`Failed to rollback ${app.name}:`, error.message);
@@ -363,9 +512,14 @@ class GitOpsSyncService {
         // Use kubectl wait for more efficient checking
         // This waits for the condition instead of polling repeatedly
         const timeout = 30; // 30 seconds timeout for kubectl wait
-        await execAsync(
-          `kubectl wait --for=condition=Available deployment -n ${app.namespace} -l app=${app.name} --timeout=${timeout}s`
-        );
+        await spawnCommand('kubectl', [
+          'wait',
+          '--for=condition=Available',
+          'deployment',
+          '-n', app.namespace,
+          '-l', `app=${app.name}`,
+          `--timeout=${timeout}s`
+        ]);
 
         this.logger.info(`Health check passed for ${app.name}`);
         return;
