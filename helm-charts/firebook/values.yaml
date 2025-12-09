@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   api:
-    repository: maxjeffwell/firebook-api
+    repository: maxjeffwell/firebook
     tag: latest
     pullPolicy: Always
   client:
