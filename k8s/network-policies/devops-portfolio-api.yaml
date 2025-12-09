@@ -16,6 +16,10 @@ spec:
   - ports:
     - port: 443
       protocol: TCP
+    - port: 80
+      protocol: TCP
+    - port: 8080
+      protocol: TCP
     to:
     - namespaceSelector:
         matchLabels:
@@ -25,6 +29,23 @@ spec:
       protocol: TCP
     - port: 80
       protocol: TCP
+  # Allow access to Kubernetes API server for Helm
+  - ports:
+    - port: 443
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+  # Allow access to Kubernetes API via cluster IP
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.43.0.0/16
   ingress:
   - from:
     - podSelector:
