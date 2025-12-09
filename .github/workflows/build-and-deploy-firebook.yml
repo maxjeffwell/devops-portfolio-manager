@@ -129,7 +129,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add helm-charts/firebook/values.yaml
-          git commit -m "Update FireBook client image tag to ${IMAGE_TAG}"
+          git commit -m "Update FireBook client image tag to ${IMAGE_TAG}" || echo "No changes to commit"
           git pull --rebase
           git push
 
