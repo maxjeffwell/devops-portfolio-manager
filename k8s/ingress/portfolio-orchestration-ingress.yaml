@@ -16,8 +16,8 @@ spec:
   - host: pop-portfolio.el-jefe.me
     http:
       paths:
-      # API Routing
-      # Routes /api requests to the API service
+      # 1. API Routes (Direct /api/* access)
+      # These match specific API endpoints used by the frontend
       - path: /api
         pathType: Prefix
         backend:
@@ -25,12 +25,31 @@ spec:
             name: portfolio-api
             port:
               number: 5000
-      
-      # Frontend Routing
-      # Routes root requests to the dashboard service
-      # Since it was expecting /portfolio, we might need a rewrite if the app isn't built for root
-      # But usually, dedicated domains map root to the app.
+              
+      # 2. Legacy /portfolio/api route (if needed)
+      # Strips /portfolio prefix before forwarding to API
+      # Note: Requires Middleware "portfolio-api-stripprefix" to be defined in cluster
+      # If you deleted the old ingress file, ensure the Middleware resource is still applied.
+      - path: /portfolio/api
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-api
+            port:
+              number: 5000
+              
+      # 3. Root App Serving
+      # Routes root / to dashboard
       - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-dashboard
+            port:
+              number: 80
+
+      # 4. Legacy /portfolio App Serving (optional, for backward compat)
+      - path: /portfolio
         pathType: Prefix
         backend:
           service:
