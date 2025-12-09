@@ -130,14 +130,23 @@
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e0e0e0;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.workflow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #4CAF50;
 }
 
 .workflow-card h4 {
   margin: 0 0 1rem 0;
-  color: #1a1a1a;
-  font-size: 1.1rem;
-  border-bottom: 2px solid #f0f0f0;
-  padding-bottom: 0.5rem;
+  color: #2c3e50;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-bottom: 3px solid #4CAF50;
+  padding-bottom: 0.75rem;
 }
 
 .workflow-stats {
@@ -150,28 +159,45 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
-  background: #f9f9f9;
-  border-radius: 6px;
+  padding: 0.75rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: background 0.2s;
+}
+
+.stat:hover {
+  background: #eeeeee;
 }
 
 .stat.success {
   background: #e8f5e9;
+  border-color: #81c784;
+}
+
+.stat.success:hover {
+  background: #c8e6c9;
 }
 
 .stat.failed {
   background: #ffebee;
+  border-color: #e57373;
+}
+
+.stat.failed:hover {
+  background: #ffcdd2;
 }
 
 .stat-label {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.95rem;
+  color: #455a64;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-weight: bold;
+  font-weight: 700;
   color: #1a1a1a;
-  font-size: 1rem;
+  font-size: 1.1rem;
 }
 
 .last-updated {
