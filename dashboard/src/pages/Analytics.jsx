@@ -10,6 +10,21 @@ function Analytics() {
     fetchMetrics();
   }, []);
 
+  // Format workflow name - extract friendly name from path if needed
+  const formatWorkflowName = (name) => {
+    // If name looks like a file path (.github/workflows/...), extract friendly name
+    if (name.includes('.github/workflows/') || name.includes('.yml') || name.includes('.yaml')) {
+      // Extract filename without extension
+      const filename = name.split('/').pop().replace(/\.(yml|yaml)$/, '');
+      // Convert kebab-case or snake_case to Title Case
+      return filename
+        .split(/[-_]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    return name;
+  };
+
   const fetchMetrics = async () => {
     try {
       setLoading(true);
@@ -169,7 +184,7 @@ function Analytics() {
           <div className="workflow-grid">
             {Object.entries(metrics.workflowStats).map(([name, stats]) => (
               <div key={name} className="workflow-card">
-                <h4>{name}</h4>
+                <h4>{formatWorkflowName(name)}</h4>
                 <div className="workflow-stats">
                   <div className="stat">
                     <span className="stat-label">Total Runs:</span>
