@@ -7,7 +7,7 @@ import {
   logError
 } from '../utils/errors';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:31256';
+const API_BASE = import.meta.env.VITE_API_URL || '/devops-api';
 
 /**
  * Simple cache with TTL support

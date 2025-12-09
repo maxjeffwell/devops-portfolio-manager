@@ -8,6 +8,10 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
+  tls:
+  - hosts:
+    - podrick.el-jefe.me
+    secretName: podrick-tls
   rules:
   - host: podrick.el-jefe.me
     http:
