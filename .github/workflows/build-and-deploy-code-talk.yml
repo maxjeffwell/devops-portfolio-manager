@@ -43,6 +43,11 @@ jobs:
         with:
           version: 'v3.12.0'
 
+      - name: Update Helm dependencies
+        run: |
+          cd helm-charts/code-talk
+          helm dependency update
+
       - name: Lint Helm charts
         run: |
           helm lint helm-charts/code-talk
