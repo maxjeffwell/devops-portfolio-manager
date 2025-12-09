@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: devops-dashboard-ingress
   namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
   ingressClassName: nginx
   rules:
