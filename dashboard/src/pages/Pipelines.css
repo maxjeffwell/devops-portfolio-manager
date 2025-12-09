@@ -83,7 +83,7 @@
 .stat-value {
   font-size: 32px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #1a1a1a;
   line-height: 1;
   margin-bottom: 4px;
 }
