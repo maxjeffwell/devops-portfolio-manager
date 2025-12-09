@@ -9,7 +9,7 @@ const Analytics = lazy(() => import('./pages/Analytics'));
 
 function App() {
   return (
-    <BrowserRouter basename="/devops">
+    <BrowserRouter>
       <div className="app">
         <nav className="top-nav">
           <div className="nav-brand">
