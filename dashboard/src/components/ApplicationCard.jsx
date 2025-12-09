@@ -84,12 +84,13 @@ export default function ApplicationCard({ app, onSync }) {
           )}
         </button>
         <a
-          href={`https://github.com/${app.github.owner}/${app.github.repo}`}
+          href={app.github ? `https://github.com/${app.github.owner}/${app.github.repo}` : '#'}
           target="_blank"
           rel="noopener noreferrer"
-          className="github-link"
+          className={`github-link ${!app.github ? 'disabled' : ''}`}
+          onClick={(e) => !app.github && e.preventDefault()}
         >
-          View on GitHub →
+          {app.github ? 'View on GitHub →' : 'No GitHub Info'}
         </a>
       </div>
     </div>
@@ -107,9 +108,9 @@ ApplicationCard.propTypes = {
     argoCDStatus: PropTypes.string,
     status: PropTypes.string,
     github: PropTypes.shape({
-      owner: PropTypes.string.isRequired,
-      repo: PropTypes.string.isRequired,
-    }).isRequired,
+      owner: PropTypes.string,
+      repo: PropTypes.string,
+    }),
   }).isRequired,
   onSync: PropTypes.func.isRequired,
 };

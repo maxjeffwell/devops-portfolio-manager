@@ -4,6 +4,8 @@ import './WorkflowCard.css';
 export default function WorkflowCard({ workflow }) {
   // Format workflow name - extract friendly name from path if needed
   const formatWorkflowName = (name) => {
+    if (!name) return 'Unknown Workflow';
+
     // If name looks like a file path (.github/workflows/...), extract friendly name
     if (name.includes('.github/workflows/') || name.includes('.yml') || name.includes('.yaml')) {
       // Extract filename without extension
@@ -21,6 +23,7 @@ export default function WorkflowCard({ workflow }) {
   };
 
   const getWorkflowIcon = (name) => {
+    if (!name) return '📋';
     const nameLower = name.toLowerCase();
     if (nameLower.includes('build')) return '🔨';
     if (nameLower.includes('test')) return '✓';
