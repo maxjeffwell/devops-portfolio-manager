@@ -4,7 +4,7 @@ Usage:
   {{- include "portfolio-common.secret" . }}
 */}}
 {{- define "portfolio-common.secret" -}}
-{{- if and .Values.secret (not (and .Values.externalSecrets .Values.externalSecrets.enabled)) }}
+{{- if and .Values.secret .Values.secret.create (not (and .Values.externalSecrets .Values.externalSecrets.enabled)) }}
 apiVersion: v1
 kind: Secret
 metadata:
