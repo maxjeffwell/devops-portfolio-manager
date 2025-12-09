@@ -6,7 +6,7 @@ image:
     pullPolicy: Always
   client:
     repository: maxjeffwell/firebook-client
-    tag: 20251203-133953-7483775
+    tag: 20251209-041829-64f0cba
     pullPolicy: Always
 service:
   api:
