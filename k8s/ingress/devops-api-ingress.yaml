@@ -4,16 +4,15 @@ metadata:
   name: devops-api-ingress
   namespace: default
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/router.middlewares: default-devops-api-stripprefix@kubernetescrd
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
-  ingressClassName: traefik
+  ingressClassName: nginx
   rules:
   - host: podrick.el-jefe.me
     http:
       paths:
-      - path: /devops-api
-        pathType: Prefix
+      - path: /devops-api(/|$)(.*)
+        pathType: ImplementationSpecific
         backend:
           service:
             name: devops-portfolio-api
