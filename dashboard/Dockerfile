@@ -9,6 +9,7 @@ RUN npm ci
 COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=${VITE_API_URL}
+# Force rebuild with basename fix - 2025-12-09
 RUN npm run build
 
 # Production stage
