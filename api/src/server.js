@@ -72,6 +72,7 @@ app.use('/api/prometheus', require('./routes/prometheus'));
 app.use('/api/github', require('./routes/github'));
 app.use('/api/helm', require('./routes/helm'));
 app.use('/api/applications', require('./routes/applications'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Error logging middleware
 app.use(errorLogger(logger));
