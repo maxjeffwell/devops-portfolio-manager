@@ -14,6 +14,8 @@ jobs:
   build-and-push:
     name: Build Docker Images
     runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,3 +52,29 @@ jobs:
             maxjeffwell/devops-portfolio-dashboard:${{ github.sha }}
           cache-from: type=registry,ref=maxjeffwell/devops-portfolio-dashboard:buildcache
           cache-to: type=registry,ref=maxjeffwell/devops-portfolio-dashboard:buildcache,mode=max
+
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: Deploy to Kubernetes
+        uses: tale/kubectl-action@v1
+        with:
+          base64-kube-config: ${{ secrets.KUBE_CONFIG_DATA }}
+
+      - name: Update dashboard image
+        run: |
+          kubectl set image deployment/devops-portfolio-dashboard dashboard=maxjeffwell/devops-portfolio-dashboard:${{ needs.build-and-push.outputs.image-tag }} -n default
+          kubectl rollout status deployment/devops-portfolio-dashboard -n default --timeout=300s
+
+      - name: Update API image
+        run: |
+          kubectl set image deployment/devops-portfolio-api api=maxjeffwell/devops-portfolio-api:${{ needs.build-and-push.outputs.image-tag }} -n default
+          kubectl rollout status deployment/devops-portfolio-api -n default --timeout=300s
+
+      - name: Deployment complete
+        run: |
+          echo "✅ DevOps Portfolio deployed successfully!"
+          echo "Dashboard: http://86.48.29.183/devops"
+          echo "API: http://86.48.29.183/devops-api"
