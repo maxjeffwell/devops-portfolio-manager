@@ -17,7 +17,7 @@ spec:
         app: devops-portfolio-api
         component: backend
     spec:
-      serviceAccountName: default
+      serviceAccountName: devops-portfolio-api
       containers:
       - name: api
         # Use versioned tags for reproducible deployments
