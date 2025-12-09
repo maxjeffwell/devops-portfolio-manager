@@ -15,28 +15,15 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
-COPY --from=builder /app/dist /usr/share/nginx/html/devops
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create nginx config
+# Create nginx config for SPA routing
 RUN echo 'server { \
     listen 80; \
-    server_name podrick.el-jefe.me; \
-    root /usr/share/nginx/html/devops; \
-    location / { \
-    index index.html; \
-    try_files $uri $uri/ /index.html; \
-    } \
-    } \
-    server { \
-    listen 80 default_server; \
     root /usr/share/nginx/html; \
     location / { \
     index index.html; \
     try_files $uri $uri/ /index.html; \
-    } \
-    location /devops/ { \
-    index index.html; \
-    try_files $uri $uri/ /devops/index.html; \
     } \
     }' > /etc/nginx/conf.d/default.conf
 
