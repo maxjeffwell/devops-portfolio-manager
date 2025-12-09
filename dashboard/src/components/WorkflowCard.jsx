@@ -2,6 +2,21 @@ import PropTypes from 'prop-types';
 import './WorkflowCard.css';
 
 export default function WorkflowCard({ workflow }) {
+  // Format workflow name - extract friendly name from path if needed
+  const formatWorkflowName = (name) => {
+    // If name looks like a file path (.github/workflows/...), extract friendly name
+    if (name.includes('.github/workflows/') || name.includes('.yml') || name.includes('.yaml')) {
+      // Extract filename without extension
+      const filename = name.split('/').pop().replace(/\.(yml|yaml)$/, '');
+      // Convert kebab-case or snake_case to Title Case
+      return filename
+        .split(/[-_]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    return name;
+  };
+
   const getWorkflowIcon = (name) => {
     const nameLower = name.toLowerCase();
     if (nameLower.includes('build')) return '🔨';
@@ -18,7 +33,7 @@ export default function WorkflowCard({ workflow }) {
           {getWorkflowIcon(workflow.name)}
         </div>
         <div className="workflow-info">
-          <div className="workflow-name">{workflow.name}</div>
+          <div className="workflow-name">{formatWorkflowName(workflow.name)}</div>
           <div className="workflow-path">{workflow.path}</div>
         </div>
       </div>
