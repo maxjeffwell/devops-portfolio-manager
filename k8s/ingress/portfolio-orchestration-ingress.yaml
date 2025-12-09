@@ -6,6 +6,7 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.priority: "100"
 spec:
   ingressClassName: traefik
   tls:
@@ -16,30 +17,7 @@ spec:
   - host: pop-portfolio.el-jefe.me
     http:
       paths:
-      # 1. API Routes (Direct /api/* access)
-      # These match specific API endpoints used by the frontend
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: portfolio-api
-            port:
-              number: 5000
-              
-      # 2. Legacy /portfolio/api route (if needed)
-      # Strips /portfolio prefix before forwarding to API
-      # Note: Requires Middleware "portfolio-api-stripprefix" to be defined in cluster
-      # If you deleted the old ingress file, ensure the Middleware resource is still applied.
-      - path: /portfolio/api
-        pathType: Prefix
-        backend:
-          service:
-            name: portfolio-api
-            port:
-              number: 5000
-              
-      # 3. Root App Serving
-      # Routes root / to dashboard
+      # 1. Dashboard (Lower Priority / Default)
       - path: /
         pathType: Prefix
         backend:
@@ -47,8 +25,8 @@ spec:
             name: portfolio-dashboard
             port:
               number: 80
-
-      # 4. Legacy /portfolio App Serving (optional, for backward compat)
+      
+      # 2. Legacy /portfolio path
       - path: /portfolio
         pathType: Prefix
         backend:
@@ -56,3 +34,39 @@ spec:
             name: portfolio-dashboard
             port:
               number: 80
+
+---
+# Direct API routes with higher priority to handle /api/* requests from the frontend
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portfolio-orchestration-api-ingress
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.priority: "200"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - pop-portfolio.el-jefe.me
+    secretName: pop-portfolio-tls
+  rules:
+  - host: pop-portfolio.el-jefe.me
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-api
+            port:
+              number: 5000
+      - path: /portfolio/api
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-api
+            port:
+              number: 5000
