@@ -17,10 +17,13 @@ function Analytics() {
       // Extract filename without extension
       const filename = name.split('/').pop().replace(/\.(yml|yaml)$/, '');
       // Convert kebab-case or snake_case to Title Case
-      return filename
+      const formatted = filename
         .split(/[-_]/)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+
+      // Special case for brand names
+      return formatted.replace(/\bFirebook\b/g, 'FireBook');
     }
     return name;
   };
