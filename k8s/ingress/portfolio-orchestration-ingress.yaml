@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portfolio-orchestration-ingress
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - pop-portfolio.el-jefe.me
+    secretName: pop-portfolio-tls
+  rules:
+  - host: pop-portfolio.el-jefe.me
+    http:
+      paths:
+      # API Routing
+      # Routes /api requests to the API service
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-api
+            port:
+              number: 5000
+      
+      # Frontend Routing
+      # Routes root requests to the dashboard service
+      # Since it was expecting /portfolio, we might need a rewrite if the app isn't built for root
+      # But usually, dedicated domains map root to the app.
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-dashboard
+            port:
+              number: 80
