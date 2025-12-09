@@ -4,10 +4,11 @@ metadata:
   name: devops-api-ingress
   namespace: default
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: default-devops-api-stripprefix@kubernetescrd
 spec:
-  ingressClassName: nginx
+  ingressClassName: traefik
   tls:
   - hosts:
     - podrick.el-jefe.me
@@ -16,8 +17,8 @@ spec:
   - host: podrick.el-jefe.me
     http:
       paths:
-      - path: /devops-api(/|$)(.*)
-        pathType: ImplementationSpecific
+      - path: /devops-api
+        pathType: Prefix
         backend:
           service:
             name: devops-portfolio-api
