@@ -8,7 +8,8 @@ metadata:
     traefik.ingress.kubernetes.io/router.middlewares: default-devops-api-stripprefix@kubernetescrd
 spec:
   rules:
-  - http:
+  - host: podrick.el-jefe.me
+    http:
       paths:
       - path: /devops-api
         pathType: Prefix

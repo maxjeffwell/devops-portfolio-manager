@@ -1,0 +1,50 @@
+# ServiceMonitor for DevOps Portfolio API
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devops-portfolio-api
+  labels:
+    app: devops-portfolio-api
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: devops-portfolio-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+---
+# ServiceMonitor for DevOps Portfolio Dashboard
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: devops-portfolio-dashboard
+  labels:
+    app: devops-portfolio-dashboard
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: devops-portfolio-dashboard
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+---
+# ServiceMonitor for all portfolio applications
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: portfolio-applications
+  labels:
+    app: portfolio-applications
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      portfolio-app: "true"
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s

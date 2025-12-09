@@ -46,7 +46,7 @@ jobs:
           context: ./dashboard
           push: true
           build-args: |
-            VITE_API_URL=http://86.48.29.183/devops-api
+            VITE_API_URL=/devops-api
           tags: |
             maxjeffwell/devops-portfolio-dashboard:latest
             maxjeffwell/devops-portfolio-dashboard:${{ github.sha }}

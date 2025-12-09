@@ -1,0 +1,132 @@
+# Kube-Prometheus-Stack Configuration
+kube-prometheus-stack:
+  # Prometheus Configuration
+  prometheus:
+    prometheusSpec:
+      # Retention period for metrics
+      retention: 30d
+      # Storage configuration
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 10Gi
+      # Resource limits
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+      # Service monitors for scraping application metrics
+      serviceMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelectorNilUsesHelmValues: false
+
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+      hosts:
+        - ""
+      paths:
+        - /prometheus(/|$)(.*)
+      pathType: ImplementationSpecific
+
+  # Grafana Configuration
+  grafana:
+    enabled: true
+    adminPassword: "admin123"  # Change this in production
+
+    # Grafana ingress configuration
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+      hosts:
+        - ""
+      path: /grafana(/|$)(.*)
+      pathType: ImplementationSpecific
+
+    # Configure Grafana to work with sub-path
+    grafana.ini:
+      server:
+        root_url: "http://86.48.29.183/grafana"
+        serve_from_sub_path: true
+
+    # Pre-configured datasources
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            url: http://monitoring-kube-prometheus-prometheus:9090
+            access: proxy
+            isDefault: true
+
+    # Resource limits
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # Default dashboards
+    defaultDashboardsEnabled: true
+    defaultDashboardsTimezone: UTC
+
+  # AlertManager Configuration
+  alertmanager:
+    enabled: true
+    alertmanagerSpec:
+      storage:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 2Gi
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 200m
+          memory: 256Mi
+
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/rewrite-target: /$2
+      hosts:
+        - ""
+      paths:
+        - /alertmanager(/|$)(.*)
+      pathType: ImplementationSpecific
+
+  # Node Exporter - collect node-level metrics
+  nodeExporter:
+    enabled: true
+
+  # Kube State Metrics - collect Kubernetes object metrics
+  kubeStateMetrics:
+    enabled: true
+
+  # Prometheus Operator
+  prometheusOperator:
+    enabled: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
