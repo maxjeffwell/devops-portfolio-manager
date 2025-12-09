@@ -20,6 +20,15 @@ COPY --from=builder /app/dist /usr/share/nginx/html/devops
 # Create nginx config
 RUN echo 'server { \
     listen 80; \
+    server_name podrick.el-jefe.me; \
+    root /usr/share/nginx/html/devops; \
+    location / { \
+    index index.html; \
+    try_files $uri $uri/ /index.html; \
+    } \
+    } \
+    server { \
+    listen 80 default_server; \
     root /usr/share/nginx/html; \
     location / { \
     index index.html; \
