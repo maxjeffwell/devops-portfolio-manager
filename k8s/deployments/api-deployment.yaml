@@ -69,11 +69,10 @@ metadata:
   labels:
     app: devops-portfolio-api
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: devops-portfolio-api
   ports:
   - protocol: TCP
     port: 5001
     targetPort: 5001
-    nodePort: 31256

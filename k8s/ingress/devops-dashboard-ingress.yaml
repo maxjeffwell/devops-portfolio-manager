@@ -9,10 +9,10 @@ spec:
   rules:
   - http:
       paths:
-      - path: /devops
+      - path: /
         pathType: Prefix
         backend:
           service:
-            name: devops-dashboard
+            name: devops-portfolio-dashboard
             port:
               number: 80
