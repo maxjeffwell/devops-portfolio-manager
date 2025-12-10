@@ -4,16 +4,12 @@ metadata:
   name: devops-api-ingress
   namespace: default
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Use both entrypoints - Cloudflare terminates SSL
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.middlewares: default-devops-api-stripprefix@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "200"
 spec:
   ingressClassName: traefik
-  tls:
-  - hosts:
-    - podrick.el-jefe.me
-    secretName: podrick-tls
   rules:
   - host: podrick.el-jefe.me
     http:
