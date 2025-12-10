@@ -21,8 +21,8 @@ export default function Pipelines() {
           api.getRecentRuns()
         ]);
 
-        setWorkflows(workflowsData.workflows || []);
-        setRecentRuns(runsData.workflow_runs || []);
+        setWorkflows(workflowsData?.workflows || []);
+        setRecentRuns(runsData?.workflow_runs || []);
       } catch (err) {
         setError(err.message);
       } finally {

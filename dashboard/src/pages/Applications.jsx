@@ -22,14 +22,18 @@ export default function Applications() {
         ]);
 
         // Merge status data
-        const appsWithStatus = apps.map(app => {
+        const releasesList = Array.isArray(helmReleases) ? helmReleases : [];
+        const argoList = argoCDApps?.items || [];
+
+        const appsList = Array.isArray(apps) ? apps : [];
+        const appsWithStatus = appsList.map(app => {
           // Find matching ArgoCD app
-          const argoCDApp = argoCDApps.items?.find(
+          const argoCDApp = argoList.find(
             item => item.metadata?.name === app.argocdApp
           );
 
           // Find matching Helm release
-          const helmRelease = helmReleases?.find(
+          const helmRelease = releasesList.find(
             release => release.name === app.helmChart && release.namespace === app.namespace
           );
 

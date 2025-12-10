@@ -231,6 +231,10 @@ export const api = {
     );
   },
 
+  async getAnalyticsMetrics() {
+    return makeRequest(`${API_BASE}/api/analytics/metrics`);
+  },
+
   async triggerWorkflow(workflowId, ref = 'main', inputs = {}) {
     // Clear cache after workflow trigger
     cache.clear('github:runs');

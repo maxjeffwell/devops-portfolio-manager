@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 import './Analytics.css';
 
 function Analytics() {
@@ -31,14 +32,7 @@ function Analytics() {
   const fetchMetrics = async () => {
     try {
       setLoading(true);
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${apiUrl}/api/analytics/metrics`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch metrics');
-      }
-
-      const data = await response.json();
+      const data = await api.getAnalyticsMetrics();
       setMetrics(data);
       setError(null);
     } catch (err) {
