@@ -15,15 +15,30 @@ export default function Applications() {
         setLoading(true);
 
         // Fetch all data in parallel
-        const [apps, argoCDApps, helmReleases] = await Promise.all([
-          api.getApplications(),
-          api.getArgoCDApplications(),
-          api.getHelmReleases()
-        ]);
+        let apps, argoCDApps, helmReleases;
+        try {
+          [apps, argoCDApps, helmReleases] = await Promise.all([
+            api.getApplications(),
+            api.getArgoCDApplications(),
+            api.getHelmReleases()
+          ]);
+        } catch (fetchError) {
+          // Check if we got HTML instead of JSON (routing misconfiguration)
+          if (fetchError.message?.includes('Unexpected token') ||
+              fetchError.message?.includes('JSON')) {
+            throw new Error('API server unreachable. The server may be misconfigured or starting up.');
+          }
+          throw fetchError;
+        }
+
+        // Validate apps response
+        if (apps === null || apps === undefined) {
+          throw new Error('Failed to load applications data from API');
+        }
 
         // Merge status data
         const releasesList = Array.isArray(helmReleases) ? helmReleases : [];
-        const argoList = argoCDApps?.items || [];
+        const argoList = Array.isArray(argoCDApps?.items) ? argoCDApps.items : (Array.isArray(argoCDApps) ? argoCDApps : []);
 
         const appsList = Array.isArray(apps) ? apps : [];
         const appsWithStatus = appsList.map(app => {

@@ -12,6 +12,7 @@
   --status-healthy: #48bb78;
   --status-progressing: #fbbf24;
   --status-degraded: #f56565;
+  --status-unhealthy: #f56565;
   --status-unknown: #9f7aea;
   --status-synced: #48bb78;
   --status-outof-sync: #fbbf24;
