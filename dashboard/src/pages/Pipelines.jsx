@@ -48,9 +48,9 @@ export default function Pipelines() {
     return <div className="error-container">Error: {error}</div>;
   }
 
-  const successfulRuns = recentRuns.filter(r => r.conclusion === 'success').length;
-  const failedRuns = recentRuns.filter(r => r.conclusion === 'failure').length;
-  const inProgressRuns = recentRuns.filter(r => r.status === 'in_progress').length;
+  const successfulRuns = (recentRuns || []).filter(r => r.conclusion === 'success').length;
+  const failedRuns = (recentRuns || []).filter(r => r.conclusion === 'failure').length;
+  const inProgressRuns = (recentRuns || []).filter(r => r.status === 'in_progress').length;
 
   return (
     <div className="pipelines-page">
