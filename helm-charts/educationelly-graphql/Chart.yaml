@@ -8,3 +8,4 @@ dependencies:
   - name: portfolio-common
     version: 1.0.0
     repository: "file://../portfolio-common"
+# Trigger build
