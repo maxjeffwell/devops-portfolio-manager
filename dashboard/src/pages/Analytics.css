@@ -15,7 +15,7 @@
 
 .analytics-header h1 {
   margin: 0;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .period-info {
@@ -23,7 +23,7 @@
   align-items: center;
   gap: 1rem;
   font-size: 0.95rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .refresh-button,
@@ -51,13 +51,14 @@
 }
 
 .metric-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   gap: 1rem;
   transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border-color);
 }
 
 .metric-card:hover {
@@ -66,11 +67,11 @@
 }
 
 .metric-card.primary {
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid var(--status-healthy);
 }
 
 .metric-card.warning {
-  border-left: 4px solid #FF9800;
+  border-left: 4px solid var(--status-degraded);
 }
 
 .metric-icon {
@@ -80,7 +81,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
   flex-shrink: 0;
 }
@@ -93,7 +94,7 @@
   margin: 0 0 0.5rem 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -101,13 +102,13 @@
 .metric-value {
   font-size: 2rem;
   font-weight: bold;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
 .metric-details {
   font-size: 0.85rem;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .workflow-breakdown {
@@ -116,7 +117,7 @@
 
 .workflow-breakdown h2 {
   margin-bottom: 1.5rem;
-  color: #1a1a1a;
+  color: var(--text-primary);
 }
 
 .workflow-grid {
@@ -126,26 +127,26 @@
 }
 
 .workflow-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .workflow-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #4CAF50;
+  border-color: var(--accent-blue);
 }
 
 .workflow-card h4 {
   margin: 0 0 1rem 0;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 600;
-  border-bottom: 3px solid #4CAF50;
+  border-bottom: 3px solid var(--accent-blue);
   padding-bottom: 0.75rem;
 }
 
@@ -160,43 +161,43 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   transition: background 0.2s;
 }
 
 .stat:hover {
-  background: #eeeeee;
+  background: var(--bg-hover);
 }
 
 .stat.success {
-  background: #e8f5e9;
-  border-color: #81c784;
+  background: rgba(46, 213, 115, 0.1);
+  border-color: var(--status-healthy);
 }
 
 .stat.success:hover {
-  background: #c8e6c9;
+  background: rgba(46, 213, 115, 0.15);
 }
 
 .stat.failed {
-  background: #ffebee;
-  border-color: #e57373;
+  background: rgba(255, 71, 87, 0.1);
+  border-color: var(--status-unhealthy);
 }
 
 .stat.failed:hover {
-  background: #ffcdd2;
+  background: rgba(255, 71, 87, 0.15);
 }
 
 .stat-label {
   font-size: 0.95rem;
-  color: #455a64;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .stat-value {
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-primary);
   font-size: 1.1rem;
 }
 
@@ -204,8 +205,8 @@
   text-align: center;
   margin-top: 3rem;
   padding-top: 2rem;
-  border-top: 1px solid #e0e0e0;
-  color: #999;
+  border-top: 1px solid var(--border-color);
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
@@ -215,11 +216,11 @@
   text-align: center;
   padding: 4rem 2rem;
   font-size: 1.1rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .error {
-  color: #d32f2f;
+  color: var(--status-unhealthy);
 }
 
 .error h3 {
