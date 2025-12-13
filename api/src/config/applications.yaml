@@ -24,7 +24,7 @@ applications:
       repo: code-talk-Docker
 
   - id: educationelly
-    name: EducationELLy
+    name: educationELLy
     description: Language learning application
     namespace: default
     helmChart: educationelly
@@ -34,7 +34,7 @@ applications:
       repo: educationELLy-Docker
 
   - id: educationelly-graphql
-    name: EducationELLy GraphQL
+    name: educationELLy-GraphQL
     description: GraphQL-based education platform
     namespace: default
     helmChart: educationelly-graphql
