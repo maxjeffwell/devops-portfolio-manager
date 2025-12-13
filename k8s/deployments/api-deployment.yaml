@@ -23,7 +23,7 @@ spec:
         # Use versioned tags for reproducible deployments
         # Update this tag when deploying new versions
         image: maxjeffwell/devops-portfolio-api:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 5001
           protocol: TCP
