@@ -1,4 +1,4 @@
-name: Build and Deploy DevOps Portfolio
+name: Build and Deploy PodRick
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - 'api/**'
       - 'dashboard/**'
       - 'k8s/**'
-      - '.github/workflows/build-and-deploy-devops-portfolio.yml'
+      - '.github/workflows/build-and-deploy-podrick.yml'
   workflow_dispatch:
 
 jobs:
