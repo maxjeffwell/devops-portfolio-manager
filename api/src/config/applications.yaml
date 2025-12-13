@@ -21,7 +21,7 @@ applications:
     argocdApp: code-talk
     github:
       owner: maxjeffwell
-      repo: code-talk
+      repo: code-talk-Docker
 
   - id: educationelly
     name: EducationELLy
@@ -31,7 +31,7 @@ applications:
     argocdApp: educationelly
     github:
       owner: maxjeffwell
-      repo: educationelly
+      repo: educationELLy-Docker
 
   - id: educationelly-graphql
     name: EducationELLy GraphQL
@@ -41,7 +41,7 @@ applications:
     argocdApp: educationelly-graphql
     github:
       owner: maxjeffwell
-      repo: educationelly-graphql
+      repo: educationELLy-graphql-Docker
 
   - id: firebook
     name: FireBook
@@ -61,4 +61,4 @@ applications:
     argocdApp: intervalai
     github:
       owner: maxjeffwell
-      repo: spaced-repetition-capstone
+      repo: spaced-repetition-capstone-Docker
