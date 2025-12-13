@@ -1,4 +1,4 @@
-name: Build and Deploy Educationelly GraphQL
+name: Build and Deploy educationELLy-GraphQL
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-deploy.yml
     with:
       app-name: educationelly-graphql
-      app-display-name: Educationelly GraphQL
+      app-display-name: educationELLy-GraphQL
       helm-chart-path: helm-charts/educationelly-graphql
       source-repo: maxjeffwell/educationELLy-graphql-Docker
       source-repo-ref: main

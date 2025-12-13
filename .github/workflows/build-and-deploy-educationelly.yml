@@ -1,4 +1,4 @@
-name: Build and Deploy Educationelly
+name: Build and Deploy educationELLy
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-deploy.yml
     with:
       app-name: educationelly
-      app-display-name: Educationelly
+      app-display-name: educationELLy
       helm-chart-path: helm-charts/educationelly
       source-repo: maxjeffwell/educationELLy-Docker
       source-repo-ref: main
