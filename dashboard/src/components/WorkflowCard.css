@@ -42,7 +42,7 @@
 .workflow-name {
   font-size: 16px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   margin-bottom: 4px;
   word-break: break-word;
 }
