@@ -5,7 +5,14 @@ const axios = require('axios');
 const GITHUB_API = 'https://api.github.com';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'maxjeffwell';
-const GITHUB_REPO = process.env.GITHUB_REPO || 'devops-portfolio-manager';
+
+// Multiple repos to monitor
+const REPOS = [
+  { name: 'devops-portfolio-manager', displayName: 'PodRick' },
+  { name: 'portfolio-orchestration-platform', displayName: 'POP' },
+  { name: 'k8s-multi-tenant-platform', displayName: 'TenantFlow' },
+  { name: 'microservices-platform', displayName: 'Vertex Platform' }
+];
 
 // Helper function to calculate time difference in hours
 function getHoursDiff(start, end) {
@@ -23,22 +30,41 @@ function median(arr) {
 // Get comprehensive DevOps metrics
 router.get('/metrics', async (req, res) => {
   try {
-    // Fetch workflow runs from the last 30 days
+    // Fetch workflow runs from the last 30 days from all repos
     const since = new Date();
     since.setDate(since.getDate() - 30);
 
-    const response = await axios.get(
-      `${GITHUB_API}/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs`,
-      {
-        headers: GITHUB_TOKEN ? { 'Authorization': `token ${GITHUB_TOKEN}` } : {},
-        params: {
-          per_page: 100,
-          created: `>=${since.toISOString()}`
-        }
-      }
-    );
+    const allRuns = [];
 
-    const runs = response.data.workflow_runs;
+    // Fetch runs from all repos
+    for (const repo of REPOS) {
+      try {
+        const response = await axios.get(
+          `${GITHUB_API}/repos/${GITHUB_OWNER}/${repo.name}/actions/runs`,
+          {
+            headers: GITHUB_TOKEN ? { 'Authorization': `token ${GITHUB_TOKEN}` } : {},
+            params: {
+              per_page: 100,
+              created: `>=${since.toISOString()}`
+            }
+          }
+        );
+
+        // Add repo context to each run
+        const runsWithRepo = response.data.workflow_runs.map(run => ({
+          ...run,
+          repo: repo.name,
+          repo_display_name: repo.displayName
+        }));
+
+        allRuns.push(...runsWithRepo);
+      } catch (error) {
+        console.error(`Error fetching runs for ${repo.name}:`, error.message);
+        // Continue with other repos even if one fails
+      }
+    }
+
+    const runs = allRuns;
 
     if (runs.length === 0) {
       return res.json({
