@@ -48,3 +48,63 @@ spec:
     - port: http
       path: /metrics
       interval: 30s
+---
+# ServiceMonitor for Triton AMD (CPU inference on VPS)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: triton-amd
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  endpoints:
+  - interval: 15s
+    path: /metrics
+    port: metrics
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: triton-amd
+---
+# ServiceMonitor for Triton Embeddings (VPS)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: triton-embeddings
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  endpoints:
+  - interval: 15s
+    path: /metrics
+    port: metrics
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: triton-embeddings
+---
+# ServiceMonitor for Triton GPU (local marmoset node)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: triton-gpu
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  endpoints:
+  - interval: 15s
+    path: /metrics
+    port: metrics
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app: triton-gpu

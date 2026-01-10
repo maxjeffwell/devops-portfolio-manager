@@ -15,14 +15,18 @@ kube-prometheus-stack:
     prometheusSpec:
       # Retention period for metrics
       retention: 30d
+      # Node selector - run on VPS to ensure network access to all targets
+      nodeSelector:
+        kubernetes.io/hostname: vmi2951245
       # Storage configuration
       storageSpec:
         volumeClaimTemplate:
           spec:
+            storageClassName: local-path
             accessModes: ["ReadWriteOnce"]
             resources:
               requests:
-                storage: 10Gi
+                storage: 50Gi
       # Resource limits
       resources:
         requests:
