@@ -164,37 +164,64 @@ jobs:
     name: Update GitOps Manifest
     runs-on: ubuntu-latest
     needs: build-and-push-images
+    # Prevent race conditions - only one gitops update at a time
+    concurrency:
+      group: gitops-update
+      cancel-in-progress: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Update image tags in values.yaml
+      - name: Commit and push changes with retry
+        env:
+          IMAGE_TAG: ${{ needs.build-and-push-images.outputs.image-tag }}
+          HELM_CHART_PATH: ${{ inputs.helm-chart-path }}
+          APP_DISPLAY_NAME: ${{ inputs.app-display-name }}
         run: |
-          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
-
-          echo "Updating ${{ inputs.app-display-name }} image tags to: ${IMAGE_TAG}"
-
-          # Update image tags
-          sed -i "s|tag: .*|tag: ${IMAGE_TAG}|" ${{ inputs.helm-chart-path }}/values.yaml
-
-          # Show the changes
-          git diff ${{ inputs.helm-chart-path }}/values.yaml
-
-      - name: Commit and push changes
-        run: |
-          IMAGE_TAG="${{ needs.build-and-push-images.outputs.image-tag }}"
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add ${{ inputs.helm-chart-path }}/values.yaml
-          git commit -m "Update ${{ inputs.app-display-name }} image tag to ${IMAGE_TAG}" || echo "No changes to commit"
-          git pull --rebase
-          git push
+          echo "Updating ${APP_DISPLAY_NAME} image tags to: ${IMAGE_TAG}"
 
-          echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
+          # Retry logic for race conditions
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Apply our change
+            sed -i "s|tag: .*|tag: ${IMAGE_TAG}|" "${HELM_CHART_PATH}/values.yaml"
+
+            # Show the changes
+            git diff "${HELM_CHART_PATH}/values.yaml"
+
+            # Check if there are actual changes
+            if git diff --quiet "${HELM_CHART_PATH}/values.yaml"; then
+              echo "✅ No changes needed - tag already set to ${IMAGE_TAG}"
+              exit 0
+            fi
+
+            git add "${HELM_CHART_PATH}/values.yaml"
+            git commit -m "Update ${APP_DISPLAY_NAME} image tag to ${IMAGE_TAG}"
+
+            if git push origin main; then
+              echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
+              exit 0
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "⚠️ Push failed (attempt $RETRY_COUNT/$MAX_RETRIES), retrying in $((RETRY_COUNT * 2)) seconds..."
+            sleep $((RETRY_COUNT * 2))
+          done
+
+          echo "❌ Failed to push after $MAX_RETRIES attempts"
+          exit 1
 
   notify:
     name: Notify Status
