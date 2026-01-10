@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: monitoring-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: monitoring
+    portfolio: "true"
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: {{ .Values.ingress.grafanaHost }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.ingress.grafanaService }}
+            port:
+              number: {{ .Values.ingress.grafanaPort }}
+  - host: {{ .Values.ingress.prometheusHost }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.ingress.prometheusService }}
+            port:
+              number: {{ .Values.ingress.prometheusPort }}
+{{- end }}

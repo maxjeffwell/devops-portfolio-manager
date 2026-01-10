@@ -130,6 +130,13 @@ secret:
     # openssl rand -base64 32 | base64
     JWT_SECRET: "REPLACE_WITH_BASE64_ENCODED_JWT_SECRET"
 
+# Ingress Configuration
+ingress:
+  enabled: true
+  host: educationelly-graphql-k8s.el-jefe.me
+  apiPaths:
+    - /graphql
+
 # MongoDB Connection Pool Configuration
 # These settings prevent connection exhaustion under load
 mongodb:

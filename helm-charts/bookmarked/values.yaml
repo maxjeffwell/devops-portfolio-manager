@@ -48,26 +48,10 @@ service:
     targetPort: 80
     nodePort: 30002
 
+# Ingress Configuration
 ingress:
-  enabled: false
-  className: "nginx"
-  annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  hosts:
-    - host: bookmarked.el-jefe.me
-      paths:
-        - path: /api
-          pathType: Prefix
-          service: bookmarked-api
-          port: 8000
-        - path: /
-          pathType: Prefix
-          service: bookmarked-client
-          port: 80
-  tls:
-    - secretName: bookmarked-tls
-      hosts:
-        - bookmarked.el-jefe.me
+  enabled: true
+  host: bookmarked-k8s.el-jefe.me
 
 resources:
   api:

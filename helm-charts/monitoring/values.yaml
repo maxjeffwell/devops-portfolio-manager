@@ -1,3 +1,13 @@
+# Custom Ingress Configuration (separate from kube-prometheus-stack ingress)
+ingress:
+  enabled: true
+  grafanaHost: grafana.el-jefe.me
+  grafanaService: prometheus-grafana
+  grafanaPort: 80
+  prometheusHost: prometheus.el-jefe.me
+  prometheusService: prometheus-kube-prometheus-prometheus
+  prometheusPort: 9090
+
 # Kube-Prometheus-Stack Configuration
 kube-prometheus-stack:
   # Prometheus Configuration

@@ -93,6 +93,15 @@ securityContext:
 #   initialDelaySeconds: 10
 #   periodSeconds: 5
 
+# Ingress Configuration
+ingress:
+  enabled: true
+  host: code-talk-k8s.el-jefe.me
+  serverPaths:
+    - /graphql
+    - /api
+    - /socket.io
+
 # Cloud Database Configuration
 # Secret is manually managed outside of Helm chart
 # Create with: kubectl create secret generic code-talk-secret \

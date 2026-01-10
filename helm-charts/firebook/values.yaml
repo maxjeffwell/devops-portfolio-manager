@@ -71,6 +71,11 @@ readinessProbe:
     port: 8080
   initialDelaySeconds: 10
   periodSeconds: 5
+# Ingress Configuration
+ingress:
+  enabled: true
+  host: firebook-k8s.el-jefe.me
+
 secret:
   data:
     JWT_SECRET: "ZmlyZWJvb2stand0LXNlY3JldC1rZXk="
