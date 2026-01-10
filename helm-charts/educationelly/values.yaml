@@ -146,3 +146,18 @@ mongodb:
     waitQueueTimeoutMs: 5000
     # Timeout (ms) for server selection
     serverSelectionTimeoutMs: 5000
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  host: educationelly-k8s.el-jefe.me
+  apiPaths:
+    - /signin
+    - /signup
+    - /api
+    - /auth
+    - /students
+    - /logout
+    - /whoami
+    - /ai
+    - /health
