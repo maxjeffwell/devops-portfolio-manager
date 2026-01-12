@@ -99,6 +99,49 @@ kube-prometheus-stack:
   # AlertManager Configuration
   alertmanager:
     enabled: true
+    config:
+      global:
+        resolve_timeout: 5m
+      inhibit_rules:
+        - equal: ['namespace', 'alertname']
+          source_matchers:
+            - severity = critical
+          target_matchers:
+            - severity =~ warning|info
+        - equal: ['namespace', 'alertname']
+          source_matchers:
+            - severity = warning
+          target_matchers:
+            - severity = info
+        - equal: ['namespace']
+          source_matchers:
+            - alertname = InfoInhibitor
+          target_matchers:
+            - severity = info
+        - target_matchers:
+            - alertname = InfoInhibitor
+      receivers:
+        - name: 'null'
+      route:
+        group_by: ['namespace']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: 'null'
+        routes:
+          # Silence Watchdog (always-firing health check)
+          - matchers:
+              - alertname = "Watchdog"
+            receiver: 'null'
+          # Silence GPU operator DaemonSet false-positives only
+          - matchers:
+              - namespace = "gpu-operator"
+              - alertname =~ "KubeDaemonSetMisScheduled|KubeDaemonSetRolloutStuck"
+            receiver: 'null'
+          # Silence k3s control plane alerts (bundled into k3s binary)
+          - matchers:
+              - alertname =~ "KubeControllerManagerDown|KubeSchedulerDown|KubeProxyDown"
+            receiver: 'null'
     alertmanagerSpec:
       storage:
         volumeClaimTemplate:
