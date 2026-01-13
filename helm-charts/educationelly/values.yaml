@@ -2,11 +2,11 @@ replicaCount: 2
 image:
   server:
     repository: maxjeffwell/educationelly-server
-    tag: 20260113-073245-8237f5a
+    tag: 20260113-075130-28729b4
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-client
-    tag: 20260113-073245-8237f5a
+    tag: 20260113-075130-28729b4
     pullPolicy: Always
 service:
   server:
