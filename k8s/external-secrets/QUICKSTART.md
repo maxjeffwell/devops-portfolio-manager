@@ -271,7 +271,7 @@ Kubernetes doesn't automatically restart pods when secrets change. You must:
 
 ```bash
 # Rollout restart the deployment
-kubectl rollout restart deployment/bookmarked-api
+kubectl rollout restart deployment/bookmarked-server
 kubectl rollout restart deployment/bookmarked-client
 
 # Or use a tool like Reloader to automate this
