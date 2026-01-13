@@ -96,6 +96,11 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME_CLIENT }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME_CLIENT }}:latest
+          build-args: |
+            VITE_APP_URL=https://firebook-k8s.el-jefe.me
+            VITE_ALGOLIA_APP_ID=${{ secrets.FIREBOOK_ALGOLIA_APP_ID }}
+            VITE_ALGOLIA_SEARCH_API_KEY=${{ secrets.FIREBOOK_ALGOLIA_SEARCH_API_KEY }}
+            VITE_ALGOLIA_INDEX_NAME=${{ secrets.FIREBOOK_ALGOLIA_INDEX_NAME }}
           cache-from: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache
           cache-to: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache,mode=max
 
