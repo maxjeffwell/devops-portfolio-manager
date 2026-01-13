@@ -27,7 +27,7 @@ permissions:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME_CLIENT: maxjeffwell/firebook-client
+  IMAGE_NAME_CLIENT: maxjeffwell/firebook
 
 jobs:
   lint-and-validate:
