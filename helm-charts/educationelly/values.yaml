@@ -1,15 +1,15 @@
 replicaCount: 2
 image:
-  api:
-    repository: maxjeffwell/educationelly-api
-    tag: 20260110-011912-29ebe7d
+  server:
+    repository: maxjeffwell/educationelly-server
+    tag: latest
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-client
-    tag: 20260110-011912-29ebe7d
+    tag: latest
     pullPolicy: Always
 service:
-  api:
+  server:
     type: ClusterIP
     port: 8080
     targetPort: 8080
@@ -20,7 +20,7 @@ service:
     targetPort: 3000
     nodePort: 30008
 resources:
-  api:
+  server:
     limits:
       cpu: 500m
       memory: 512Mi
@@ -40,7 +40,7 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 env:
-  api:
+  server:
     - name: NODE_ENV
       value: "production"
     - name: PORT
@@ -68,7 +68,7 @@ env:
       value: "5000"
   client:
     - name: REACT_APP_API_URL
-      value: "http://educationelly-api:8080"
+      value: "http://educationelly-server:8080"
 serviceAccount:
   create: true
 podSecurityContext:
@@ -151,7 +151,7 @@ mongodb:
 ingress:
   enabled: true
   host: educationelly-k8s.el-jefe.me
-  apiPaths:
+  serverPaths:
     - /signin
     - /signup
     - /api

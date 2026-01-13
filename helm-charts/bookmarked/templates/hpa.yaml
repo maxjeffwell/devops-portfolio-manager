@@ -1,1 +1,1 @@
-{{- include "portfolio-common.hpa" (dict "component" "api" "context" $) }}
+{{- include "portfolio-common.hpa" (dict "component" "server" "context" $) }}

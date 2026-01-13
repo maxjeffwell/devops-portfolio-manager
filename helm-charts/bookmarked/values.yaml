@@ -3,13 +3,13 @@
 replicaCount: 2
 
 image:
-  api:
-    repository: maxjeffwell/bookmarked-api
-    tag: 20260110-012720-4b4b875
+  server:
+    repository: maxjeffwell/bookmarks-react-hooks-server
+    tag: latest
     pullPolicy: Always
   client:
-    repository: maxjeffwell/bookmarked-client
-    tag: 20260110-012720-4b4b875
+    repository: maxjeffwell/bookmarks-react-hooks-client
+    tag: latest
     pullPolicy: Always
 
 imagePullSecrets: []
@@ -37,7 +37,7 @@ securityContext:
   runAsUser: 1001
 
 service:
-  api:
+  server:
     type: ClusterIP
     port: 8000
     targetPort: 8000
@@ -54,7 +54,7 @@ ingress:
   host: bookmarked-k8s.el-jefe.me
 
 resources:
-  api:
+  server:
     limits:
       cpu: 500m
       memory: 512Mi
@@ -81,7 +81,7 @@ affinity: {}
 
 # Environment variables
 env:
-  api:
+  server:
     - name: NODE_ENV
       value: "production"
     - name: PORT
@@ -98,7 +98,7 @@ env:
           key: JWT_SECRET
   client:
     - name: REACT_APP_API_URL
-      value: "http://bookmarked-api:8000"
+      value: "http://bookmarked-server:8000"
 
 livenessProbe:
   httpGet:

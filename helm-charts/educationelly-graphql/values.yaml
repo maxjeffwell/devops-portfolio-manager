@@ -1,15 +1,15 @@
 replicaCount: 2
 image:
-  api:
-    repository: maxjeffwell/educationelly-graphql-api
-    tag: 20260110-012720-4b4b875
+  server:
+    repository: maxjeffwell/educationelly-graphql-server
+    tag: latest
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-graphql-client
-    tag: 20260110-012720-4b4b875
+    tag: latest
     pullPolicy: Always
 service:
-  api:
+  server:
     type: ClusterIP
     port: 8000
     targetPort: 8000
@@ -20,7 +20,7 @@ service:
     targetPort: 80
     nodePort: 30010
 resources:
-  api:
+  server:
     limits:
       cpu: 500m
       memory: 512Mi
@@ -40,7 +40,7 @@ autoscaling:
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
 env:
-  api:
+  server:
     - name: NODE_ENV
       value: "production"
     - name: PORT
@@ -68,7 +68,7 @@ env:
       value: "5000"
   client:
     - name: REACT_APP_GRAPHQL_URL
-      value: "http://educationelly-graphql-api:8000/graphql"
+      value: "http://educationelly-graphql-server:8000/graphql"
 serviceAccount:
   create: true
 podSecurityContext:
@@ -134,7 +134,7 @@ secret:
 ingress:
   enabled: true
   host: educationelly-graphql-k8s.el-jefe.me
-  apiPaths:
+  serverPaths:
     - /graphql
 
 # MongoDB Connection Pool Configuration

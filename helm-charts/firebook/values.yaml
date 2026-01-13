@@ -1,32 +1,20 @@
+# Firebook - Frontend-only application (Firebase backend)
 replicaCount: 2
+
 image:
-  api:
+  client:
     repository: maxjeffwell/firebook
     tag: latest
     pullPolicy: Always
-  client:
-    repository: maxjeffwell/firebook-client
-    tag: 20260110-012715-4b4b875
-    pullPolicy: Always
+
 service:
-  api:
-    type: ClusterIP
-    port: 8080
-    targetPort: 8080
-    nodePort: 30003
   client:
     type: NodePort
     port: 80
     targetPort: 80
     nodePort: 30004
+
 resources:
-  api:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 256Mi
   client:
     limits:
       cpu: 200m
@@ -34,24 +22,23 @@ resources:
     requests:
       cpu: 50m
       memory: 128Mi
+
 autoscaling:
   enabled: true
   minReplicas: 2
   maxReplicas: 10
   targetCPUUtilizationPercentage: 80
+
+# Environment variables (empty for frontend-only)
 env:
-  api:
-    - name: NODE_ENV
-      value: "production"
-    - name: PORT
-      value: "8080"
-  client:
-    - name: REACT_APP_API_URL
-      value: "http://firebook-api:8080"
+  client: []
+
 serviceAccount:
   create: true
+
 podSecurityContext:
   fsGroup: 2000
+
 securityContext:
   capabilities:
     drop:
@@ -59,23 +46,8 @@ securityContext:
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1001
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-  initialDelaySeconds: 30
-  periodSeconds: 10
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-  initialDelaySeconds: 10
-  periodSeconds: 5
+
 # Ingress Configuration
 ingress:
   enabled: true
   host: firebook-k8s.el-jefe.me
-
-secret:
-  data:
-    JWT_SECRET: "ZmlyZWJvb2stand0LXNlY3JldC1rZXk="

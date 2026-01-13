@@ -26,8 +26,8 @@ In your application chart templates:
 #### Deployment
 
 ```yaml
-# templates/deployment-api.yaml
-{{- include "portfolio-common.deployment" (dict "component" "api" "context" $) }}
+# templates/deployment-server.yaml
+{{- include "portfolio-common.deployment" (dict "component" "server" "context" $) }}
 ---
 # templates/deployment-client.yaml
 {{- include "portfolio-common.deployment" (dict "component" "client" "context" $) }}
@@ -36,10 +36,9 @@ In your application chart templates:
 #### Service
 
 ```yaml
-# templates/service-api.yaml
-{{- include "portfolio-common.service" (dict "component" "api" "context" $) }}
+# templates/service.yaml
+{{- include "portfolio-common.service" (dict "component" "server" "context" $) }}
 ---
-# templates/service-client.yaml
 {{- include "portfolio-common.service" (dict "component" "client" "context" $) }}
 ```
 
@@ -53,8 +52,8 @@ In your application chart templates:
 #### HPA (Horizontal Pod Autoscaler)
 
 ```yaml
-# templates/hpa-api.yaml
-{{- include "portfolio-common.hpa" (dict "component" "api" "context" $) }}
+# templates/hpa.yaml
+{{- include "portfolio-common.hpa" (dict "component" "server" "context" $) }}
 ```
 
 #### Secret
@@ -83,8 +82,8 @@ In your application chart templates:
 replicaCount: 2
 
 image:
-  api:
-    repository: myregistry/app-api
+  server:
+    repository: myregistry/app-server
     tag: latest
     pullPolicy: Always
   client:
@@ -93,7 +92,7 @@ image:
     pullPolicy: Always
 
 service:
-  api:
+  server:
     type: ClusterIP
     port: 8000
     targetPort: 8000
@@ -104,7 +103,7 @@ service:
     nodePort: 30002
 
 resources:
-  api:
+  server:
     limits:
       cpu: 500m
       memory: 512Mi
@@ -120,12 +119,12 @@ resources:
       memory: 128Mi
 
 env:
-  api:
+  server:
     - name: NODE_ENV
       value: "production"
   client:
     - name: REACT_APP_API_URL
-      value: "http://app-api:8000"
+      value: "http://app-server:8000"
 
 autoscaling:
   enabled: true
@@ -148,6 +147,37 @@ securityContext:
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1001
+```
+
+## Frontend-Only Applications
+
+For frontend-only apps (like Firebase SPAs), use only the `client` component:
+
+```yaml
+image:
+  client:
+    repository: myregistry/app-client
+    tag: latest
+    pullPolicy: Always
+
+service:
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30004
+
+resources:
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+env:
+  client: []
 ```
 
 ## Benefits

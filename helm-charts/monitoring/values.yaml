@@ -51,9 +51,11 @@ kube-prometheus-stack:
       pathType: ImplementationSpecific
 
   # Grafana Configuration
+  # ⚠️  SECURITY: Override adminPassword at deploy time!
+  # helm install monitoring . --set kube-prometheus-stack.grafana.adminPassword="$(openssl rand -base64 24)"
   grafana:
     enabled: true
-    adminPassword: "admin123"  # Change this in production
+    adminPassword: "REPLACE_AT_DEPLOY_TIME"
 
     # Grafana ingress configuration
     ingress:
@@ -69,7 +71,7 @@ kube-prometheus-stack:
     # Configure Grafana to work with sub-path
     grafana.ini:
       server:
-        root_url: "http://86.48.29.183/grafana"
+        root_url: "%(protocol)s://%(domain)s/grafana"
         serve_from_sub_path: true
 
     # Pre-configured datasources
