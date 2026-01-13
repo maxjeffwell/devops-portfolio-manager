@@ -62,6 +62,8 @@ env:
           key: REDIS_URL
     - name: ALLOWED_ORIGINS
       value: "http://localhost:3000,http://localhost:80"
+    - name: AI_GATEWAY_URL
+      value: "http://shared-ai-gateway:8002"
   client:
     - name: REACT_APP_GRAPHQL_HTTP_URI
       value: "http://code-talk-server:8000/graphql"
