@@ -1,0 +1,86 @@
+apiVersion: v1
+data:
+  config.yaml: |
+    sync:
+      interval: 60s  # Poll interval for checking repository changes
+      branch: main
+      autoRollback: true  # Automatically rollback failed deployments
+      dryRun: false  # Set to true to test without applying changes
+      concurrency: 3  # Number of applications to sync in parallel (default: 3)
+
+    git:
+      repository: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      chartsPath: helm-charts
+
+    kubernetes:
+      inCluster: true  # Use in-cluster config when running in K8s
+      namespace: default
+
+    applications:
+      - name: bookmarked
+        enabled: true
+        path: helm-charts/bookmarked
+        namespace: default
+        valueFiles:
+          - values.yaml
+        autoSync: true
+
+      - name: code-talk
+        enabled: true
+        path: helm-charts/code-talk
+        namespace: default
+        valueFiles:
+          - values.yaml
+        autoSync: true
+
+      - name: educationelly
+        enabled: true
+        path: helm-charts/educationelly
+        namespace: default
+        valueFiles:
+          - values.yaml
+        autoSync: true
+
+      - name: educationelly-graphql
+        enabled: true
+        path: helm-charts/educationelly-graphql
+        namespace: default
+        valueFiles:
+          - values.yaml
+        autoSync: true
+
+      - name: firebook
+        enabled: true
+        path: helm-charts/firebook
+        namespace: default
+        valueFiles:
+          - values.yaml
+        autoSync: true
+
+      - name: intervalai
+        enabled: true
+        path: helm-charts/intervalai
+        namespace: default
+        valueFiles:
+          - values.yaml
+        autoSync: true
+
+    notifications:
+      enabled: false
+      slack:
+        webhook: ""
+      email:
+        enabled: false
+        recipients: []
+
+    healthCheck:
+      enabled: true
+      timeout: 300s  # Wait up to 5 minutes for deployment to become healthy
+      retries: 3
+      initialDelay: 5000  # Start with 5s delay between retries
+      backoffFactor: 2  # Double delay each retry (5s, 10s, 20s, ...)
+      maxDelay: 60000  # Cap delay at 60s
+kind: ConfigMap
+metadata:
+  name: gitops-sync-config
+  namespace: default
