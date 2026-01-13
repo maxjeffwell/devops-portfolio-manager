@@ -37,7 +37,7 @@ jobs:
       helm-chart-path: helm-charts/educationelly-graphql
       source-repo: maxjeffwell/educationELLy-graphql-Docker
       source-repo-ref: main
-      image-name-backend: maxjeffwell/educationelly-graphql-api
+      image-name-backend: maxjeffwell/educationelly-graphql-server
       image-name-frontend: maxjeffwell/educationelly-graphql-client
       backend-context: ./source/educationELLy-graphql-server
       frontend-context: ./source/educationELLy-graphql-client

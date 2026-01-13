@@ -37,8 +37,8 @@ jobs:
       helm-chart-path: helm-charts/bookmarked
       source-repo: maxjeffwell/bookmarks-react-hooks
       source-repo-ref: master
-      image-name-backend: maxjeffwell/bookmarked-api
-      image-name-frontend: maxjeffwell/bookmarked-client
+      image-name-backend: maxjeffwell/bookmarks-react-hooks-server
+      image-name-frontend: maxjeffwell/bookmarks-react-hooks-client
       backend-context: ./source/server
       frontend-context: ./source
       frontend-dockerfile: ./source/Dockerfile

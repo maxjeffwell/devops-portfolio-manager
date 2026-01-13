@@ -37,7 +37,7 @@ jobs:
       helm-chart-path: helm-charts/educationelly
       source-repo: maxjeffwell/educationELLy-Docker
       source-repo-ref: main
-      image-name-backend: maxjeffwell/educationelly-api
+      image-name-backend: maxjeffwell/educationelly-server
       image-name-frontend: maxjeffwell/educationelly-client
       backend-context: ./source/full-stack-capstone-server
       frontend-context: ./source/full-stack-capstone-client
