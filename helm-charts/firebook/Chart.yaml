@@ -1,14 +1,15 @@
 apiVersion: v2
 name: firebook
-description: FireBook - Social networking platform
+description: FireBook - Bookmark management app with Firebase backend
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
 keywords:
   - firebook
-  - social-network
+  - bookmarks
+  - firebase
   - react
-home: https://github.com/maxjeffwell/firebook
+home: https://github.com/maxjeffwell/bookmarks-capstone-api
 maintainers:
   - name: Jeff Maxwell
     email: jeff@el-jefe.me
