@@ -176,6 +176,9 @@ env:
       value: "5000"
     - name: MONGODB_SERVER_SELECTION_TIMEOUT_MS
       value: "5000"
+    # CORS configuration
+    - name: CLIENT_ORIGIN
+      value: "https://intervalai-k8s.el-jefe.me"
   client:
     # Use empty string for relative URLs (nginx will proxy to backend via ingress)
     - name: REACT_APP_API_BASE_URL
