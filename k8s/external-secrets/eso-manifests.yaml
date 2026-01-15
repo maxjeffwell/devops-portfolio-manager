@@ -648,3 +648,147 @@ spec:
     - secretKey: mongodb-uri
       remoteRef:
         key: EDUCATIONELLY_NS_MONGODB_URI
+---
+# Langfuse ClickHouse credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: langfuse-clickhouse-external-secret
+  namespace: langfuse
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: langfuse-clickhouse
+    creationPolicy: Owner
+  data:
+    - secretKey: admin-password
+      remoteRef:
+        key: LANGFUSE_CLICKHOUSE_PASSWORD
+---
+# Langfuse NextAuth credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: langfuse-nextauth-external-secret
+  namespace: langfuse
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: langfuse-nextauth
+    creationPolicy: Owner
+  data:
+    - secretKey: nextauth-secret
+      remoteRef:
+        key: LANGFUSE_NEXTAUTH_SECRET
+---
+# Langfuse S3/MinIO credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: langfuse-s3-external-secret
+  namespace: langfuse
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: langfuse-s3
+    creationPolicy: Owner
+  data:
+    - secretKey: root-user
+      remoteRef:
+        key: LANGFUSE_S3_ROOT_USER
+    - secretKey: root-password
+      remoteRef:
+        key: LANGFUSE_S3_ROOT_PASSWORD
+---
+# Microservices MongoDB credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: microservices-mongodb-external-secret
+  namespace: microservices
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: mongodb
+    creationPolicy: Owner
+  data:
+    - secretKey: mongodb-root-password
+      remoteRef:
+        key: MICROSERVICES_MONGODB_ROOT_PASSWORD
+    - secretKey: mongodb-passwords
+      remoteRef:
+        key: MICROSERVICES_MONGODB_ROOT_PASSWORD
+---
+# Microservices Redis credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: microservices-redis-external-secret
+  namespace: microservices
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: redis
+    creationPolicy: Owner
+  data:
+    - secretKey: redis-password
+      remoteRef:
+        key: MICROSERVICES_REDIS_PASSWORD
+---
+# Vertex Platform secrets
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: vertex-platform-secrets-external-secret
+  namespace: vertex-platform
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: platform-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: VERTEX_JWT_SECRET
+    - secretKey: INFLUXDB_TOKEN
+      remoteRef:
+        key: INFLUXDB_TOKEN
+    - secretKey: INFLUXDB_USERNAME
+      remoteRef:
+        key: VERTEX_INFLUXDB_USERNAME
+    - secretKey: INFLUXDB_PASSWORD
+      remoteRef:
+        key: VERTEX_INFLUXDB_PASSWORD
+    - secretKey: MONGO_USERNAME
+      remoteRef:
+        key: VERTEX_MONGO_USERNAME
+    - secretKey: MONGO_PASSWORD
+      remoteRef:
+        key: VERTEX_MONGO_PASSWORD
+    - secretKey: REDIS_PASSWORD
+      remoteRef:
+        key: VERTEX_REDIS_PASSWORD
+    - secretKey: AUTH_DATABASE_URL
+      remoteRef:
+        key: NEON_DATABASE_URL
+    - secretKey: USER_DATABASE_URL
+      remoteRef:
+        key: NEON_DATABASE_URL
