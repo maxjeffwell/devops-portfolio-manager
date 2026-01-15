@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: doppler-secret-store
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            key: dopplerToken
+            name: doppler-token-auth
+            namespace: external-secrets
+---
+# IMPORTANT: The doppler-token-auth secret must be created manually:
+# kubectl create secret generic doppler-token-auth \
+#   --namespace external-secrets \
+#   --from-literal=dopplerToken=<YOUR_DOPPLER_SERVICE_TOKEN>
+#
+# DO NOT commit the actual token to Git!

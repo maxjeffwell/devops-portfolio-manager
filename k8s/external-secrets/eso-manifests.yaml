@@ -1,0 +1,498 @@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ai-gateway-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: ai-gateway-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: ANTHROPIC_API_KEY
+      remoteRef:
+        key: ANTHROPIC_API_KEY
+    - secretKey: GROQ_API_KEY
+      remoteRef:
+        key: GROQ_API_KEY
+    - secretKey: RUNPOD_API_KEY
+      remoteRef:
+        key: RUNPOD_API_KEY
+    - secretKey: RUNPOD_ENDPOINT_ID
+      remoteRef:
+        key: RUNPOD_ENDPOINT_ID
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: anthropic-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: anthropic-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: ANTHROPIC_API_KEY
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: argocd-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: argocd-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: username
+      remoteRef:
+        key: ARGOCD_ADMIN_USERNAME
+    - secretKey: password
+      remoteRef:
+        key: ARGOCD_ADMIN_PASSWORD
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: backblaze-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: backblaze-b2-creds
+    creationPolicy: Owner
+  data:
+    - secretKey: accessKeyID
+      remoteRef:
+        key: BACKBLAZE_ACCESS_KEY_ID
+    - secretKey: secretAccessKey
+      remoteRef:
+        key: BACKBLAZE_SECRET_ACCESS_KEY
+    - secretKey: bucket
+      remoteRef:
+        key: BACKBLAZE_BUCKET
+    - secretKey: endpoint
+      remoteRef:
+        key: BACKBLAZE_ENDPOINT
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: bookmarked-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: bookmarked-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: BOOKMARKED_DATABASE_URL
+    - secretKey: OPENAI_API_KEY
+      remoteRef:
+        key: BOOKMARKED_OPENAI_API_KEY
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cloudflared-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: cloudflared-ai-gateway
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: CLOUDFLARED_TOKEN
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: code-talk-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: code-talk-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: CODE_TALK_DATABASE_URL
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: CODE_TALK_JWT_SECRET
+    - secretKey: REDIS_URL
+      remoteRef:
+        key: CODE_TALK_REDIS_URL
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: devops-portfolio-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: devops-portfolio-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: auth-database-url
+      remoteRef:
+        key: NEON_DATABASE_URL
+    - secretKey: github-token
+      remoteRef:
+        key: GITHUB_TOKEN
+    - secretKey: jwt-secret
+      remoteRef:
+        key: PORTFOLIO_JWT_SECRET
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: educationelly-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: educationelly-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: MONGODB_URI
+      remoteRef:
+        key: EDUCATIONELLY_MONGODB_URI
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: EDUCATIONELLY_JWT_SECRET
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: educationelly-graphql-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: educationelly-graphql-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: MONGODB_URI
+      remoteRef:
+        key: EDUCATIONELLY_GRAPHQL_MONGODB_URI
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: EDUCATIONELLY_GRAPHQL_JWT_SECRET
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: groq-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: groq-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: GROQ_API_KEY
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: intervalai-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: intervalai-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: MONGODB_URI
+      remoteRef:
+        key: INTERVALAI_MONGODB_URI
+    - secretKey: JWT_SECRET
+      remoteRef:
+        key: INTERVALAI_JWT_SECRET
+    - secretKey: RUNPOD_API_KEY
+      remoteRef:
+        key: RUNPOD_API_KEY
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: langfuse-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: langfuse-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: LANGFUSE_PUBLIC_KEY
+      remoteRef:
+        key: LANGFUSE_PUBLIC_KEY
+    - secretKey: LANGFUSE_SECRET_KEY
+      remoteRef:
+        key: LANGFUSE_SECRET_KEY
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mongodb-educationelly-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: mongodb-educationelly-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: mongodb-root-password
+      remoteRef:
+        key: MONGODB_EDUCATIONELLY_ROOT_PASSWORD
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mongodb-educationelly-graphql-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: mongodb-educationelly-graphql-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: mongodb-root-password
+      remoteRef:
+        key: MONGODB_EDUCATIONELLY_GRAPHQL_ROOT_PASSWORD
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mongodb-intervalai-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: mongodb-intervalai-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: mongodb-root-password
+      remoteRef:
+        key: MONGODB_INTERVALAI_ROOT_PASSWORD
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: portfolio-api-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: portfolio-api-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: admin-username
+      remoteRef:
+        key: PORTFOLIO_ADMIN_USERNAME
+    - secretKey: admin-password
+      remoteRef:
+        key: PORTFOLIO_ADMIN_PASSWORD
+    - secretKey: jwt-secret
+      remoteRef:
+        key: PORTFOLIO_JWT_SECRET
+    - secretKey: gotify-app-token
+      remoteRef:
+        key: GOTIFY_APP_TOKEN
+    - secretKey: gotify-client-token
+      remoteRef:
+        key: GOTIFY_CLIENT_TOKEN
+    - secretKey: auth-database-url
+      remoteRef:
+        key: NEON_DATABASE_URL
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: portfolio-db-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: portfolio-db-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: DATABASE_URL
+      remoteRef:
+        key: NEON_DATABASE_URL
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: postgresql-codetalk-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: postgresql-codetalk-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: postgres-password
+      remoteRef:
+        key: POSTGRESQL_CODETALK_PASSWORD
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: redis-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: redis-secrets
+    creationPolicy: Owner
+  data:
+    - secretKey: redis-password
+      remoteRef:
+        key: REDIS_PASSWORD
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: runpod-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: runpod-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: RUNPOD_API_KEY
+    - secretKey: endpoint-id
+      remoteRef:
+        key: RUNPOD_ENDPOINT_ID
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: vertex-platform-external-secret
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: vertex-platform-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: jwt-secret
+      remoteRef:
+        key: VERTEX_JWT_SECRET
+    - secretKey: kafka-brokers
+      remoteRef:
+        key: KAFKA_BROKERS
+    - secretKey: kafka-username
+      remoteRef:
+        key: KAFKA_USERNAME
+    - secretKey: kafka-password
+      remoteRef:
+        key: KAFKA_PASSWORD
+    - secretKey: influxdb-token
+      remoteRef:
+        key: INFLUXDB_TOKEN
+    - secretKey: auth-database-url
+      remoteRef:
+        key: NEON_DATABASE_URL
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: langfuse-postgresql-external-secret
+  namespace: langfuse
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: langfuse-postgresql
+    creationPolicy: Owner
+  data:
+    - secretKey: postgres-password
+      remoteRef:
+        key: NEONDB_PASSWORD
