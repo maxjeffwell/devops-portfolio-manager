@@ -36,6 +36,14 @@ securityContext:
   runAsNonRoot: false
   runAsUser: 1001
 
+# Client-specific security context (nginx needs root for PID file)
+securityContextClient:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+
 service:
   server:
     type: ClusterIP

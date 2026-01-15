@@ -45,6 +45,7 @@ securityContextClient:
     drop:
     - ALL
   readOnlyRootFilesystem: false
+  runAsNonRoot: false
 
 service:
   server:
