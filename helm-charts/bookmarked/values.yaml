@@ -138,6 +138,19 @@ readinessProbe:
   initialDelaySeconds: 10
   periodSeconds: 5
 
+# Client-specific probes (nginx on port 80)
+livenessProbeClient:
+  tcpSocket:
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbeClient:
+  tcpSocket:
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
 # Cloud Database Configuration
 # ⚠️  SECURITY: Never commit real secrets to Git!
 #

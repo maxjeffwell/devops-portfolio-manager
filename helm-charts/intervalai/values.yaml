@@ -197,6 +197,19 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 3
 
+# Client-specific probes (nginx on port 8080)
+livenessProbeClient:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+readinessProbeClient:
+  tcpSocket:
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
 # ConfigMap data
 configMap:
   data:
