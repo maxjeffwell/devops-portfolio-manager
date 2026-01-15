@@ -91,11 +91,6 @@ env:
         secretKeyRef:
           name: bookmarked-secret
           key: DATABASE_URL
-    - name: JWT_SECRET
-      valueFrom:
-        secretKeyRef:
-          name: bookmarked-secret
-          key: JWT_SECRET
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
@@ -140,8 +135,6 @@ secret:
     # Placeholder values - MUST be overridden at deploy time
     # echo -n "your-postgres-connection-string" | base64
     DATABASE_URL: "REPLACE_AT_DEPLOY_TIME"
-    # echo -n "your-jwt-secret" | base64
-    JWT_SECRET: "REPLACE_AT_DEPLOY_TIME"
 
 # External Secrets configuration
 externalSecrets:
