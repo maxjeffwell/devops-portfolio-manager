@@ -7,11 +7,11 @@ replicaCount: 1
 image:
   server:
     repository: maxjeffwell/spaced-repetition-capstone-server
-    tag: 20260115-204016-9f41c18
+    tag: 20260115-211552-ab87b90
     pullPolicy: Always
   client:
     repository: maxjeffwell/spaced-repetition-capstone-client
-    tag: 20260115-204016-9f41c18
+    tag: 20260115-211552-ab87b90
     pullPolicy: Always
 
 imagePullSecrets: []
