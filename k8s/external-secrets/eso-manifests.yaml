@@ -496,3 +496,106 @@ spec:
     - secretKey: postgres-password
       remoteRef:
         key: NEONDB_PASSWORD
+---
+# CSI S3 (GeeseFS) - B2 credentials for PVC storage
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: csi-s3-external-secret
+  namespace: kube-system
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: csi-s3-secret
+    creationPolicy: Owner
+  data:
+    - secretKey: accessKeyID
+      remoteRef:
+        key: BACKBLAZE_ACCESS_KEY_ID
+    - secretKey: secretAccessKey
+      remoteRef:
+        key: BACKBLAZE_SECRET_ACCESS_KEY
+    - secretKey: endpoint
+      remoteRef:
+        key: BACKBLAZE_ENDPOINT
+---
+# Velero - B2 credentials for cluster backups
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: velero-cloud-credentials-external-secret
+  namespace: velero
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: cloud-credentials
+    creationPolicy: Owner
+    template:
+      data:
+        cloud: |
+          [default]
+          aws_access_key_id={{ .accessKeyID }}
+          aws_secret_access_key={{ .secretAccessKey }}
+  data:
+    - secretKey: accessKeyID
+      remoteRef:
+        key: BACKBLAZE_ACCESS_KEY_ID
+    - secretKey: secretAccessKey
+      remoteRef:
+        key: BACKBLAZE_SECRET_ACCESS_KEY
+---
+# Velero repo credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: velero-repo-credentials-external-secret
+  namespace: velero
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: velero-repo-credentials
+    creationPolicy: Owner
+  data:
+    - secretKey: repository-password
+      remoteRef:
+        key: VELERO_REPO_PASSWORD
+---
+# Keel - Gotify notification credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: keel-external-secret
+  namespace: keel
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: keel
+    creationPolicy: Owner
+  data:
+    - secretKey: GOTIFY_TOKEN
+      remoteRef:
+        key: KEEL_GOTIFY_TOKEN
+    - secretKey: GOTIFY_URL
+      remoteRef:
+        key: KEEL_GOTIFY_URL
+    - secretKey: KEEL_NOTIFICATION_GOTIFY_ADDRESS
+      remoteRef:
+        key: KEEL_NOTIFICATION_GOTIFY_ADDRESS
+    - secretKey: KEEL_NOTIFICATION_GOTIFY_TOKEN
+      remoteRef:
+        key: KEEL_GOTIFY_TOKEN
+    - secretKey: WEBHOOK_ENDPOINT
+      remoteRef:
+        key: KEEL_WEBHOOK_ENDPOINT
