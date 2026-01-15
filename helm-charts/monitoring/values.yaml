@@ -13,8 +13,10 @@ kube-prometheus-stack:
   # Prometheus Configuration
   prometheus:
     prometheusSpec:
+      # Number of replicas
+      replicas: 1
       # Retention period for metrics
-      retention: 30d
+      retention: 15d
       # Node selector - run on VPS to ensure network access to all targets
       nodeSelector:
         kubernetes.io/hostname: vmi2951245
