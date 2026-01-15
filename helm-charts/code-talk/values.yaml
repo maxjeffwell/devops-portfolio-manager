@@ -2,11 +2,11 @@ replicaCount: 1
 image:
   server:
     repository: maxjeffwell/code-talk-graphql-server
-    tag: 20260115-080117-7a0a413
+    tag: 20260115-083422-e29c56e
     pullPolicy: Always
   client:
     repository: maxjeffwell/code-talk-graphql-client
-    tag: 20260115-080117-7a0a413
+    tag: 20260115-083422-e29c56e
     pullPolicy: Always
 service:
   server:
