@@ -1,3 +1,14 @@
+# Velero Backup Alerts
+veleroAlerts:
+  enabled: true
+  namespace: velero
+
+# Velero Backup Verification (weekly restore test)
+veleroBackupVerify:
+  enabled: true
+  # Run weekly on Sundays at 4 AM UTC
+  schedule: "0 4 * * 0"
+
 # Custom Ingress Configuration (separate from kube-prometheus-stack ingress)
 ingress:
   enabled: true

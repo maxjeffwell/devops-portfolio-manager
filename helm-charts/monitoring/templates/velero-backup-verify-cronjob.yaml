@@ -1,0 +1,109 @@
+{{- if .Values.veleroBackupVerify.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: velero-backup-verify
+  namespace: velero
+  labels:
+    app: velero-backup-verify
+spec:
+  # Run weekly on Sundays at 4 AM UTC
+  schedule: {{ .Values.veleroBackupVerify.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          serviceAccountName: velero
+          restartPolicy: OnFailure
+          containers:
+          - name: verify
+            image: velero/velero:v1.14.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=== Velero Backup Verification ==="
+              echo "Date: $(date)"
+
+              # Check BackupStorageLocation status
+              echo ""
+              echo "Checking BackupStorageLocation status..."
+              BSL_STATUS=$(velero backup-location get -o json | jq -r '.items[0].status.phase')
+              if [ "$BSL_STATUS" != "Available" ]; then
+                echo "ERROR: BackupStorageLocation is $BSL_STATUS, not Available!"
+                exit 1
+              fi
+              echo "✓ BackupStorageLocation is Available"
+
+              # Get latest successful backup
+              echo ""
+              echo "Finding latest successful backup..."
+              LATEST_BACKUP=$(velero backup get --selector velero.io/schedule-name=daily-backup -o json | \
+                jq -r '[.items[] | select(.status.phase=="Completed")] | sort_by(.metadata.creationTimestamp) | last | .metadata.name')
+
+              if [ -z "$LATEST_BACKUP" ] || [ "$LATEST_BACKUP" = "null" ]; then
+                echo "ERROR: No successful daily backup found!"
+                exit 1
+              fi
+              echo "✓ Latest backup: $LATEST_BACKUP"
+
+              # Check backup details
+              echo ""
+              echo "Backup details:"
+              velero backup describe "$LATEST_BACKUP" --details | grep -E "Phase:|Started:|Completed:|Items Backed Up:|Errors:|Warnings:"
+
+              # Verify backup age (should be less than 48 hours old)
+              BACKUP_TIME=$(velero backup get "$LATEST_BACKUP" -o json | jq -r '.status.completionTimestamp')
+              BACKUP_AGE_HOURS=$(( ($(date +%s) - $(date -d "$BACKUP_TIME" +%s)) / 3600 ))
+
+              if [ "$BACKUP_AGE_HOURS" -gt 48 ]; then
+                echo "WARNING: Latest backup is $BACKUP_AGE_HOURS hours old (>48h)"
+              else
+                echo "✓ Backup age: $BACKUP_AGE_HOURS hours"
+              fi
+
+              # Create test restore (dry-run style - to a test namespace)
+              echo ""
+              echo "Creating test restore..."
+              TEST_RESTORE="verify-$(date +%Y%m%d%H%M%S)"
+
+              velero restore create "$TEST_RESTORE" \
+                --from-backup "$LATEST_BACKUP" \
+                --include-namespaces default \
+                --namespace-mappings default:velero-test-restore \
+                --wait
+
+              # Check restore status
+              RESTORE_STATUS=$(velero restore get "$TEST_RESTORE" -o json | jq -r '.status.phase')
+
+              if [ "$RESTORE_STATUS" = "Completed" ] || [ "$RESTORE_STATUS" = "PartiallyFailed" ]; then
+                echo "✓ Test restore completed with status: $RESTORE_STATUS"
+
+                # Clean up test namespace
+                echo "Cleaning up test namespace..."
+                kubectl delete namespace velero-test-restore --wait=false 2>/dev/null || true
+
+                # Delete the restore object
+                velero restore delete "$TEST_RESTORE" --confirm
+
+                echo ""
+                echo "=== Verification Complete ==="
+                exit 0
+              else
+                echo "ERROR: Test restore failed with status: $RESTORE_STATUS"
+                velero restore describe "$TEST_RESTORE" --details
+                exit 1
+              fi
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 256Mi
+{{- end }}

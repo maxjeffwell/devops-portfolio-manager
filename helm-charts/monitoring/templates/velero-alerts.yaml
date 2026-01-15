@@ -1,0 +1,65 @@
+{{- if .Values.veleroAlerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: velero-backup-alerts
+  namespace: {{ .Values.veleroAlerts.namespace | default "monitoring" }}
+  labels:
+    app: velero
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: velero.rules
+    rules:
+    # Alert when backup storage location is unavailable
+    - alert: VeleroBackupStorageLocationUnavailable
+      expr: velero_backup_storage_location_status{status="Unavailable"} == 1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Velero BackupStorageLocation unavailable"
+        description: "BackupStorageLocation {{ $labels.name }} has been unavailable for 5 minutes. Backups will fail!"
+        runbook_url: "Check B2/S3 connectivity and credentials"
+
+    # Alert when daily backup fails
+    - alert: VeleroBackupFailed
+      expr: increase(velero_backup_failure_total[24h]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Velero backup failed"
+        description: "Velero backup {{ $labels.schedule }} failed. Check velero logs for details."
+
+    # Alert when no successful backup in 24h
+    - alert: VeleroNoRecentBackup
+      expr: time() - velero_backup_last_successful_timestamp > 86400
+      for: 1h
+      labels:
+        severity: warning
+      annotations:
+        summary: "No successful Velero backup in 24 hours"
+        description: "Schedule {{ $labels.schedule }} has not had a successful backup in over 24 hours."
+
+    # Alert when backup is partially failed
+    - alert: VeleroBackupPartiallyFailed
+      expr: increase(velero_backup_partial_failure_total[24h]) > 0
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Velero backup partially failed"
+        description: "Velero backup {{ $labels.schedule }} completed with errors."
+
+    # Alert when restore fails
+    - alert: VeleroRestoreFailed
+      expr: increase(velero_restore_failure_total[1h]) > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Velero restore failed"
+        description: "A Velero restore operation failed. Check velero logs."
+{{- end }}
