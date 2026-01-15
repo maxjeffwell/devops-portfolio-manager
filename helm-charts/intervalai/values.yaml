@@ -179,6 +179,14 @@ env:
     # CORS configuration
     - name: CLIENT_ORIGIN
       value: "https://intervalai-k8s.el-jefe.me"
+    # AI Gateway Configuration (3-tiered Triton fallback)
+    - name: AI_PROVIDER
+      value: "gateway"
+    - name: AI_GATEWAY_URL
+      value: "http://shared-ai-gateway:8002"
+    # TensorFlow.js Backend: auto tries GPU → CPU → JS
+    - name: TFJS_BACKEND
+      value: "auto"
   client:
     # Use empty string for relative URLs (nginx will proxy to backend via ingress)
     - name: REACT_APP_API_BASE_URL
