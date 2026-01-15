@@ -30,6 +30,7 @@ spec:
       labels:
         app: {{ include "portfolio-common.name" $ }}-{{ $component }}
         component: {{ $component }}
+        portfolio: "true"
         {{- include "portfolio-common.selectorLabels" $ | nindent 8 }}
     spec:
       {{- include "portfolio-common.imagePullSecrets" $ | nindent 6 }}
