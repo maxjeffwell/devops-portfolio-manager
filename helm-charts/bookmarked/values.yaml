@@ -91,6 +91,27 @@ env:
         secretKeyRef:
           name: bookmarked-secret
           key: DATABASE_URL
+    # AI Feature Flags
+    - name: AI_FEATURES_ENABLED
+      value: "true"
+    - name: AI_CACHE_ENABLED
+      value: "true"
+    - name: USE_LOCAL_AI
+      value: "true"
+    - name: LOCAL_AI_URL
+      value: "http://shared-ai-gateway:8002"
+    # OpenAI Configuration (not used when USE_LOCAL_AI=true)
+    - name: OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: bookmarked-secret
+          key: OPENAI_API_KEY
+    - name: OPENAI_MODEL
+      value: "gpt-4o-mini"
+    - name: OPENAI_TEMPERATURE
+      value: "0.4"
+    - name: OPENAI_MAX_TOKENS
+      value: "1000"
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
