@@ -56,7 +56,7 @@ service:
   client:
     type: NodePort
     port: 80
-    targetPort: 8080
+    targetPort: 80
     nodePort: 30787
 
 ingress:
@@ -197,16 +197,16 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 3
 
-# Client-specific probes (nginx on port 8080)
+# Client-specific probes (nginx on port 80)
 livenessProbeClient:
   tcpSocket:
-    port: 8080
+    port: 80
   initialDelaySeconds: 10
   periodSeconds: 10
 
 readinessProbeClient:
   tcpSocket:
-    port: 8080
+    port: 80
   initialDelaySeconds: 5
   periodSeconds: 5
 
