@@ -43,14 +43,6 @@ spec:
   volumeClaimTemplates:
   - metadata:
       name: mongodb-data
-      annotations:
-        # Prevent ArgoCD from deleting PVC on sync
-        argocd.argoproj.io/sync-options: Delete=false
-        # Mark as critical data
-        backup.velero.io/backup-volumes: mongodb-data
-      finalizers:
-        # Kubernetes PVC protection - prevents deletion while in use
-        - kubernetes.io/pvc-protection
     spec:
       accessModes: [ "ReadWriteOnce" ]
       {{- if .Values.mongodb.persistence.storageClass }}
