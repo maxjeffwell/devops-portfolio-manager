@@ -57,6 +57,6 @@ spec:
           service:
             name: {{ $.Release.Name }}-server
             port:
-              number: {{ $.Values.service.api.port }}
+              number: {{ $.Values.service.server.port }}
       {{- end }}
 {{- end }}
