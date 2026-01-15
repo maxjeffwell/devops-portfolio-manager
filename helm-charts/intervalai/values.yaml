@@ -177,8 +177,9 @@ env:
     - name: MONGODB_SERVER_SELECTION_TIMEOUT_MS
       value: "5000"
   client:
-    - name: REACT_APP_API_URL
-      value: "http://intervalai-server:8080"
+    # Use empty string for relative URLs (nginx will proxy to backend via ingress)
+    - name: REACT_APP_API_BASE_URL
+      value: "/api"
 
 # Health check configuration
 livenessProbe:

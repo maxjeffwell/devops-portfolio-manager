@@ -44,5 +44,6 @@ jobs:
       build-target: production
       checkout-submodules: true
       version: ${{ inputs.version || '' }}
+      frontend-build-args: REACT_APP_API_BASE_URL=/api
     secrets:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
