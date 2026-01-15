@@ -78,7 +78,7 @@ securityContext:
     drop:
     - ALL
   readOnlyRootFilesystem: false
-  runAsNonRoot: true
+  runAsNonRoot: false
   runAsUser: 1001
 livenessProbe:
   httpGet:

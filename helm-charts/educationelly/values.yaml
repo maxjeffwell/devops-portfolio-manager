@@ -78,7 +78,7 @@ securityContext:
     drop:
     - ALL
   readOnlyRootFilesystem: false
-  runAsNonRoot: true
+  runAsNonRoot: false
   runAsUser: 1001
 # Health probes disabled - API server doesn't have /health endpoint
 # TODO: Add health endpoint to server
