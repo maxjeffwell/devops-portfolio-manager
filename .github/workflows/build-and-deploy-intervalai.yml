@@ -45,5 +45,4 @@ jobs:
       checkout-submodules: true
       version: ${{ inputs.version || '' }}
     secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}

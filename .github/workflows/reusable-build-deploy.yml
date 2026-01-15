@@ -63,9 +63,7 @@ on:
         required: false
         type: string
     secrets:
-      DOCKERHUB_USERNAME:
-        required: true
-      DOCKERHUB_TOKEN:
+      DOPPLER_TOKEN:
         required: true
     outputs:
       image-tag:
@@ -117,11 +115,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      - name: Get DockerHub credentials from Doppler
+        id: dockerhub
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+        run: |
+          echo "username=$(doppler secrets get DOCKERHUB_USERNAME --plain)" >> $GITHUB_OUTPUT
+          echo "password=$(doppler secrets get DOCKERHUB_PASSWORD --plain)" >> $GITHUB_OUTPUT
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          username: ${{ steps.dockerhub.outputs.username }}
+          password: ${{ steps.dockerhub.outputs.password }}
 
       - name: Extract metadata
         id: meta
