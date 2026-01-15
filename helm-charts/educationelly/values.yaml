@@ -45,6 +45,8 @@ env:
       value: "production"
     - name: PORT
       value: "8080"
+    - name: ALLOWED_ORIGINS
+      value: "https://educationelly-k8s.el-jefe.me"
     - name: MONGODB_URI
       valueFrom:
         secretKeyRef:
