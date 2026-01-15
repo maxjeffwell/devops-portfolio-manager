@@ -134,7 +134,7 @@ secret:
 ingress:
   enabled: true
   host: educationelly-graphql-k8s.el-jefe.me
-  serverPaths:
+  apiPaths:
     - /graphql
 
 # MongoDB Connection Pool Configuration

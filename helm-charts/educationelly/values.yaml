@@ -151,7 +151,7 @@ mongodb:
 ingress:
   enabled: true
   host: educationelly-k8s.el-jefe.me
-  serverPaths:
+  apiPaths:
     - /signin
     - /signup
     - /api

@@ -71,7 +71,8 @@ class ConfigLoader {
       }
 
       config.applications.forEach((app, index) => {
-        const requiredFields = ['id', 'name', 'description', 'namespace', 'helmChart', 'argocdApp', 'github'];
+        // Required fields for all apps (ArgoCD-managed)
+        const requiredFields = ['id', 'name', 'description', 'namespace', 'argocdApp', 'github'];
         const missingFields = requiredFields.filter(field => !app[field]);
 
         if (missingFields.length > 0) {

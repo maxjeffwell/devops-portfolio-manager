@@ -8,10 +8,14 @@ export default function ApplicationCard({ app, onSync }) {
   const getStatusColor = (status) => {
     if (!status) return 'var(--status-unknown)';
     const s = status.toLowerCase();
-    if (s.includes('healthy') || s.includes('running')) return 'var(--status-healthy)';
-    if (s.includes('degraded') || s.includes('error')) return 'var(--status-degraded)';
-    if (s.includes('progressing')) return 'var(--status-progressing)';
+    if (s.includes('healthy') || s.includes('running') || s.includes('deployed')) return 'var(--status-healthy)';
+    if (s.includes('degraded') || s.includes('error') || s.includes('failed')) return 'var(--status-degraded)';
+    if (s.includes('progressing') || s.includes('pending')) return 'var(--status-progressing)';
     return 'var(--status-unknown)';
+  };
+
+  const getDisplayStatus = () => {
+    return app.argoCDStatus || 'Unknown';
   };
 
   const handleSync = async () => {
@@ -44,8 +48,8 @@ export default function ApplicationCard({ app, onSync }) {
             <span className="meta-value">{app.namespace}</span>
           </div>
           <div className="meta-item">
-            <span className="meta-label">Helm Chart:</span>
-            <span className="meta-value">{app.helmChart}</span>
+            <span className="meta-label">ArgoCD App:</span>
+            <span className="meta-value">{app.argocdApp}</span>
           </div>
           {app.argoCDSyncStatus && (
             <div className="meta-item">
@@ -58,9 +62,9 @@ export default function ApplicationCard({ app, onSync }) {
         <div className="app-status">
           <span
             className="status-badge"
-            style={{ backgroundColor: getStatusColor(app.argoCDStatus || app.status) }}
+            style={{ backgroundColor: getStatusColor(getDisplayStatus()) }}
           >
-            {app.argoCDStatus || app.status || 'Unknown'}
+            {getDisplayStatus()}
           </span>
         </div>
       </div>
@@ -103,10 +107,9 @@ ApplicationCard.propTypes = {
     name: PropTypes.string.isRequired,
     description: PropTypes.string,
     namespace: PropTypes.string.isRequired,
-    helmChart: PropTypes.string.isRequired,
+    argocdApp: PropTypes.string.isRequired,
     argoCDSyncStatus: PropTypes.string,
     argoCDStatus: PropTypes.string,
-    status: PropTypes.string,
     github: PropTypes.shape({
       owner: PropTypes.string,
       repo: PropTypes.string,

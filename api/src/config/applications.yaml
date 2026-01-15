@@ -1,13 +1,16 @@
 # Portfolio Applications Configuration
 # This file defines all applications managed by the DevOps Portfolio Manager
 # Each application includes metadata for deployment, monitoring, and CI/CD integration
+# All applications are managed by ArgoCD (GitOps)
 
 applications:
+  # ===========================================
+  # Portfolio Applications (ArgoCD + Helm charts)
+  # ===========================================
   - id: bookmarked
     name: Bookmarked
     description: Bookmark management application
     namespace: default
-    helmChart: bookmarked
     argocdApp: bookmarked
     github:
       owner: maxjeffwell
@@ -17,7 +20,6 @@ applications:
     name: Code Talk
     description: Code collaboration and review platform
     namespace: default
-    helmChart: code-talk
     argocdApp: code-talk
     github:
       owner: maxjeffwell
@@ -27,7 +29,6 @@ applications:
     name: educationELLy
     description: Language learning application
     namespace: default
-    helmChart: educationelly
     argocdApp: educationelly
     github:
       owner: maxjeffwell
@@ -37,7 +38,6 @@ applications:
     name: educationELLy-GraphQL
     description: GraphQL-based education platform
     namespace: default
-    helmChart: educationelly-graphql
     argocdApp: educationelly-graphql
     github:
       owner: maxjeffwell
@@ -47,7 +47,6 @@ applications:
     name: FireBook
     description: Social networking platform
     namespace: default
-    helmChart: firebook
     argocdApp: firebook
     github:
       owner: maxjeffwell
@@ -57,8 +56,55 @@ applications:
     name: IntervalAI
     description: Spaced repetition learning with AI
     namespace: default
-    helmChart: intervalai
     argocdApp: intervalai
     github:
       owner: maxjeffwell
       repo: spaced-repetition-capstone-Docker
+
+  # ===========================================
+  # Infrastructure Applications
+  # ===========================================
+  - id: podrick
+    name: Podrick
+    description: DevOps Portfolio Manager dashboard
+    namespace: default
+    argocdApp: podrick
+    github:
+      owner: maxjeffwell
+      repo: devops-portfolio-manager
+
+  - id: portfolio-orchestration-platform
+    name: Portfolio Orchestration
+    description: Portfolio apps orchestration platform
+    namespace: default
+    argocdApp: portfolio-orchestration-platform
+    github:
+      owner: maxjeffwell
+      repo: portfolio-orchestration-platform
+
+  - id: tenantflow
+    name: TenantFlow
+    description: Multi-tenant Kubernetes platform
+    namespace: default
+    argocdApp: tenantflow
+    github:
+      owner: maxjeffwell
+      repo: k8s-multi-tenant-platform
+
+  - id: vertex-platform
+    name: Vertex Platform
+    description: Microservices analytics platform
+    namespace: vertex-platform
+    argocdApp: vertex-platform
+    github:
+      owner: maxjeffwell
+      repo: microservices-platform
+
+  - id: network-policies
+    name: Network Policies
+    description: Cluster network security policies
+    namespace: default
+    argocdApp: network-policies
+    github:
+      owner: maxjeffwell
+      repo: devops-portfolio-manager

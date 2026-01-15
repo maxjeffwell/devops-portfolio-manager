@@ -78,7 +78,6 @@ export default function Applications() {
     try {
       setSyncMessage({ type: 'info', text: `Syncing ${app.name}...` });
 
-      // Trigger ArgoCD sync
       await api.syncArgoCDApplication(app.argocdApp);
 
       setSyncMessage({ type: 'success', text: `Successfully synced ${app.name}` });
