@@ -105,6 +105,7 @@ jobs:
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
         run: |
+          echo "VITE_APP_URL_K8S=$(doppler secrets get VITE_APP_URL_K8S --plain)" >> $GITHUB_OUTPUT
           echo "VITE_ALGOLIA_APP_ID=$(doppler secrets get VITE_ALGOLIA_APP_ID --plain)" >> $GITHUB_OUTPUT
           echo "VITE_ALGOLIA_SEARCH_API_KEY=$(doppler secrets get VITE_ALGOLIA_SEARCH_API_KEY --plain)" >> $GITHUB_OUTPUT
           echo "VITE_ALGOLIA_INDEX_NAME=$(doppler secrets get VITE_ALGOLIA_INDEX_NAME --plain)" >> $GITHUB_OUTPUT
@@ -120,7 +121,7 @@ jobs:
             ${{ env.IMAGE_NAME_CLIENT }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME_CLIENT }}:latest
           build-args: |
-            VITE_APP_URL=https://firebook-k8s.el-jefe.me
+            VITE_APP_URL=${{ steps.doppler.outputs.VITE_APP_URL_K8S }}
             VITE_ALGOLIA_APP_ID=${{ steps.doppler.outputs.VITE_ALGOLIA_APP_ID }}
             VITE_ALGOLIA_SEARCH_API_KEY=${{ steps.doppler.outputs.VITE_ALGOLIA_SEARCH_API_KEY }}
             VITE_ALGOLIA_INDEX_NAME=${{ steps.doppler.outputs.VITE_ALGOLIA_INDEX_NAME }}
