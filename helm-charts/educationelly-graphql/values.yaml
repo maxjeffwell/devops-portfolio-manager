@@ -45,6 +45,8 @@ env:
       value: "production"
     - name: PORT
       value: "8000"
+    - name: ALLOWED_ORIGINS
+      value: "https://educationelly-graphql-k8s.el-jefe.me"
     - name: MONGODB_URI
       valueFrom:
         secretKeyRef:
