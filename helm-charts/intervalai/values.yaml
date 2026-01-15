@@ -179,12 +179,26 @@ env:
     # CORS configuration
     - name: CLIENT_ORIGIN
       value: "https://intervalai-k8s.el-jefe.me"
-    # AI Gateway Configuration (3-tiered Triton fallback)
-    - name: AI_PROVIDER
-      value: "gateway"
-    - name: AI_GATEWAY_URL
-      value: "http://shared-ai-gateway:8002"
-    # TensorFlow.js Backend: auto tries GPU → CPU → JS
+    # Triton Inference Server Configuration (4-tiered fallback)
+    - name: USE_TRITON
+      value: "true"
+    # Tier 1: Local GPU (GTX 1080 via Cloudflare tunnel)
+    - name: PRIMARY_TRITON_URL
+      value: "https://triton-gpu.el-jefe.me"
+    # Tier 2: VPS CPU Triton
+    - name: FALLBACK_TRITON_URL
+      value: "http://triton-service:8000"
+    - name: TRITON_MODEL_NAME
+      value: "interval_ai"
+    # Tier 3: RunPod Serverless GPU
+    - name: RUNPOD_URL
+      value: "https://api.runpod.ai/v2/7a2s0z4p6x0i8n"
+    - name: RUNPOD_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: intervalai-secret
+          key: RUNPOD_API_KEY
+    # Tier 4: TensorFlow.js (final fallback)
     - name: TFJS_BACKEND
       value: "auto"
   client:
