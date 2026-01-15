@@ -792,3 +792,25 @@ spec:
     - secretKey: USER_DATABASE_URL
       remoteRef:
         key: NEON_DATABASE_URL
+---
+# Grafana admin credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: prometheus-grafana-external-secret
+  namespace: monitoring
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: prometheus-grafana
+    creationPolicy: Owner
+  data:
+    - secretKey: admin-user
+      remoteRef:
+        key: GRAFANA_ADMIN_USER
+    - secretKey: admin-password
+      remoteRef:
+        key: GRAFANA_ADMIN_PASSWORD
