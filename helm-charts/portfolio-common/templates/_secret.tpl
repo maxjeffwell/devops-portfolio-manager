@@ -12,7 +12,7 @@ metadata:
   labels:
     {{- include "portfolio-common.labels" . | nindent 4 }}
 type: Opaque
-data:
+stringData:
   {{- toYaml .Values.secret.data | nindent 2 }}
 {{- end }}
 {{- end }}

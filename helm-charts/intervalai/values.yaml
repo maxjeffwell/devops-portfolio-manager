@@ -19,7 +19,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  create: true
+  create: false
   annotations: {}
   name: ""
 
@@ -231,6 +231,7 @@ configMap:
 # Secret data (base64 encoded)
 # IMPORTANT: Replace these placeholders before deployment
 secret:
+  # Secrets managed externally - do not recreate
   data:
     # Base64 encode your MongoDB connection string:
     # echo -n "mongodb+srv://user:pass@cluster.mongodb.net/db" | base64

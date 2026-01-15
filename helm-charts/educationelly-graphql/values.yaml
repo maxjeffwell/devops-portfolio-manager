@@ -70,7 +70,7 @@ env:
     - name: REACT_APP_GRAPHQL_URL
       value: "http://educationelly-graphql-server:8000/graphql"
 serviceAccount:
-  create: true
+  create: false
 podSecurityContext:
   fsGroup: 2000
 securityContext:
@@ -121,6 +121,7 @@ readinessProbe:
 # Cloud Database Configuration
 # IMPORTANT: Replace these placeholders before deployment
 secret:
+  # Secrets managed externally - do not recreate
   data:
     # Base64 encode your MongoDB Atlas connection string:
     # echo -n "mongodb+srv://user:pass@cluster.mongodb.net/educationelly-graphql" | base64

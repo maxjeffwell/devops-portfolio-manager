@@ -17,7 +17,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  create: true
+  create: false
   annotations: {}
   name: ""
 
@@ -133,8 +133,9 @@ readinessProbe:
 #     --from-literal=JWT_SECRET='your-secret'
 #
 secret:
+  # Secrets managed externally - do not recreate
   # Set to false if creating secrets manually or using External Secrets
-  create: true
+  create: false
   data:
     # Placeholder values - MUST be overridden at deploy time
     # echo -n "your-postgres-connection-string" | base64

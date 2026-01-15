@@ -70,7 +70,7 @@ env:
     - name: REACT_APP_API_URL
       value: "http://educationelly-server:8080"
 serviceAccount:
-  create: true
+  create: false
 podSecurityContext:
   fsGroup: 2000
 securityContext:
@@ -123,6 +123,7 @@ securityContext:
 # Cloud Database Configuration
 # IMPORTANT: Replace these placeholders before deployment
 secret:
+  # Secrets managed externally - do not recreate
   data:
     # Base64 encode your MongoDB Atlas connection string:
     # echo -n "mongodb+srv://user:pass@cluster.mongodb.net/educationelly" | base64

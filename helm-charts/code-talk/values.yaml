@@ -70,7 +70,7 @@ env:
     - name: REACT_APP_GRAPHQL_WS_URI
       value: "ws://code-talk-server:8000/graphql"
 serviceAccount:
-  create: true
+  create: false
 podSecurityContext:
   fsGroup: 2000
 securityContext:

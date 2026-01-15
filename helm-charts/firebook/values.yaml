@@ -34,7 +34,7 @@ env:
   client: []
 
 serviceAccount:
-  create: true
+  create: false
 
 podSecurityContext:
   fsGroup: 2000
