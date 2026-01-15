@@ -1,4 +1,4 @@
-name: Rollback Deployment
+name: Rollback Deployment (GitOps)
 
 on:
   workflow_dispatch:
@@ -14,135 +14,115 @@ on:
           - educationelly
           - educationelly-graphql
           - code-talk
-      revision:
-        description: 'Revision number to rollback to (0 for previous)'
+          - podrick
+      commits-back:
+        description: 'Number of commits back to rollback (1 = previous version)'
         required: false
-        default: '0'
+        default: '1'
         type: string
-      namespace:
-        description: 'Kubernetes namespace'
-        required: false
-        default: 'default'
-        type: string
+
+permissions:
+  contents: write
 
 jobs:
   rollback:
     name: Rollback ${{ github.event.inputs.application }}
     runs-on: ubuntu-latest
+    env:
+      APP: ${{ github.event.inputs.application }}
+      COMMITS_BACK: ${{ github.event.inputs.commits-back }}
+      TRIGGERED_BY: ${{ github.actor }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
         with:
-          version: 'v1.28.0'
+          fetch-depth: 50
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.12.0'
+      - name: Find previous image tag
+        id: find-tag
+        run: |
+          VALUES_FILE="helm-charts/${APP}/values.yaml"
 
-      - name: Configure kubectl
+          echo "Looking for previous image tags in ${VALUES_FILE}..."
+
+          # Get current tag
+          CURRENT_TAG=$(grep -E "^\s+tag:" "${VALUES_FILE}" | head -1 | awk '{print $2}')
+          echo "Current tag: ${CURRENT_TAG}"
+
+          # Find the commit that changed the tag N commits ago
+          PREVIOUS_TAG=$(git log -p --follow -S "tag:" -- "${VALUES_FILE}" | \
+            grep -E "^\+\s+tag:" | \
+            head -n $((COMMITS_BACK + 1)) | \
+            tail -1 | \
+            awk '{print $2}')
+
+          if [ -z "${PREVIOUS_TAG}" ] || [ "${PREVIOUS_TAG}" == "${CURRENT_TAG}" ]; then
+            # Fallback: get from git show
+            COMMIT_HASH=$(git log --oneline -- "${VALUES_FILE}" | sed -n "$((COMMITS_BACK + 1))p" | awk '{print $1}')
+            if [ -n "${COMMIT_HASH}" ]; then
+              PREVIOUS_TAG=$(git show "${COMMIT_HASH}:${VALUES_FILE}" 2>/dev/null | grep -E "^\s+tag:" | head -1 | awk '{print $2}')
+            fi
+          fi
+
+          if [ -z "${PREVIOUS_TAG}" ]; then
+            echo "❌ Could not find previous image tag"
+            exit 1
+          fi
+
+          echo "previous-tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+          echo "current-tag=${CURRENT_TAG}" >> $GITHUB_OUTPUT
+          echo ""
+          echo "📋 Rollback plan:"
+          echo "   Current: ${CURRENT_TAG}"
+          echo "   Target:  ${PREVIOUS_TAG}"
+
+      - name: Update values.yaml
         env:
-          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+          PREVIOUS_TAG: ${{ steps.find-tag.outputs.previous-tag }}
         run: |
-          mkdir -p $HOME/.kube
-          echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          VALUES_FILE="helm-charts/${APP}/values.yaml"
 
-      - name: Check current release
-        id: current-release
-        run: |
-          APP="${{ github.event.inputs.application }}"
-          NAMESPACE="${{ github.event.inputs.namespace }}"
-
-          echo "Current release history for ${APP}:"
-          helm history ${APP} -n ${NAMESPACE}
-
-          CURRENT_REVISION=$(helm history ${APP} -n ${NAMESPACE} --max 1 -o json | jq -r '.[0].revision')
-          echo "current-revision=${CURRENT_REVISION}" >> $GITHUB_OUTPUT
-
-      - name: Confirm rollback
-        run: |
-          APP="${{ github.event.inputs.application }}"
-          REVISION="${{ github.event.inputs.revision }}"
-          CURRENT="${{ steps.current-release.outputs.current-revision }}"
-
-          if [ "${REVISION}" == "0" ]; then
-            TARGET_REVISION=$((CURRENT - 1))
-          else
-            TARGET_REVISION="${REVISION}"
-          fi
-
-          echo "⚠️ Preparing to rollback ${APP}"
-          echo "Current revision: ${CURRENT}"
-          echo "Target revision: ${TARGET_REVISION}"
-          echo ""
-          echo "This will rollback the application to a previous state."
-
-      - name: Perform rollback
-        run: |
-          APP="${{ github.event.inputs.application }}"
-          NAMESPACE="${{ github.event.inputs.namespace }}"
-          REVISION="${{ github.event.inputs.revision }}"
-
-          echo "Rolling back ${APP}..."
-
-          if [ "${REVISION}" == "0" ]; then
-            # Rollback to previous revision
-            helm rollback ${APP} -n ${NAMESPACE} --wait --timeout 5m
-          else
-            # Rollback to specific revision
-            helm rollback ${APP} ${REVISION} -n ${NAMESPACE} --wait --timeout 5m
-          fi
-
-      - name: Verify rollback
-        run: |
-          APP="${{ github.event.inputs.application }}"
-          NAMESPACE="${{ github.event.inputs.namespace }}"
-
-          echo "Verifying rollback..."
-          kubectl wait --for=condition=ready pod \
-            -l app=${APP}-server \
-            -n ${NAMESPACE} \
-            --timeout=300s || true
-
-          echo "Rollback completed!"
-          echo "New release status:"
-          helm status ${APP} -n ${NAMESPACE}
+          echo "Updating ${VALUES_FILE} with tag: ${PREVIOUS_TAG}"
+          sed -i "s|tag: .*|tag: ${PREVIOUS_TAG}|g" "${VALUES_FILE}"
 
           echo ""
-          echo "Updated pods:"
-          kubectl get pods -n ${NAMESPACE} -l app=${APP}-server
+          echo "Updated values.yaml:"
+          grep -A1 "tag:" "${VALUES_FILE}"
 
-      - name: Run post-rollback tests
+      - name: Commit and push
+        env:
+          CURRENT_TAG: ${{ steps.find-tag.outputs.current-tag }}
+          PREVIOUS_TAG: ${{ steps.find-tag.outputs.previous-tag }}
         run: |
-          APP="${{ github.event.inputs.application }}"
-          NAMESPACE="${{ github.event.inputs.namespace }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          echo "Running post-rollback health checks..."
+          git add "helm-charts/${APP}/values.yaml"
+          git commit -m "Rollback ${APP} from ${CURRENT_TAG} to ${PREVIOUS_TAG}
 
-          # Get the first pod
-          POD=$(kubectl get pods -n ${NAMESPACE} -l app=${APP}-server -o jsonpath='{.items[0].metadata.name}')
+          Triggered by: ${TRIGGERED_BY}
+          Reason: Manual rollback via GitHub Actions"
 
-          if [ -n "${POD}" ]; then
-            echo "Testing pod: ${POD}"
-            kubectl exec -n ${NAMESPACE} ${POD} -- curl -f http://localhost:8080/api || echo "Warning: Health check failed"
-          fi
+          git push origin main
+
+          echo ""
+          echo "✅ GitOps rollback committed!"
+          echo "ArgoCD will automatically sync the rollback."
 
       - name: Rollback summary
         if: always()
+        env:
+          CURRENT_TAG: ${{ steps.find-tag.outputs.current-tag }}
+          PREVIOUS_TAG: ${{ steps.find-tag.outputs.previous-tag }}
         run: |
-          APP="${{ github.event.inputs.application }}"
-          NAMESPACE="${{ github.event.inputs.namespace }}"
-
           echo "==================================="
-          echo "Rollback Summary"
+          echo "GitOps Rollback Summary"
           echo "==================================="
           echo "Application: ${APP}"
-          echo "Namespace: ${NAMESPACE}"
+          echo "Previous tag: ${CURRENT_TAG}"
+          echo "Rolled back to: ${PREVIOUS_TAG}"
           echo "Status: ${{ job.status }}"
           echo ""
-          echo "Current release history:"
-          helm history ${APP} -n ${NAMESPACE} --max 5
+          echo "ArgoCD will detect the change and sync automatically."
+          echo "Monitor at: https://argocd.el-jefe.me"
