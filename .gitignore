@@ -86,3 +86,4 @@ charts/*/charts/
 .nuxt/
 .vercel
 .netlify
+CLAUDE.md
