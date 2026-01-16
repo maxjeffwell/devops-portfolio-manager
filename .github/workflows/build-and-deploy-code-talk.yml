@@ -32,6 +32,8 @@ env:
 
 jobs:
   lint-and-validate:
+    # Skip if triggered by bot commit (prevents cascade from GitOps manifest updates)
+    if: github.actor != 'github-actions[bot]'
     name: Lint Helm Charts
     runs-on: ubuntu-latest
     steps:

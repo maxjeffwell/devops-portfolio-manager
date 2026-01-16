@@ -27,6 +27,8 @@ permissions:
 
 jobs:
   build-deploy:
+    # Skip if triggered by bot commit (prevents cascade from GitOps manifest updates)
+    if: github.actor != 'github-actions[bot]'
     permissions:
       contents: write
       packages: write
