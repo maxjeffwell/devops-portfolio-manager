@@ -9,12 +9,12 @@ keywords:
   - spaced-repetition
   - machine-learning
   - education
-home: https://github.com/maxjeffwell/spaced-repetition-capstone
+home: https://github.com/maxjeffwell/spaced-repetition-capstone-Docker
 maintainers:
   - name: Jeff Maxwell
     email: jeff@el-jefe.me
 sources:
-  - https://github.com/maxjeffwell/spaced-repetition-capstone
+  - https://github.com/maxjeffwell/spaced-repetition-capstone-Docker
 dependencies:
   - name: portfolio-common
     version: 1.0.0

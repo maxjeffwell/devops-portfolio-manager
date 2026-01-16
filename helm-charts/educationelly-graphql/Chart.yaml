@@ -4,6 +4,17 @@ description: A Helm chart for EducationELLy GraphQL Application
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
+keywords:
+  - educationelly
+  - graphql
+  - education
+  - language-learning
+  - react
+  - nodejs
+home: https://github.com/maxjeffwell/educationELLy-graphql-Docker
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me
 dependencies:
   - name: portfolio-common
     version: 1.0.0
