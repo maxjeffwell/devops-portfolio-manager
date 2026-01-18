@@ -2,11 +2,11 @@ replicaCount: 1
 image:
   server:
     repository: maxjeffwell/educationelly-graphql-server
-    tag: 20260115-101108-8163b75
+    tag: 20260118-011338-f4c39d7
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-graphql-client
-    tag: 20260115-101108-8163b75
+    tag: 20260118-011338-f4c39d7
     pullPolicy: Always
 service:
   server:
