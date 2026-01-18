@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podrick-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: podrick.el-jefe.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: devops-portfolio-dashboard
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - podrick.el-jefe.me
+    secretName: podrick-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-devops-api-prefix
+  namespace: default
+spec:
+  stripPrefix:
+    prefixes:
+      - /devops-api
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: podrick-api-route
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`podrick.el-jefe.me`) && PathPrefix(`/devops-api`)
+      kind: Rule
+      middlewares:
+        - name: strip-devops-api-prefix
+      services:
+        - name: devops-portfolio-api
+          port: 5001
+  tls:
+    secretName: podrick-tls
