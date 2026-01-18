@@ -5,6 +5,8 @@ on:
     branches: [ main ]
     paths:
       - 'helm-charts/intervalai/**'
+  repository_dispatch:
+    types: [deploy-intervalai]
   workflow_dispatch:
     inputs:
       environment:
