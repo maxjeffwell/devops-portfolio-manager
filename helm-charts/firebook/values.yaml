@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   client:
     repository: maxjeffwell/firebook
-    tag: 20260116-002248-b00c730
+    tag: 20260118-011239-8a9837a
     pullPolicy: Always
 
 service:
