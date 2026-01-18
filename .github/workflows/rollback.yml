@@ -28,6 +28,9 @@ jobs:
   rollback:
     name: Rollback ${{ github.event.inputs.application }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: gitops-rollback-${{ github.event.inputs.application }}
+      cancel-in-progress: false
     env:
       APP: ${{ github.event.inputs.application }}
       COMMITS_BACK: ${{ github.event.inputs.commits-back }}
@@ -39,11 +42,26 @@ jobs:
           fetch-depth: 50
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find previous image tag
-        id: find-tag
+      - name: Determine file paths
+        id: paths
         run: |
-          VALUES_FILE="helm-charts/${APP}/values.yaml"
+          if [ "${APP}" == "podrick" ]; then
+            # Podrick uses k8s/deployments/ with two files
+            echo "is_podrick=true" >> $GITHUB_OUTPUT
+            echo "api_file=k8s/deployments/api-deployment.yaml" >> $GITHUB_OUTPUT
+            echo "dashboard_file=k8s/deployments/dashboard-deployment.yaml" >> $GITHUB_OUTPUT
+          else
+            # All other apps use helm-charts/
+            echo "is_podrick=false" >> $GITHUB_OUTPUT
+            echo "values_file=helm-charts/${APP}/values.yaml" >> $GITHUB_OUTPUT
+          fi
 
+      - name: Find previous image tag (Helm apps)
+        id: find-tag-helm
+        if: steps.paths.outputs.is_podrick == 'false'
+        env:
+          VALUES_FILE: ${{ steps.paths.outputs.values_file }}
+        run: |
           echo "Looking for previous image tags in ${VALUES_FILE}..."
 
           # Get current tag
@@ -77,44 +95,110 @@ jobs:
           echo "   Current: ${CURRENT_TAG}"
           echo "   Target:  ${PREVIOUS_TAG}"
 
-      - name: Update values.yaml
+      - name: Find previous image tag (Podrick)
+        id: find-tag-podrick
+        if: steps.paths.outputs.is_podrick == 'true'
         env:
-          PREVIOUS_TAG: ${{ steps.find-tag.outputs.previous-tag }}
+          API_FILE: ${{ steps.paths.outputs.api_file }}
         run: |
-          VALUES_FILE="helm-charts/${APP}/values.yaml"
+          echo "Looking for previous image tags in Podrick deployments..."
 
-          echo "Updating ${VALUES_FILE} with tag: ${PREVIOUS_TAG}"
-          sed -i "s|tag: .*|tag: ${PREVIOUS_TAG}|g" "${VALUES_FILE}"
+          # Get current tag from API deployment
+          CURRENT_TAG=$(grep -E "image:.*devops-portfolio-api:" "${API_FILE}" | sed 's/.*://' | tr -d ' ')
+          echo "Current tag: ${CURRENT_TAG}"
 
+          # Find the commit that changed the image N commits ago
+          COMMIT_HASH=$(git log --oneline -- "${API_FILE}" | sed -n "$((COMMITS_BACK + 1))p" | awk '{print $1}')
+
+          if [ -n "${COMMIT_HASH}" ]; then
+            PREVIOUS_TAG=$(git show "${COMMIT_HASH}:${API_FILE}" 2>/dev/null | grep -E "image:.*devops-portfolio-api:" | sed 's/.*://' | tr -d ' ')
+          fi
+
+          if [ -z "${PREVIOUS_TAG}" ]; then
+            echo "❌ Could not find previous image tag"
+            exit 1
+          fi
+
+          echo "previous-tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+          echo "current-tag=${CURRENT_TAG}" >> $GITHUB_OUTPUT
           echo ""
-          echo "Updated values.yaml:"
-          grep -A1 "tag:" "${VALUES_FILE}"
+          echo "📋 Rollback plan:"
+          echo "   Current: ${CURRENT_TAG}"
+          echo "   Target:  ${PREVIOUS_TAG}"
 
-      - name: Commit and push
+      - name: Set rollback tags
+        id: tags
+        run: |
+          if [ "${APP}" == "podrick" ]; then
+            echo "previous-tag=${{ steps.find-tag-podrick.outputs.previous-tag }}" >> $GITHUB_OUTPUT
+            echo "current-tag=${{ steps.find-tag-podrick.outputs.current-tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "previous-tag=${{ steps.find-tag-helm.outputs.previous-tag }}" >> $GITHUB_OUTPUT
+            echo "current-tag=${{ steps.find-tag-helm.outputs.current-tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rollback with retry
         env:
-          CURRENT_TAG: ${{ steps.find-tag.outputs.current-tag }}
-          PREVIOUS_TAG: ${{ steps.find-tag.outputs.previous-tag }}
+          PREVIOUS_TAG: ${{ steps.tags.outputs.previous-tag }}
+          CURRENT_TAG: ${{ steps.tags.outputs.current-tag }}
+          IS_PODRICK: ${{ steps.paths.outputs.is_podrick }}
+          VALUES_FILE: ${{ steps.paths.outputs.values_file }}
+          API_FILE: ${{ steps.paths.outputs.api_file }}
+          DASHBOARD_FILE: ${{ steps.paths.outputs.dashboard_file }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add "helm-charts/${APP}/values.yaml"
-          git commit -m "Rollback ${APP} from ${CURRENT_TAG} to ${PREVIOUS_TAG}
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            if [ "${IS_PODRICK}" == "true" ]; then
+              # Update Podrick deployment files
+              sed -i "s|image: ghcr.io/maxjeffwell/devops-portfolio-api:.*|image: ghcr.io/maxjeffwell/devops-portfolio-api:${PREVIOUS_TAG}|" "${API_FILE}"
+              sed -i "s|image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:.*|image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:${PREVIOUS_TAG}|" "${DASHBOARD_FILE}"
+
+              git add "${API_FILE}" "${DASHBOARD_FILE}"
+            else
+              # Update Helm values.yaml
+              sed -i "s|tag: .*|tag: ${PREVIOUS_TAG}|g" "${VALUES_FILE}"
+
+              git add "${VALUES_FILE}"
+            fi
+
+            if git diff --staged --quiet; then
+              echo "No changes to commit - already at target version"
+              exit 0
+            fi
+
+            git commit -m "Rollback ${APP} from ${CURRENT_TAG} to ${PREVIOUS_TAG}
 
           Triggered by: ${TRIGGERED_BY}
           Reason: Manual rollback via GitHub Actions"
 
-          git push origin main
+            if git push origin main; then
+              echo ""
+              echo "✅ GitOps rollback committed!"
+              echo "ArgoCD will automatically sync the rollback."
+              exit 0
+            fi
 
-          echo ""
-          echo "✅ GitOps rollback committed!"
-          echo "ArgoCD will automatically sync the rollback."
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Push failed (attempt $RETRY_COUNT/$MAX_RETRIES), retrying..."
+            sleep $((RETRY_COUNT * 2))
+          done
+
+          echo "Failed to push after $MAX_RETRIES attempts"
+          exit 1
 
       - name: Rollback summary
         if: always()
         env:
-          CURRENT_TAG: ${{ steps.find-tag.outputs.current-tag }}
-          PREVIOUS_TAG: ${{ steps.find-tag.outputs.previous-tag }}
+          CURRENT_TAG: ${{ steps.tags.outputs.current-tag }}
+          PREVIOUS_TAG: ${{ steps.tags.outputs.previous-tag }}
         run: |
           echo "==================================="
           echo "GitOps Rollback Summary"
