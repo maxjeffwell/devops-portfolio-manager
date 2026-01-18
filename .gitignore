@@ -68,6 +68,11 @@ docker-compose.override.yml
 *-secret.yaml
 *secret*.yaml
 secrets/
+# Allow ExternalSecret manifests (they don't contain actual secrets)
+!*-external-secret.yaml
+!*-external-secret.yml
+!*-externalsecret.yaml
+!*-externalsecret.yml
 *.key
 *.crt
 *.pem
