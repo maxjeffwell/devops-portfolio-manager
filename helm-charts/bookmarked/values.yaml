@@ -8,11 +8,11 @@ strategy:
 
 image:
   server:
-    repository: maxjeffwell/bookmarks-react-hooks-server
+    repository: ghcr.io/maxjeffwell/bookmarks-react-hooks-server
     tag: 20260118-060244-704663e
     pullPolicy: Always
   client:
-    repository: maxjeffwell/bookmarks-react-hooks-client
+    repository: ghcr.io/maxjeffwell/bookmarks-react-hooks-client
     tag: 20260118-060244-704663e
     pullPolicy: Always
 
