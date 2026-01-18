@@ -15,7 +15,7 @@ jobs:
     name: Build Docker Images
     runs-on: ubuntu-latest
     outputs:
-      image-tag: ${{ github.sha }}
+      image-tag: ${{ steps.image-tag.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,14 +40,23 @@ jobs:
           username: ${{ steps.dockerhub.outputs.username }}
           password: ${{ steps.dockerhub.outputs.password }}
 
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          TAG="${TIMESTAMP}-${SHORT_SHA}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Generated image tag: ${TAG}"
+
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
           context: ./api
           push: true
           tags: |
+            maxjeffwell/devops-portfolio-api:${{ steps.image-tag.outputs.tag }}
             maxjeffwell/devops-portfolio-api:latest
-            maxjeffwell/devops-portfolio-api:${{ github.sha }}
           cache-from: type=registry,ref=maxjeffwell/devops-portfolio-api:buildcache
           cache-to: type=registry,ref=maxjeffwell/devops-portfolio-api:buildcache,mode=max
 
@@ -59,8 +68,14 @@ jobs:
           build-args: |
             VITE_API_URL=/devops-api
           tags: |
+            maxjeffwell/devops-portfolio-dashboard:${{ steps.image-tag.outputs.tag }}
             maxjeffwell/devops-portfolio-dashboard:latest
-            maxjeffwell/devops-portfolio-dashboard:${{ github.sha }}
           cache-from: type=registry,ref=maxjeffwell/devops-portfolio-dashboard:buildcache
           cache-to: type=registry,ref=maxjeffwell/devops-portfolio-dashboard:buildcache,mode=max
 
+      - name: Log image tags
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        run: |
+          echo "API image: maxjeffwell/devops-portfolio-api:${IMAGE_TAG}"
+          echo "Dashboard image: maxjeffwell/devops-portfolio-dashboard:${IMAGE_TAG}"
