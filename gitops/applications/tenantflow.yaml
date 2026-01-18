@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tenantflow
+  namespace: argocd
+  annotations:
+    # ArgoCD Image Updater configuration - frontend and backend
+    argocd-image-updater.argoproj.io/image-list: frontend=maxjeffwell/tenantflow-frontend:latest,backend=maxjeffwell/tenantflow-backend:latest
+    argocd-image-updater.argoproj.io/frontend.update-strategy: digest
+    argocd-image-updater.argoproj.io/backend.update-strategy: digest
+    argocd-image-updater.argoproj.io/write-back-method: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/k8s-multi-tenant-platform.git
+    targetRevision: main
+    path: k8s-manifests/platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: multi-tenant-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
