@@ -9,44 +9,73 @@ on:
     types: [deploy-educationelly]
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - development
-          - staging
-          - production
-      version:
-        description: 'Version tag (leave empty for latest)'
+      image_tag:
+        description: 'Image tag to deploy (e.g., 20260118-123456-abc1234)'
         required: false
         type: string
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
-  build-deploy:
-    # Skip if triggered by bot commit (prevents cascade from GitOps manifest updates)
+  update-helm-values:
+    # Skip if triggered by bot commit (prevents cascade)
     if: github.actor != 'github-actions[bot]'
-    permissions:
-      contents: write
-      packages: write
-    uses: ./.github/workflows/reusable-build-deploy.yml
-    with:
-      app-name: educationelly
-      app-display-name: educationELLy
-      helm-chart-path: helm-charts/educationelly
-      source-repo: maxjeffwell/educationELLy-Docker
-      source-repo-ref: main
-      image-name-backend: maxjeffwell/educationelly-server
-      image-name-frontend: maxjeffwell/educationelly-client
-      backend-context: ./source/full-stack-capstone-server
-      frontend-context: ./source/full-stack-capstone-client
-      build-target: production
-      checkout-submodules: false
-      version: ${{ inputs.version || '' }}
-    secrets:
-      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine image tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            # Manual workflow_dispatch with specific tag
+            TAG="${{ github.event.inputs.image_tag }}"
+          elif [ -n "${{ github.event.client_payload.image_tag }}" ]; then
+            # repository_dispatch with image tag from source repo (preferred)
+            TAG="${{ github.event.client_payload.image_tag }}"
+          elif [ -n "${{ github.event.client_payload.sha }}" ]; then
+            # repository_dispatch with SHA - construct tag using source timestamp
+            SHA="${{ github.event.client_payload.sha }}"
+            SHORT_SHA="${SHA:0:7}"
+            TIMESTAMP="${{ github.event.client_payload.timestamp }}"
+            if [ -z "$TIMESTAMP" ]; then
+              TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+            fi
+            TAG="${TIMESTAMP}-${SHORT_SHA}"
+          else
+            # Push to helm-charts path - use latest
+            TAG="latest"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using image tag: ${TAG}"
+
+      - name: Update Helm values
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          VALUES_FILE="helm-charts/educationelly/values.yaml"
+
+          # Update image tags (server and client)
+          sed -i "s|^\(    tag: \).*|\\1${TAG}|" "$VALUES_FILE"
+
+          echo "Updated $VALUES_FILE with tag: $TAG"
+          grep -A2 "image:" "$VALUES_FILE" | head -20
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git add helm-charts/educationelly/values.yaml
+          git commit -m "Update educationELLy image tag to ${TAG}"
+          git push

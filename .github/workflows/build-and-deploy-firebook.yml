@@ -9,181 +9,73 @@ on:
     types: [deploy-firebook]
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Deployment environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-          - development
-          - staging
-          - production
-      version:
-        description: 'Version tag (leave empty for latest)'
+      image_tag:
+        description: 'Image tag to deploy (e.g., 20260118-123456-abc1234)'
         required: false
         type: string
 
 permissions:
   contents: write
-  packages: write
-
-env:
-  REGISTRY: docker.io
-  IMAGE_NAME_CLIENT: maxjeffwell/firebook
 
 jobs:
-  lint-and-validate:
-    # Skip if triggered by bot commit (prevents cascade from GitOps manifest updates)
+  update-helm-values:
+    # Skip if triggered by bot commit (prevents cascade)
     if: github.actor != 'github-actions[bot]'
-    name: Lint Helm Charts
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.12.0'
-
-      - name: Update Helm dependencies
-        run: |
-          cd helm-charts/firebook
-          helm dependency update
-
-      - name: Lint Helm charts
-        run: |
-          helm lint helm-charts/firebook
-          helm template firebook helm-charts/firebook --debug
-
-  build-and-push-image:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-    needs: lint-and-validate
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tag }}
-    steps:
-      - name: Checkout FireBook repository
-        uses: actions/checkout@v4
-        with:
-          repository: maxjeffwell/bookmarks-capstone-api
-          ref: master
-          path: firebook-source
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Install Doppler CLI for Docker login
-        uses: dopplerhq/cli-action@v3
-
-      - name: Get DockerHub credentials from Doppler
-        id: dockerhub
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-        run: |
-          echo "username=$(doppler secrets get DOCKERHUB_USERNAME --plain)" >> $GITHUB_OUTPUT
-          echo "password=$(doppler secrets get DOCKERHUB_PASSWORD --plain)" >> $GITHUB_OUTPUT
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ steps.dockerhub.outputs.username }}
-          password: ${{ steps.dockerhub.outputs.password }}
-
-      - name: Extract metadata
-        id: meta
-        run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            TAG="${{ github.event.inputs.version }}"
-          else
-            TAG="$(date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
-          fi
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Building with tag: ${TAG}"
-
-      - name: Install Doppler CLI
-        uses: dopplerhq/cli-action@v3
-
-      - name: Get Doppler secrets for build
-        id: doppler
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-        run: |
-          echo "VITE_APP_URL_K8S=$(doppler secrets get VITE_APP_URL_K8S --plain)" >> $GITHUB_OUTPUT
-          echo "VITE_ALGOLIA_APP_ID=$(doppler secrets get VITE_ALGOLIA_APP_ID --plain)" >> $GITHUB_OUTPUT
-          echo "VITE_ALGOLIA_SEARCH_API_KEY=$(doppler secrets get VITE_ALGOLIA_SEARCH_API_KEY --plain)" >> $GITHUB_OUTPUT
-          echo "VITE_ALGOLIA_INDEX_NAME=$(doppler secrets get VITE_ALGOLIA_INDEX_NAME --plain)" >> $GITHUB_OUTPUT
-
-      - name: Build and push client image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./firebook-source
-          file: ./firebook-source/Dockerfile
-          target: production
-          push: true
-          tags: |
-            ${{ env.IMAGE_NAME_CLIENT }}:${{ steps.meta.outputs.tag }}
-            ${{ env.IMAGE_NAME_CLIENT }}:latest
-          build-args: |
-            VITE_APP_URL=${{ steps.doppler.outputs.VITE_APP_URL_K8S }}
-            VITE_ALGOLIA_APP_ID=${{ steps.doppler.outputs.VITE_ALGOLIA_APP_ID }}
-            VITE_ALGOLIA_SEARCH_API_KEY=${{ steps.doppler.outputs.VITE_ALGOLIA_SEARCH_API_KEY }}
-            VITE_ALGOLIA_INDEX_NAME=${{ steps.doppler.outputs.VITE_ALGOLIA_INDEX_NAME }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME_CLIENT }}:buildcache,mode=max
-
-  update-gitops-manifest:
-    name: Update GitOps Manifest
-    runs-on: ubuntu-latest
-    needs: build-and-push-image
-    steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update image tags in values.yaml
+      - name: Determine image tag
+        id: tag
         run: |
-          IMAGE_TAG="${{ needs.build-and-push-image.outputs.image-tag }}"
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            # Manual workflow_dispatch with specific tag
+            TAG="${{ github.event.inputs.image_tag }}"
+          elif [ -n "${{ github.event.client_payload.image_tag }}" ]; then
+            # repository_dispatch with image tag from source repo (preferred)
+            TAG="${{ github.event.client_payload.image_tag }}"
+          elif [ -n "${{ github.event.client_payload.sha }}" ]; then
+            # repository_dispatch with SHA - construct tag using source timestamp
+            SHA="${{ github.event.client_payload.sha }}"
+            SHORT_SHA="${SHA:0:7}"
+            TIMESTAMP="${{ github.event.client_payload.timestamp }}"
+            if [ -z "$TIMESTAMP" ]; then
+              TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+            fi
+            TAG="${TIMESTAMP}-${SHORT_SHA}"
+          else
+            # Push to helm-charts path - use latest
+            TAG="latest"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using image tag: ${TAG}"
 
-          echo "Updating FireBook client image tag to: ${IMAGE_TAG}"
+      - name: Update Helm values
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          VALUES_FILE="helm-charts/firebook/values.yaml"
 
           # Update client image tag
-          sed -i "/client:/,/tag:/ s|tag: .*|tag: ${IMAGE_TAG}|" helm-charts/firebook/values.yaml
+          sed -i "/client:/,/tag:/ s|tag: .*|tag: ${TAG}|" "$VALUES_FILE"
 
-          # Show the changes
-          git diff helm-charts/firebook/values.yaml
+          echo "Updated $VALUES_FILE with tag: $TAG"
+          grep -A2 "image:" "$VALUES_FILE" | head -20
 
-      - name: Commit and push changes
+      - name: Commit and push
         run: |
-          IMAGE_TAG="${{ needs.build-and-push-image.outputs.image-tag }}"
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          TAG="${{ steps.tag.outputs.tag }}"
+
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
           git add helm-charts/firebook/values.yaml
-          git commit -m "Update FireBook client image tag to ${IMAGE_TAG}" || echo "No changes to commit"
-          git pull --rebase
+          git commit -m "Update FireBook image tag to ${TAG}"
           git push
-
-          echo "✅ GitOps manifest updated. ArgoCD will automatically deploy the changes."
-
-  notify:
-    name: Notify Status
-    runs-on: ubuntu-latest
-    needs: [build-and-push-image, update-gitops-manifest]
-    if: always()
-    steps:
-      - name: Success
-        if: needs.update-gitops-manifest.result == 'success'
-        run: |
-          echo "✅ FireBook image built and GitOps manifest updated successfully!"
-          echo "Image tag: ${{ needs.build-and-push-image.outputs.image-tag }}"
-          echo "ArgoCD will automatically deploy the changes to your cluster."
-          echo "Frontend connects to Firebase backend services."
-
-      - name: Failed
-        if: needs.update-gitops-manifest.result == 'failure'
-        run: |
-          echo "❌ FireBook workflow failed!"
-          exit 1
