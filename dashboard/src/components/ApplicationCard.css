@@ -2,9 +2,11 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 20px;
+  padding: var(--spacing-card);
   transition: all 0.2s ease;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-card:hover {
@@ -16,20 +18,20 @@
 
 .app-card-header {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .app-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  font-size: 18px;
+  font-size: 16px;
   color: white;
   flex-shrink: 0;
 }
@@ -40,66 +42,80 @@
 }
 
 .app-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 4px;
   color: var(--text-primary);
+  word-break: break-word;
 }
 
 .app-description {
-  font-size: 13px;
+  font-size: var(--font-size-small);
   color: var(--text-secondary);
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .app-card-body {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
+  flex: 1;
 }
 
 .app-meta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 15px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .meta-item {
   display: flex;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-size-small);
+  flex-wrap: wrap;
 }
 
 .meta-label {
   color: var(--text-muted);
-  min-width: 100px;
+  min-width: 80px;
+  flex-shrink: 0;
 }
 
 .meta-value {
   color: var(--text-secondary);
   font-family: 'Fira Code', monospace;
+  word-break: break-all;
+  flex: 1;
+  min-width: 0;
 }
 
 .app-status {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .status-badge {
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: white;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .app-card-footer {
-  padding-top: 15px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .sync-button {
@@ -107,8 +123,8 @@
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
+  padding: 8px 14px;
+  font-size: var(--font-size-small);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -116,6 +132,7 @@
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+  min-height: 36px;
 }
 
 .sync-button:hover:not(:disabled) {
@@ -134,7 +151,7 @@
 }
 
 .sync-icon {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   display: inline-block;
 }
@@ -153,13 +170,45 @@
 }
 
 .github-link {
-  font-size: 13px;
+  font-size: var(--font-size-small);
   color: var(--accent-blue);
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
 .github-link:hover {
   text-decoration: underline;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .app-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .app-name {
+    font-size: 15px;
+  }
+
+  .meta-label {
+    min-width: 70px;
+  }
+
+  .app-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sync-button {
+    justify-content: center;
+  }
+
+  .github-link {
+    justify-content: center;
+    padding: 8px;
+  }
 }

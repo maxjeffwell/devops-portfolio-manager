@@ -2,11 +2,11 @@
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 20px;
+  padding: var(--spacing-card);
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .workflow-card:hover {
@@ -18,19 +18,19 @@
 
 .workflow-header {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   align-items: flex-start;
 }
 
 .workflow-icon {
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -40,7 +40,7 @@
 }
 
 .workflow-name {
-  font-size: 16px;
+  font-size: var(--font-size-body);
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 4px;
@@ -48,7 +48,7 @@
 }
 
 .workflow-path {
-  font-size: 12px;
+  font-size: var(--font-size-small);
   color: var(--text-muted);
   font-family: 'Fira Code', monospace;
   word-break: break-all;
@@ -57,36 +57,39 @@
 .workflow-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .workflow-meta {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .meta-item {
   display: flex;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--font-size-small);
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .meta-label {
   color: var(--text-muted);
-  min-width: 60px;
+  min-width: 55px;
+  flex-shrink: 0;
 }
 
 .meta-value {
   color: var(--text-secondary);
   font-family: 'Fira Code', monospace;
+  word-break: break-all;
 }
 
 .meta-value.state {
   padding: 2px 8px;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -107,12 +110,12 @@
 }
 
 .workflow-footer {
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-color);
 }
 
 .github-link {
-  font-size: 13px;
+  font-size: var(--font-size-small);
   color: var(--accent-blue);
   text-decoration: none;
   display: inline-flex;
@@ -124,4 +127,24 @@
 .github-link:hover {
   color: var(--accent-purple);
   text-decoration: underline;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .workflow-card:hover {
+    transform: none;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .workflow-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .workflow-name {
+    font-size: 13px;
+  }
 }
