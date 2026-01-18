@@ -8,7 +8,7 @@ strategy:
 image:
   client:
     repository: maxjeffwell/firebook
-    tag: 20260118-012546-badbacc
+    tag: 20260118-014929-9bc7cc6
     pullPolicy: Always
 
 service:
