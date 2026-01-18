@@ -3,25 +3,17 @@ kind: Application
 metadata:
   name: vertex-platform
   namespace: argocd
-  annotations:
-    # ArgoCD Image Updater configuration - multiple images
-    argocd-image-updater.argoproj.io/image-list: auth=maxjeffwell/vertex-platform-auth-service:latest,analytics=maxjeffwell/vertex-platform-analytics-service:latest
-    argocd-image-updater.argoproj.io/auth.update-strategy: digest
-    argocd-image-updater.argoproj.io/analytics.update-strategy: digest
-    argocd-image-updater.argoproj.io/write-back-method: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    repoURL: https://github.com/maxjeffwell/microservices-platform.git
     targetRevision: main
-    path: k8s/deployments
-    directory:
-      include: 'vertex-platform-deployment.yaml'
+    path: k8s/services
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: vertex-platform
   syncPolicy:
     automated:
       prune: true

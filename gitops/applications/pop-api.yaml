@@ -3,11 +3,6 @@ kind: Application
 metadata:
   name: pop-api
   namespace: argocd
-  annotations:
-    # ArgoCD Image Updater configuration
-    argocd-image-updater.argoproj.io/image-list: api=maxjeffwell/portfolio-api:latest
-    argocd-image-updater.argoproj.io/api.update-strategy: digest
-    argocd-image-updater.argoproj.io/write-back-method: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

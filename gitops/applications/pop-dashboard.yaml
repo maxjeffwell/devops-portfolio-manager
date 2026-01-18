@@ -3,11 +3,6 @@ kind: Application
 metadata:
   name: pop-dashboard
   namespace: argocd
-  annotations:
-    # ArgoCD Image Updater configuration
-    argocd-image-updater.argoproj.io/image-list: dashboard=maxjeffwell/portfolio-dashboard:latest
-    argocd-image-updater.argoproj.io/dashboard.update-strategy: digest
-    argocd-image-updater.argoproj.io/write-back-method: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
