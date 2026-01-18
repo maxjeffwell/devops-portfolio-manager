@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tenant-applications
+  namespace: monitoring
+  labels:
+    app: tenant-applications
+    release: prometheus
+spec:
+  namespaceSelector:
+    any: true
+  endpoints:
+  - interval: 30s
+    path: /metrics
+    port: http
+  selector:
+    matchLabels:
+      portfolio: "true"
