@@ -24,7 +24,7 @@ spec:
       - name: api
         # Use versioned tags for reproducible deployments
         # Update this tag when deploying new versions
-        image: maxjeffwell/devops-portfolio-api:20260118-051559-f86695f
+        image: ghcr.io/maxjeffwell/devops-portfolio-api:20260118-051559-f86695f
         imagePullPolicy: Always
         ports:
         - containerPort: 5001
