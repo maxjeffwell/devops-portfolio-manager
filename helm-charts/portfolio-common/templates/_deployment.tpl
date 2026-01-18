@@ -18,6 +18,10 @@ metadata:
     {{- include "portfolio-common.labels" $ | nindent 4 }}
 spec:
   replicas: {{ $.Values.replicaCount | default 2 }}
+  {{- if $.Values.strategy }}
+  strategy:
+    {{- toYaml $.Values.strategy | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ include "portfolio-common.name" $ }}-{{ $component }}

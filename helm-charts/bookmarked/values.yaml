@@ -2,6 +2,10 @@
 
 replicaCount: 1
 
+# Use Recreate strategy to avoid resource pressure during deploys
+strategy:
+  type: Recreate
+
 image:
   server:
     repository: maxjeffwell/bookmarks-react-hooks-server
