@@ -22,60 +22,76 @@ jobs:
     # Skip if triggered by bot commit (prevents cascade)
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    concurrency:
+      group: gitops-update-firebook
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Determine image tag
         id: tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.image_tag }}
+          PAYLOAD_TAG: ${{ github.event.client_payload.image_tag }}
+          PAYLOAD_SHA: ${{ github.event.client_payload.sha }}
+          PAYLOAD_TIMESTAMP: ${{ github.event.client_payload.timestamp }}
         run: |
-          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
-            # Manual workflow_dispatch with specific tag
-            TAG="${{ github.event.inputs.image_tag }}"
-          elif [ -n "${{ github.event.client_payload.image_tag }}" ]; then
-            # repository_dispatch with image tag from source repo (preferred)
-            TAG="${{ github.event.client_payload.image_tag }}"
-          elif [ -n "${{ github.event.client_payload.sha }}" ]; then
-            # repository_dispatch with SHA - construct tag using source timestamp
-            SHA="${{ github.event.client_payload.sha }}"
-            SHORT_SHA="${SHA:0:7}"
-            TIMESTAMP="${{ github.event.client_payload.timestamp }}"
-            if [ -z "$TIMESTAMP" ]; then
-              TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-            fi
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [ -n "$PAYLOAD_TAG" ]; then
+            TAG="$PAYLOAD_TAG"
+          elif [ -n "$PAYLOAD_SHA" ]; then
+            SHORT_SHA="${PAYLOAD_SHA:0:7}"
+            TIMESTAMP="${PAYLOAD_TIMESTAMP:-$(date +%Y%m%d-%H%M%S)}"
             TAG="${TIMESTAMP}-${SHORT_SHA}"
           else
-            # Push to helm-charts path - use latest
             TAG="latest"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Using image tag: ${TAG}"
 
-      - name: Update Helm values
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          VALUES_FILE="helm-charts/firebook/values.yaml"
-
-          # Update client image tag
-          sed -i "/client:/,/tag:/ s|tag: .*|tag: ${TAG}|" "$VALUES_FILE"
-
-          echo "Updated $VALUES_FILE with tag: $TAG"
-          grep -A2 "image:" "$VALUES_FILE" | head -20
-
-      - name: Commit and push
+      - name: Update Helm values and push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          TAG="${{ steps.tag.outputs.tag }}"
+          VALUES_FILE="helm-charts/firebook/values.yaml"
+          MAX_RETRIES=5
+          RETRY_COUNT=0
 
-          if git diff --quiet; then
-            echo "No changes to commit"
-            exit 0
-          fi
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            git fetch origin main
+            git reset --hard origin/main
 
-          git add helm-charts/firebook/values.yaml
-          git commit -m "Update FireBook image tag to ${TAG}"
-          git push
+            # Update client image tag
+            sed -i "/client:/,/tag:/ s|tag: .*|tag: ${TAG}|" "$VALUES_FILE"
+
+            echo "Updated $VALUES_FILE with tag: $TAG"
+            grep -A2 "image:" "$VALUES_FILE" | head -20
+
+            if git diff --quiet; then
+              echo "No changes to commit - tag already set to ${TAG}"
+              exit 0
+            fi
+
+            git add "$VALUES_FILE"
+            git commit -m "Update FireBook image tag to ${TAG}"
+
+            if git push origin main; then
+              echo "Helm values updated. ArgoCD will automatically deploy."
+              exit 0
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Push failed (attempt $RETRY_COUNT/$MAX_RETRIES), retrying..."
+            sleep $((RETRY_COUNT * 2))
+          done
+
+          echo "Failed to push after $MAX_RETRIES attempts"
+          exit 1
