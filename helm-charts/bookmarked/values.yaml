@@ -5,11 +5,11 @@ replicaCount: 1
 image:
   server:
     repository: maxjeffwell/bookmarks-react-hooks-server
-    tag: 20260118-012533-badbacc
+    tag: 20260118-013213-1178b02
     pullPolicy: Always
   client:
     repository: maxjeffwell/bookmarks-react-hooks-client
-    tag: 20260118-012533-badbacc
+    tag: 20260118-013213-1178b02
     pullPolicy: Always
 
 imagePullSecrets: []
