@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Install git, helm, and kubectl
 RUN apk add --no-cache \
