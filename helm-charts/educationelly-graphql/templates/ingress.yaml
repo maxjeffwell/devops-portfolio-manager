@@ -7,6 +7,7 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.priority: "1"
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
 spec:
   ingressClassName: traefik
   rules:
@@ -20,6 +21,10 @@ spec:
             name: {{ .Release.Name }}-client
             port:
               number: {{ .Values.service.client.port }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Release.Name }}-tls
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -43,4 +48,8 @@ spec:
             port:
               number: {{ $.Values.service.server.port }}
       {{- end }}
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Release.Name }}-tls
 {{- end }}
