@@ -9,11 +9,11 @@ strategy:
 image:
   server:
     repository: ghcr.io/maxjeffwell/bookmarks-react-hooks-server
-    tag: 20260119-224213-220cfb8
+    tag: 20260119-232651-460612f
     pullPolicy: Always
   client:
     repository: ghcr.io/maxjeffwell/bookmarks-react-hooks-client
-    tag: 20260119-224213-220cfb8
+    tag: 20260119-232651-460612f
     pullPolicy: Always
 
 imagePullSecrets: []
