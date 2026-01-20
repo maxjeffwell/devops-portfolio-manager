@@ -151,7 +151,7 @@ env:
     - name: CACHE_INVALIDATION_API_KEY
       valueFrom:
         secretKeyRef:
-          name: bookmarked-credentials
+          name: bookmarked-secret
           key: CACHE_INVALIDATION_API_KEY
   client:
     - name: REACT_APP_API_URL
