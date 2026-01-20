@@ -86,9 +86,8 @@ env:
           key: zone-id
     - name: PUBLIC_URL
       value: "https://educationelly-k8s.el-jefe.me"
-  client:
-    - name: REACT_APP_API_URL
-      value: "http://educationelly-server:8080"
+  client: []
+    # REACT_APP_API_URL removed - client config.js defaults to /api in production
 serviceAccount:
   create: false
 podSecurityContext:
@@ -173,12 +172,6 @@ ingress:
   enabled: true
   host: educationelly-k8s.el-jefe.me
   apiPaths:
-    - /signin
-    - /signup
     - /api
-    - /auth
-    - /students
-    - /logout
-    - /whoami
-    - /ai
     - /health
+    - /metrics
