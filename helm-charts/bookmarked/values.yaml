@@ -134,6 +134,19 @@ env:
         secretKeyRef:
           name: redis-secrets
           key: redis-password
+    # Cloudflare Cache Configuration
+    - name: CLOUDFLARE_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-secrets
+          key: api-token
+    - name: CLOUDFLARE_ZONE_ID
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-secrets
+          key: zone-id
+    - name: PUBLIC_URL
+      value: "https://bookmarked-k8s.el-jefe.me"
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
