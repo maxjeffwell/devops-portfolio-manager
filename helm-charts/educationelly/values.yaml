@@ -73,6 +73,19 @@ env:
       value: "5000"
     - name: MONGODB_SERVER_SELECTION_TIMEOUT_MS
       value: "5000"
+    # Cloudflare Cache Configuration
+    - name: CLOUDFLARE_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-secrets
+          key: api-token
+    - name: CLOUDFLARE_ZONE_ID
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-secrets
+          key: zone-id
+    - name: PUBLIC_URL
+      value: "https://educationelly-k8s.el-jefe.me"
   client:
     - name: REACT_APP_API_URL
       value: "http://educationelly-server:8080"
