@@ -7,11 +7,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/educationelly-graphql-server
-    tag: 20260120-091800-dca6831
+    tag: 20260120-094139-c514997
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-graphql-client
-    tag: 20260120-091800-dca6831
+    tag: 20260120-094139-c514997
     pullPolicy: Always
 service:
   server:
