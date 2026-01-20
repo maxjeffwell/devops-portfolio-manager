@@ -124,6 +124,16 @@ env:
       value: "0.4"
     - name: OPENAI_MAX_TOKENS
       value: "1000"
+    # Redis Cache Configuration
+    - name: REDIS_HOST
+      value: "redis"
+    - name: REDIS_PORT
+      value: "6379"
+    - name: REDIS_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: redis-secrets
+          key: redis-password
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
