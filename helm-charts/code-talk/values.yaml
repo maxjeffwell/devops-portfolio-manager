@@ -69,6 +69,19 @@ env:
       value: "http://localhost:3000,http://localhost:80"
     - name: AI_GATEWAY_URL
       value: "http://shared-ai-gateway:8002"
+    # Cloudflare Cache Configuration
+    - name: CLOUDFLARE_API_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-secrets
+          key: api-token
+    - name: CLOUDFLARE_ZONE_ID
+      valueFrom:
+        secretKeyRef:
+          name: cloudflare-secrets
+          key: zone-id
+    - name: PUBLIC_URL
+      value: "https://code-talk-k8s.el-jefe.me"
   client:
     - name: REACT_APP_GRAPHQL_HTTP_URI
       value: "http://code-talk-server:8000/graphql"
