@@ -7,11 +7,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/code-talk-graphql-server
-    tag: latest
+    tag: 20260120-065536-1816976
     pullPolicy: Always
   client:
     repository: maxjeffwell/code-talk-graphql-client
-    tag: latest
+    tag: 20260120-065536-1816976
     pullPolicy: Always
 service:
   server:
