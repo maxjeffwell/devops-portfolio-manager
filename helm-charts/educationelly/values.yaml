@@ -7,11 +7,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/educationelly-server
-    tag: 20260120-045730-4561b4c
+    tag: 20260120-051033-7d94b2d
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-client
-    tag: 20260120-045730-4561b4c
+    tag: 20260120-051033-7d94b2d
     pullPolicy: Always
 service:
   server:
