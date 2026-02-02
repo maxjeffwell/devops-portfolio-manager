@@ -177,6 +177,11 @@ env:
         secretKeyRef:
           name: intervalai-secret
           key: JWT_SECRET
+    - name: JWT_REFRESH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: intervalai-secret
+          key: JWT_REFRESH_SECRET
     # MongoDB Connection Pool Configuration
     - name: MONGODB_POOL_MIN_SIZE
       value: "10"
