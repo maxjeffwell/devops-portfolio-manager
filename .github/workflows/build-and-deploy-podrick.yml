@@ -26,12 +26,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Generate image tag
         id: image-tag
@@ -48,10 +47,10 @@ jobs:
           context: ./api
           push: true
           tags: |
-            ghcr.io/maxjeffwell/devops-portfolio-api:${{ steps.image-tag.outputs.tag }}
-            ghcr.io/maxjeffwell/devops-portfolio-api:latest
-          cache-from: type=registry,ref=ghcr.io/maxjeffwell/devops-portfolio-api:buildcache
-          cache-to: type=registry,ref=ghcr.io/maxjeffwell/devops-portfolio-api:buildcache,mode=max
+            maxjeffwell/devops-portfolio-api:${{ steps.image-tag.outputs.tag }}
+            maxjeffwell/devops-portfolio-api:latest
+          cache-from: type=registry,ref=maxjeffwell/devops-portfolio-api:buildcache
+          cache-to: type=registry,ref=maxjeffwell/devops-portfolio-api:buildcache,mode=max
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
@@ -61,17 +60,17 @@ jobs:
           build-args: |
             VITE_API_URL=/devops-api
           tags: |
-            ghcr.io/maxjeffwell/devops-portfolio-dashboard:${{ steps.image-tag.outputs.tag }}
-            ghcr.io/maxjeffwell/devops-portfolio-dashboard:latest
-          cache-from: type=registry,ref=ghcr.io/maxjeffwell/devops-portfolio-dashboard:buildcache
-          cache-to: type=registry,ref=ghcr.io/maxjeffwell/devops-portfolio-dashboard:buildcache,mode=max
+            maxjeffwell/devops-portfolio-dashboard:${{ steps.image-tag.outputs.tag }}
+            maxjeffwell/devops-portfolio-dashboard:latest
+          cache-from: type=registry,ref=maxjeffwell/devops-portfolio-dashboard:buildcache
+          cache-to: type=registry,ref=maxjeffwell/devops-portfolio-dashboard:buildcache,mode=max
 
       - name: Log image tags
         env:
           IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
         run: |
-          echo "API image: ghcr.io/maxjeffwell/devops-portfolio-api:${IMAGE_TAG}"
-          echo "Dashboard image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:${IMAGE_TAG}"
+          echo "API image: maxjeffwell/devops-portfolio-api:${IMAGE_TAG}"
+          echo "Dashboard image: maxjeffwell/devops-portfolio-dashboard:${IMAGE_TAG}"
 
   update-manifests:
     name: Update K8s Manifests
@@ -106,10 +105,10 @@ jobs:
             git reset --hard origin/main
 
             # Update API deployment
-            sed -i "s|image: ghcr.io/maxjeffwell/devops-portfolio-api:.*|image: ghcr.io/maxjeffwell/devops-portfolio-api:${IMAGE_TAG}|" k8s/deployments/api-deployment.yaml
+            sed -i "s|image: maxjeffwell/devops-portfolio-api:.*|image: maxjeffwell/devops-portfolio-api:${IMAGE_TAG}|" k8s/deployments/api-deployment.yaml
 
             # Update Dashboard deployment
-            sed -i "s|image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:.*|image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:${IMAGE_TAG}|" k8s/deployments/dashboard-deployment.yaml
+            sed -i "s|image: maxjeffwell/devops-portfolio-dashboard:.*|image: maxjeffwell/devops-portfolio-dashboard:${IMAGE_TAG}|" k8s/deployments/dashboard-deployment.yaml
 
             git diff k8s/deployments/
 

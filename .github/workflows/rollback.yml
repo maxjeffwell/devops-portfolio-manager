@@ -158,8 +158,8 @@ jobs:
 
             if [ "${IS_PODRICK}" == "true" ]; then
               # Update Podrick deployment files
-              sed -i "s|image: ghcr.io/maxjeffwell/devops-portfolio-api:.*|image: ghcr.io/maxjeffwell/devops-portfolio-api:${PREVIOUS_TAG}|" "${API_FILE}"
-              sed -i "s|image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:.*|image: ghcr.io/maxjeffwell/devops-portfolio-dashboard:${PREVIOUS_TAG}|" "${DASHBOARD_FILE}"
+              sed -i "s|image: maxjeffwell/devops-portfolio-api:.*|image: maxjeffwell/devops-portfolio-api:${PREVIOUS_TAG}|" "${API_FILE}"
+              sed -i "s|image: maxjeffwell/devops-portfolio-dashboard:.*|image: maxjeffwell/devops-portfolio-dashboard:${PREVIOUS_TAG}|" "${DASHBOARD_FILE}"
 
               git add "${API_FILE}" "${DASHBOARD_FILE}"
             else
