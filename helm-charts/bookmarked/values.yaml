@@ -153,20 +153,31 @@ env:
         secretKeyRef:
           name: bookmarked-secret
           key: CACHE_INVALIDATION_API_KEY
+    # JWT Authentication Secrets
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: bookmarked-secret
+          key: JWT_SECRET
+    - name: JWT_REFRESH_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: bookmarked-secret
+          key: JWT_REFRESH_SECRET
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
 
 livenessProbe:
   httpGet:
-    path: /bookmarks
+    path: /health
     port: 8000
   initialDelaySeconds: 30
   periodSeconds: 10
 
 readinessProbe:
   httpGet:
-    path: /bookmarks
+    path: /health
     port: 8000
   initialDelaySeconds: 10
   periodSeconds: 5
