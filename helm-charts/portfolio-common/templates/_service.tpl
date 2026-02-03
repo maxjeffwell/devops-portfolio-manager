@@ -18,6 +18,13 @@ metadata:
     {{- include "portfolio-common.labels" $ | nindent 4 }}
 spec:
   type: {{ $serviceConfig.type | default "ClusterIP" }}
+  {{- if $serviceConfig.sessionAffinity }}
+  sessionAffinity: {{ $serviceConfig.sessionAffinity }}
+  {{- if $serviceConfig.sessionAffinityConfig }}
+  sessionAffinityConfig:
+    {{- toYaml $serviceConfig.sessionAffinityConfig | nindent 4 }}
+  {{- end }}
+  {{- end }}
   ports:
     - port: {{ $serviceConfig.port }}
       targetPort: http

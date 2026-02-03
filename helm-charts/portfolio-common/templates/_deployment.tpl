@@ -40,6 +40,9 @@ spec:
       {{- include "portfolio-common.imagePullSecrets" $ | nindent 6 }}
       serviceAccountName: {{ include "portfolio-common.serviceAccountName" $ }}
       {{- include "portfolio-common.podSecurityContext" $ | nindent 6 }}
+      {{- if $.Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ $.Values.terminationGracePeriodSeconds }}
+      {{- end }}
       containers:
       - name: {{ $component }}
         {{- if index $.Values (printf "securityContext%s" (title $component)) }}

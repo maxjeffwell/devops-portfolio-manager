@@ -4,6 +4,10 @@ replicaCount: 1
 strategy:
   type: Recreate
 
+# Grace period for pod termination - allows WebSocket connections to close gracefully
+# Must be >= SHUTDOWN_TIMEOUT in the application code (30s)
+terminationGracePeriodSeconds: 35
+
 image:
   server:
     repository: maxjeffwell/code-talk-graphql-server
@@ -19,6 +23,11 @@ service:
     port: 8000
     targetPort: 8000
     nodePort: 30005
+    # Session affinity for WebSocket connections
+    sessionAffinity: ClientIP
+    sessionAffinityConfig:
+      clientIP:
+        timeoutSeconds: 3600  # 1 hour - WebSocket connections can be long-lived
   client:
     type: NodePort
     port: 80
@@ -115,20 +124,38 @@ securityContext:
   readOnlyRootFilesystem: false
   runAsNonRoot: false
   runAsUser: 1001
-# Health probes disabled - GraphQL server doesn't have /health endpoint
-# TODO: Add health endpoint to server or use GraphQL introspection query
-# livenessProbe:
-#   httpGet:
-#     path: /health
-#     port: 8000
-#   initialDelaySeconds: 30
-#   periodSeconds: 10
-# readinessProbe:
-#   httpGet:
-#     path: /health
-#     port: 8000
-#   initialDelaySeconds: 10
-#   periodSeconds: 5
+# Health probes for the server component
+livenessProbeServer:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+readinessProbeServer:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Pod anti-affinity to spread replicas across nodes
+# This improves availability when scaling horizontally
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - code-talk-server
+          topologyKey: kubernetes.io/hostname
 
 # Ingress Configuration
 ingress:
