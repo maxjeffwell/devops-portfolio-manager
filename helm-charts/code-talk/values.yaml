@@ -11,11 +11,11 @@ terminationGracePeriodSeconds: 35
 image:
   server:
     repository: maxjeffwell/code-talk-graphql-server
-    tag: latest
+    tag: 20260203-032834-6e6fc66
     pullPolicy: Always
   client:
     repository: maxjeffwell/code-talk-graphql-client
-    tag: latest
+    tag: 20260203-032834-6e6fc66
     pullPolicy: Always
 service:
   server:
