@@ -62,6 +62,11 @@ env:
         secretKeyRef:
           name: educationelly-graphql-secret
           key: JWT_SECRET
+    - name: SENTRY_DSN
+      valueFrom:
+        secretKeyRef:
+          name: educationelly-graphql-secret
+          key: SENTRY_DSN
     # MongoDB Connection Pool Configuration
     - name: MONGODB_POOL_MIN_SIZE
       value: "10"
