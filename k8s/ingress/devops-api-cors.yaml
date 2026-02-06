@@ -1,0 +1,17 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: devops-api-cors
+  namespace: default
+spec:
+  headers:
+    accessControlAllowOriginList:
+      - "https://el-jefe.me"
+    accessControlAllowMethods:
+      - "GET"
+      - "POST"
+      - "OPTIONS"
+    accessControlAllowHeaders:
+      - "Content-Type"
+      - "Authorization"
+    accessControlMaxAge: 86400

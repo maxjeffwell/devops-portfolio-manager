@@ -6,7 +6,7 @@ metadata:
   annotations:
     # Use both entrypoints - Cloudflare terminates SSL
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: default-devops-api-stripprefix@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: default-devops-api-cors@kubernetescrd,default-devops-api-stripprefix@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: "200"
 spec:
   ingressClassName: traefik
