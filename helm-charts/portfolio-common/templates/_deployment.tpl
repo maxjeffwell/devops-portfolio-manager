@@ -17,7 +17,9 @@ metadata:
     component: {{ $component }}
     {{- include "portfolio-common.labels" $ | nindent 4 }}
 spec:
+  {{- if not $.Values.autoscaling.enabled }}
   replicas: {{ $.Values.replicaCount | default 2 }}
+  {{- end }}
   {{- if $.Values.strategy }}
   strategy:
     {{- toYaml $.Values.strategy | nindent 4 }}
