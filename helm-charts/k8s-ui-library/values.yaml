@@ -6,7 +6,7 @@ strategy:
 image:
   client:
     repository: maxjeffwell/k8s-ui-library-storybook
-    tag: latest
+    tag: 20260206-065605-e59b2dc
     pullPolicy: Always
 
 service:
