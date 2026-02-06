@@ -37,7 +37,7 @@ spec:
         - name: NODE_ENV
           value: "production"
         - name: PROMETHEUS_URL
-          value: "http://prometheus-prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+          value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
         - name: ARGOCD_SERVER
           value: "argocd-server.argocd.svc.cluster.local"
         - name: ARGOCD_USERNAME

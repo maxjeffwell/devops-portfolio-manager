@@ -10,9 +10,12 @@ spec:
     - port: 9090
       protocol: TCP
     to:
-    - podSelector:
+    - namespaceSelector:
         matchLabels:
-          app: prometheus
+          kubernetes.io/metadata.name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
   - ports:
     - port: 443
       protocol: TCP
