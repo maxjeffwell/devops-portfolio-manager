@@ -37,15 +37,9 @@ env:
 serviceAccount:
   create: false
 
-podSecurityContext:
-  fsGroup: 2000
+podSecurityContext: {}
 
-securityContext:
-  capabilities:
-    drop:
-    - ALL
-  readOnlyRootFilesystem: false
-  runAsNonRoot: false
+securityContext: {}
 
 ingress:
   enabled: true
