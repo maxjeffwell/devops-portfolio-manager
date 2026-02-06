@@ -1,0 +1,19 @@
+apiVersion: v2
+name: k8s-ui-library
+description: Showcase Storybook - Component library for all portfolio applications
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - storybook
+  - showcase
+  - react
+  - component-library
+home: https://github.com/maxjeffwell/k8s-ui-library
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me
+dependencies:
+  - name: portfolio-common
+    version: 1.0.0
+    repository: "file://../portfolio-common"

@@ -1,0 +1,52 @@
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  client:
+    repository: maxjeffwell/k8s-ui-library-storybook
+    tag: latest
+    pullPolicy: Always
+
+service:
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30010
+
+resources:
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+env:
+  client: []
+
+serviceAccount:
+  create: false
+
+podSecurityContext:
+  fsGroup: 2000
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+
+ingress:
+  enabled: true
+  host: showcase.el-jefe.me

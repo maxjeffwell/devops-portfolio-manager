@@ -108,3 +108,12 @@ applications:
     github:
       owner: maxjeffwell
       repo: devops-portfolio-manager
+
+  - id: k8s-ui-library
+    name: Showcase Storybook
+    description: Component library showcase for all portfolio applications
+    namespace: default
+    argocdApp: k8s-ui-library
+    github:
+      owner: maxjeffwell
+      repo: k8s-ui-library
