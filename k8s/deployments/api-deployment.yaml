@@ -33,7 +33,7 @@ spec:
         - name: PORT
           value: "5001"
         - name: ALLOWED_ORIGINS
-          value: "https://podrick.el-jefe.me"
+          value: "https://podrick.el-jefe.me,https://el-jefe.me"
         - name: NODE_ENV
           value: "production"
         - name: PROMETHEUS_URL
