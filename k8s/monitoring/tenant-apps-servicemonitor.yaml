@@ -15,4 +15,4 @@ spec:
     port: http
   selector:
     matchLabels:
-      portfolio: "true"
+      prometheus-scrape: "true"

@@ -33,6 +33,7 @@ spec:
       interval: 30s
 ---
 # ServiceMonitor for all portfolio applications
+# Only targets services with prometheus-scrape: "true" label
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -41,9 +42,11 @@ metadata:
     app: portfolio-applications
     release: monitoring
 spec:
+  namespaceSelector:
+    any: true
   selector:
     matchLabels:
-      portfolio-app: "true"
+      prometheus-scrape: "true"
   endpoints:
     - port: http
       path: /metrics
