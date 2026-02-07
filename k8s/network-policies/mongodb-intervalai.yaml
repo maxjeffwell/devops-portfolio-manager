@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-intervalai
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb-intervalai
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: intervalai
+    - podSelector:
+        matchLabels:
+          app: mongodb-backup
+    ports:
+    - port: 27017
+      protocol: TCP
