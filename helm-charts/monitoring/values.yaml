@@ -9,6 +9,27 @@ veleroBackupVerify:
   # Run weekly on Sundays at 4 AM UTC
   schedule: "0 4 * * 0"
 
+# Gotify Bridge (AlertManager → Gotify notification relay)
+gotifyBridge:
+  enabled: true
+  image:
+    repository: ghcr.io/druggeri/alertmanager_gotify_bridge
+    tag: "2.3.2"
+  gotifyEndpoint: "http://gotify.monitoring.svc.cluster.local"
+  tokenSecret:
+    name: gotify-alertmanager-token
+    key: gotify-token
+  defaultPriority: "5"
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      cpu: 50m
+      memory: 64Mi
+  serviceMonitor:
+    enabled: true
+
 # Custom Ingress Configuration (separate from kube-prometheus-stack ingress)
 ingress:
   enabled: true
@@ -48,6 +69,11 @@ kube-prometheus-stack:
         limits:
           cpu: 1000m
           memory: 2Gi
+      # Remote write to Mimir for long-term metric storage
+      remoteWrite:
+        - url: http://prometheus-mimir-distributed-monolithic.monitoring.svc.cluster.local:8080/api/v1/push
+          name: mimir
+          remoteTimeout: 30s
       # Service monitors for scraping application metrics
       serviceMonitorSelectorNilUsesHelmValues: false
       podMonitorSelectorNilUsesHelmValues: false
@@ -74,6 +100,21 @@ kube-prometheus-stack:
         root_url: "https://grafana.el-jefe.me/"
         serve_from_sub_path: false
 
+
+    # Additional data sources for Loki and Mimir
+    additionalDataSources:
+      - name: Loki
+        type: loki
+        uid: loki
+        access: proxy
+        url: http://prometheus-loki.monitoring.svc.cluster.local:3100
+        editable: true
+      - name: Mimir
+        type: prometheus
+        uid: mimir
+        access: proxy
+        url: http://prometheus-mimir-distributed-monolithic.monitoring.svc.cluster.local:8080/prometheus
+        editable: true
 
     # Resource limits
     resources:
@@ -114,6 +155,10 @@ kube-prometheus-stack:
             - alertname = InfoInhibitor
       receivers:
         - name: 'null'
+        - name: 'gotify'
+          webhook_configs:
+            - url: 'http://alertmanager-gotify-bridge.monitoring.svc.cluster.local:8080/gotify_webhook'
+              send_resolved: true
       route:
         group_by: ['namespace']
         group_wait: 30s
@@ -134,6 +179,14 @@ kube-prometheus-stack:
           - matchers:
               - alertname =~ "KubeControllerManagerDown|KubeSchedulerDown|KubeProxyDown"
             receiver: 'null'
+          # Route critical alerts to Gotify
+          - matchers:
+              - severity = "critical"
+            receiver: 'gotify'
+          # Route warning alerts to Gotify
+          - matchers:
+              - severity = "warning"
+            receiver: 'gotify'
     alertmanagerSpec:
       storage:
         volumeClaimTemplate:
@@ -172,3 +225,236 @@ kube-prometheus-stack:
       limits:
         cpu: 200m
         memory: 256Mi
+
+# MinIO - S3-compatible object storage for Loki and Mimir
+minio:
+  enabled: true
+  mode: standalone
+  replicas: 1
+  existingSecret: minio-credentials
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 20Gi
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  # Auto-create buckets for Loki and Mimir
+  buckets:
+    - name: loki-chunks
+      policy: none
+      purge: false
+    - name: loki-ruler
+      policy: none
+      purge: false
+    - name: mimir-blocks
+      policy: none
+      purge: false
+    - name: mimir-ruler
+      policy: none
+      purge: false
+    - name: mimir-alertmanager
+      policy: none
+      purge: false
+  metrics:
+    serviceMonitor:
+      enabled: true
+
+# Loki - Log aggregation
+loki:
+  enabled: true
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    schemaConfig:
+      configs:
+        - from: "2024-01-01"
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+    storage:
+      type: s3
+      s3:
+        endpoint: http://prometheus-minio.monitoring.svc.cluster.local:9000
+        bucketnames: loki-chunks
+        region: us-east-1
+        access_key_id: ${MINIO_ROOT_USER}
+        secret_access_key: ${MINIO_ROOT_PASSWORD}
+        insecure: true
+        s3forcepathstyle: true
+      bucketNames:
+        chunks: loki-chunks
+        ruler: loki-ruler
+    limits_config:
+      retention_period: 360h
+    compactor:
+      retention_enabled: true
+      delete_request_store: filesystem
+      working_directory: /var/loki/compactor
+    rulerConfig:
+      storage:
+        type: s3
+        s3:
+          endpoint: http://prometheus-minio.monitoring.svc.cluster.local:9000
+          bucketnames: loki-ruler
+          region: us-east-1
+          access_key_id: ${MINIO_ROOT_USER}
+          secret_access_key: ${MINIO_ROOT_PASSWORD}
+          insecure: true
+          s3forcepathstyle: true
+  singleBinary:
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    persistence:
+      storageClass: local-path
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    extraEnvFrom:
+      - secretRef:
+          name: minio-credentials
+    extraArgs:
+      - -config.expand-env=true
+  # Disable components not needed in single-binary mode
+  gateway:
+    enabled: false
+  backend:
+    replicas: 0
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  monitoring:
+    selfMonitoring:
+      enabled: false
+      grafanaAgent:
+        installOperator: false
+    lokiCanary:
+      enabled: false
+
+# Alloy - Log collector (DaemonSet on all nodes)
+alloy:
+  enabled: true
+  alloy:
+    configMap:
+      create: false
+      name: alloy-config
+      key: config.alloy
+    mounts:
+      varlog: true
+      dockercontainers: true
+  controller:
+    type: daemonset
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Mimir - Long-term metric storage
+mimir-distributed:
+  rollout_operator:
+    enabled: false
+  enabled: true
+  nameOverride: ""
+  mimir:
+    structuredConfig:
+      common:
+        storage:
+          backend: s3
+          s3:
+            endpoint: prometheus-minio.monitoring.svc.cluster.local:9000
+            access_key_id: ${MINIO_ROOT_USER}
+            secret_access_key: ${MINIO_ROOT_PASSWORD}
+            insecure: true
+      blocks_storage:
+        s3:
+          bucket_name: mimir-blocks
+        tsdb:
+          dir: /data/tsdb
+        bucket_store:
+          sync_dir: /data/tsdb-sync
+      ruler_storage:
+        s3:
+          bucket_name: mimir-ruler
+      alertmanager_storage:
+        s3:
+          bucket_name: mimir-alertmanager
+      compactor:
+        data_dir: /data/compactor
+        compaction_interval: 30m
+        blocks_retention_period: 2160h
+      ingester:
+        ring:
+          replication_factor: 1
+      store_gateway:
+        sharding_ring:
+          replication_factor: 1
+      alertmanager:
+        sharding_ring:
+          replication_factor: 1
+      limits:
+        max_global_series_per_user: 0
+        ingestion_rate: 0
+        ingestion_burst_size: 0
+  monolithic:
+    enabled: true
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    persistence:
+      storageClass: local-path
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+    extraEnvFrom:
+      - secretRef:
+          name: minio-credentials
+    extraArgs:
+      - -config.expand-env=true
+  # Disable all distributed components
+  ingester:
+    replicas: 0
+  distributor:
+    replicas: 0
+  querier:
+    replicas: 0
+  query_frontend:
+    replicas: 0
+  query_scheduler:
+    replicas: 0
+  store_gateway:
+    replicas: 0
+  compactor:
+    replicas: 0
+  ruler:
+    replicas: 0
+  alertmanager:
+    replicas: 0
+  overrides_exporter:
+    replicas: 0
+  # Disable Mimir's built-in MinIO sub-chart
+  minio:
+    enabled: false

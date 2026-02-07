@@ -1,0 +1,18 @@
+{{- if and .Values.gotifyBridge.enabled .Values.gotifyBridge.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: alertmanager-gotify-bridge
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: alertmanager-gotify-bridge
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: alertmanager-gotify-bridge
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+{{- end }}

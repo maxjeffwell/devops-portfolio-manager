@@ -1,0 +1,18 @@
+{{- if .Values.gotifyBridge.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-gotify-bridge
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: alertmanager-gotify-bridge
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: alertmanager-gotify-bridge
+{{- end }}

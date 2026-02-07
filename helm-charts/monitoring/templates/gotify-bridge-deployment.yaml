@@ -1,0 +1,57 @@
+{{- if .Values.gotifyBridge.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager-gotify-bridge
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: alertmanager-gotify-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager-gotify-bridge
+  template:
+    metadata:
+      labels:
+        app: alertmanager-gotify-bridge
+    spec:
+      containers:
+      - name: gotify-bridge
+        image: "{{ .Values.gotifyBridge.image.repository }}:{{ .Values.gotifyBridge.image.tag }}"
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        env:
+        - name: GOTIFY_ENDPOINT
+          value: {{ .Values.gotifyBridge.gotifyEndpoint | quote }}
+        - name: GOTIFY_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.gotifyBridge.tokenSecret.name }}
+              key: {{ .Values.gotifyBridge.tokenSecret.key }}
+        - name: DEFAULT_PRIORITY
+          value: {{ .Values.gotifyBridge.defaultPriority | quote }}
+        - name: EXTENDED_DETAILS
+          value: "true"
+        resources:
+          requests:
+            cpu: {{ .Values.gotifyBridge.resources.requests.cpu }}
+            memory: {{ .Values.gotifyBridge.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.gotifyBridge.resources.limits.cpu }}
+            memory: {{ .Values.gotifyBridge.resources.limits.memory }}
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: http
+          initialDelaySeconds: 3
+          periodSeconds: 10
+{{- end }}
