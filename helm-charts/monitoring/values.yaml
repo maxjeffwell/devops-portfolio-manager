@@ -52,16 +52,9 @@ kube-prometheus-stack:
       serviceMonitorSelectorNilUsesHelmValues: false
       podMonitorSelectorNilUsesHelmValues: false
 
+    # Disable kube-prometheus-stack's built-in ingress (we use a custom Traefik ingress in templates/ingress.yaml)
     ingress:
-      enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /$2
-      hosts:
-        - ""
-      paths:
-        - /prometheus(/|$)(.*)
-      pathType: ImplementationSpecific
+      enabled: false
 
   # Grafana Configuration
   # ⚠️  SECURITY: Override adminPassword at deploy time!
@@ -70,22 +63,16 @@ kube-prometheus-stack:
     enabled: true
     adminPassword: "REPLACE_AT_DEPLOY_TIME"
 
-    # Grafana ingress configuration
+    # Disable kube-prometheus-stack's built-in ingress (we use a custom Traefik ingress in templates/ingress.yaml)
     ingress:
-      enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /$2
-      hosts:
-        - ""
-      path: /grafana(/|$)(.*)
-      pathType: ImplementationSpecific
+      enabled: false
 
-    # Configure Grafana to work with sub-path
+    # Configure Grafana for subdomain routing (grafana.el-jefe.me)
     grafana.ini:
       server:
-        root_url: "%(protocol)s://%(domain)s/grafana"
-        serve_from_sub_path: true
+        domain: grafana.el-jefe.me
+        root_url: "https://grafana.el-jefe.me/"
+        serve_from_sub_path: false
 
 
     # Resource limits
@@ -163,16 +150,9 @@ kube-prometheus-stack:
           cpu: 200m
           memory: 256Mi
 
+    # Disable kube-prometheus-stack's built-in ingress (we use a custom Traefik ingress in templates/ingress.yaml)
     ingress:
-      enabled: true
-      ingressClassName: nginx
-      annotations:
-        nginx.ingress.kubernetes.io/rewrite-target: /$2
-      hosts:
-        - ""
-      paths:
-        - /alertmanager(/|$)(.*)
-      pathType: ImplementationSpecific
+      enabled: false
 
   # Node Exporter - collect node-level metrics
   nodeExporter:

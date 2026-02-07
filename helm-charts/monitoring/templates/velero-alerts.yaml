@@ -20,7 +20,7 @@ spec:
         severity: critical
       annotations:
         summary: "Velero BackupStorageLocation unavailable"
-        description: "BackupStorageLocation {{ $labels.name }} has been unavailable for 5 minutes. Backups will fail!"
+        description: "BackupStorageLocation {{ "{{" }} $labels.name {{ "}}" }} has been unavailable for 5 minutes. Backups will fail!"
         runbook_url: "Check B2/S3 connectivity and credentials"
 
     # Alert when daily backup fails
@@ -31,7 +31,7 @@ spec:
         severity: critical
       annotations:
         summary: "Velero backup failed"
-        description: "Velero backup {{ $labels.schedule }} failed. Check velero logs for details."
+        description: "Velero backup {{ "{{" }} $labels.schedule {{ "}}" }} failed. Check velero logs for details."
 
     # Alert when no successful backup in 24h
     - alert: VeleroNoRecentBackup
@@ -41,7 +41,7 @@ spec:
         severity: warning
       annotations:
         summary: "No successful Velero backup in 24 hours"
-        description: "Schedule {{ $labels.schedule }} has not had a successful backup in over 24 hours."
+        description: "Schedule {{ "{{" }} $labels.schedule {{ "}}" }} has not had a successful backup in over 24 hours."
 
     # Alert when backup is partially failed
     - alert: VeleroBackupPartiallyFailed
@@ -51,7 +51,7 @@ spec:
         severity: warning
       annotations:
         summary: "Velero backup partially failed"
-        description: "Velero backup {{ $labels.schedule }} completed with errors."
+        description: "Velero backup {{ "{{" }} $labels.schedule {{ "}}" }} completed with errors."
 
     # Alert when restore fails
     - alert: VeleroRestoreFailed
