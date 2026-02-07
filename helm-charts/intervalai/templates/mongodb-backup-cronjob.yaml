@@ -21,7 +21,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: mongodump
-            image: mongo:7
+            image: maxjeffwell/mongodb-backup:latest
             command:
             - /bin/bash
             - -c
