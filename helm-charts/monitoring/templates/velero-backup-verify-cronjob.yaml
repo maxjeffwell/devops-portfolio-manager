@@ -17,7 +17,7 @@ spec:
       ttlSecondsAfterFinished: 86400
       template:
         spec:
-          serviceAccountName: velero
+          serviceAccountName: velero-server
           restartPolicy: OnFailure
           containers:
           - name: verify
