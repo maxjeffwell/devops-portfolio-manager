@@ -74,6 +74,11 @@ kube-prometheus-stack:
         - url: http://prometheus-mimir-gateway.monitoring.svc.cluster.local/api/v1/push
           name: mimir
           remoteTimeout: 30s
+          writeRelabelConfigs:
+            # Drop high-cardinality apiserver request/watch metrics
+            - sourceLabels: [__name__]
+              regex: "apiserver_request_duration_seconds_bucket|apiserver_request_body_size_bytes_bucket|apiserver_response_body_size_bytes_bucket|apiserver_watch_events_sizes_bucket"
+              action: drop
       # Service monitors for scraping application metrics
       serviceMonitorSelectorNilUsesHelmValues: false
       podMonitorSelectorNilUsesHelmValues: false
@@ -444,10 +449,10 @@ mimir-distributed:
     resources:
       requests:
         cpu: 100m
-        memory: 256Mi
+        memory: 512Mi
       limits:
         cpu: 500m
-        memory: 1Gi
+        memory: 2Gi
   querier:
     replicas: 1
     nodeSelector:
@@ -509,6 +514,15 @@ mimir-distributed:
     replicas: 0
   overrides_exporter:
     replicas: 0
+  # Align Kafka message.max.bytes with Mimir producer expectation (~16MB)
+  kafka:
+    extraEnv:
+      - name: KAFKA_MESSAGE_MAX_BYTES
+        value: "16777216"
+      - name: KAFKA_REPLICA_FETCH_MAX_BYTES
+        value: "16777216"
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
   # Disable Mimir's built-in MinIO sub-chart (using shared MinIO)
   minio:
     enabled: false
