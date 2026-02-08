@@ -84,6 +84,9 @@ charts/*/charts/
 # ArtiForge
 .artiforge/
 
+# Serena
+.serena/
+
 # Misc
 .cache/
 .parcel-cache/
