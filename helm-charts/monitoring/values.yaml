@@ -68,10 +68,10 @@ kube-prometheus-stack:
           memory: 512Mi
         limits:
           cpu: 1000m
-          memory: 2Gi
+          memory: 4Gi
       # Remote write to Mimir for long-term metric storage
       remoteWrite:
-        - url: http://prometheus-mimir-distributed-monolithic.monitoring.svc.cluster.local:8080/api/v1/push
+        - url: http://prometheus-mimir-gateway.monitoring.svc.cluster.local/api/v1/push
           name: mimir
           remoteTimeout: 30s
       # Service monitors for scraping application metrics
@@ -113,7 +113,7 @@ kube-prometheus-stack:
         type: prometheus
         uid: mimir
         access: proxy
-        url: http://prometheus-mimir-distributed-monolithic.monitoring.svc.cluster.local:8080/prometheus
+        url: http://prometheus-mimir-gateway.monitoring.svc.cluster.local/prometheus
         editable: true
 
     # Resource limits
@@ -287,8 +287,8 @@ loki:
         endpoint: http://prometheus-minio.monitoring.svc.cluster.local:9000
         bucketnames: loki-chunks
         region: us-east-1
-        access_key_id: ${MINIO_ROOT_USER}
-        secret_access_key: ${MINIO_ROOT_PASSWORD}
+        access_key_id: ${rootUser}
+        secret_access_key: ${rootPassword}
         insecure: true
         s3forcepathstyle: true
       bucketNames:
@@ -374,6 +374,11 @@ mimir-distributed:
     enabled: false
   enabled: true
   nameOverride: ""
+  # Inject MinIO credentials into all Mimir pods for S3 config expansion
+  global:
+    extraEnvFrom:
+      - secretRef:
+          name: minio-credentials
   mimir:
     structuredConfig:
       common:
@@ -381,8 +386,8 @@ mimir-distributed:
           backend: s3
           s3:
             endpoint: prometheus-minio.monitoring.svc.cluster.local:9000
-            access_key_id: ${MINIO_ROOT_USER}
-            secret_access_key: ${MINIO_ROOT_PASSWORD}
+            access_key_id: ${rootUser}
+            secret_access_key: ${rootPassword}
             insecure: true
       blocks_storage:
         s3:
@@ -400,7 +405,6 @@ mimir-distributed:
       compactor:
         data_dir: /data/compactor
         compaction_interval: 30m
-        blocks_retention_period: 2160h
       ingester:
         ring:
           replication_factor: 1
@@ -411,43 +415,93 @@ mimir-distributed:
         sharding_ring:
           replication_factor: 1
       limits:
-        max_global_series_per_user: 0
-        ingestion_rate: 0
-        ingestion_burst_size: 0
-  monolithic:
-    enabled: true
+        # Single-tenant setup: generous limits to avoid rate limiting
+        max_global_series_per_user: 500000
+        ingestion_rate: 100000
+        ingestion_burst_size: 2000000
+        compactor_blocks_retention_period: 2160h
+  # Single-node distributed deployment (1 replica each for essential components)
+  ingester:
     replicas: 1
     nodeSelector:
       kubernetes.io/hostname: vmi2951245
-    persistence:
+    persistentVolume:
       storageClass: local-path
       size: 10Gi
     resources:
       requests:
-        cpu: 200m
+        cpu: 100m
         memory: 512Mi
       limits:
         cpu: 1000m
         memory: 2Gi
-    extraEnvFrom:
-      - secretRef:
-          name: minio-credentials
-    extraArgs:
-      - -config.expand-env=true
-  # Disable all distributed components
-  ingester:
-    replicas: 0
+    zoneAwareReplication:
+      enabled: false
   distributor:
-    replicas: 0
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
   querier:
-    replicas: 0
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
   query_frontend:
-    replicas: 0
-  query_scheduler:
-    replicas: 0
-  store_gateway:
-    replicas: 0
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
   compactor:
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    persistentVolume:
+      storageClass: local-path
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  store_gateway:
+    replicas: 1
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    persistentVolume:
+      storageClass: local-path
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    zoneAwareReplication:
+      enabled: false
+  # Non-essential components disabled for single-node
+  query_scheduler:
     replicas: 0
   ruler:
     replicas: 0
@@ -455,6 +509,6 @@ mimir-distributed:
     replicas: 0
   overrides_exporter:
     replicas: 0
-  # Disable Mimir's built-in MinIO sub-chart
+  # Disable Mimir's built-in MinIO sub-chart (using shared MinIO)
   minio:
     enabled: false
