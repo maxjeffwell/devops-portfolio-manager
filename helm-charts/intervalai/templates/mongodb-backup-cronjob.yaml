@@ -22,6 +22,7 @@ spec:
           containers:
           - name: mongodump
             image: maxjeffwell/mongodb-backup:latest
+            imagePullPolicy: Always
             command:
             - /bin/bash
             - -c
@@ -43,6 +44,18 @@ spec:
 
               # Clean up local file
               rm -f "${BACKUP_FILE}"
+
+              # Delete backups older than retention period
+              echo "Cleaning up backups older than {{ .Values.mongodb.backup.retentionDays | default 30 }} days..."
+              CUTOFF_DATE=$(date -d "-{{ .Values.mongodb.backup.retentionDays | default 30 }} days" +%Y%m%d)
+              aws s3 ls "s3://${B2_BUCKET}/mongodb-backups/" --endpoint-url="${B2_ENDPOINT}" | while read -r line; do
+                FILE_DATE=$(echo "$line" | awk '{print $NF}' | grep -oP '\d{8}' | head -1)
+                FILE_NAME=$(echo "$line" | awk '{print $NF}')
+                if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" -lt "$CUTOFF_DATE" ] 2>/dev/null; then
+                  echo "Deleting old backup: $FILE_NAME"
+                  aws s3 rm "s3://${B2_BUCKET}/mongodb-backups/${FILE_NAME}" --endpoint-url="${B2_ENDPOINT}"
+                fi
+              done
 
               # List recent backups
               echo "Recent backups in B2:"

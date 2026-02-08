@@ -1,0 +1,36 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mongodb-backup-alerts
+  namespace: monitoring
+  labels:
+    app: mongodb-backup
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: mongodb-backup.rules
+    rules:
+    # Alert when a MongoDB backup job fails
+    - alert: MongoDBBackupFailed
+      expr: |
+        kube_job_status_failed{namespace="default", job_name=~"mongodb-backup-.*"} > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "MongoDB backup job failed"
+        description: "MongoDB backup job {{ "{{" }} $labels.job_name {{ "}}" }} has failed. Check pod logs: kubectl logs -n default job/{{ "{{" }} $labels.job_name {{ "}}" }}"
+        priority: "8"
+
+    # Alert when no MongoDB backup has been scheduled in 25 hours
+    - alert: MongoDBBackupMissing
+      expr: |
+        time() - kube_cronjob_status_last_schedule_time{namespace="default", cronjob="mongodb-backup"} > 90000
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "No MongoDB backup scheduled in 25+ hours"
+        description: "The mongodb-backup CronJob has not been scheduled in over 25 hours. Expected schedule: daily at 03:00."
+        priority: "5"

@@ -159,6 +159,7 @@ mongodb:
     b2Bucket: "Marmoset"
     b2Endpoint: "https://s3.us-east-005.backblazeb2.com"
     b2SecretName: "velero-b2-credentials"
+    retentionDays: 30
 
 # Environment variables
 env:
