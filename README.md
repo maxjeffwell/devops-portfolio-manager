@@ -298,10 +298,12 @@ helm install intervalai ./helm-charts/intervalai -f config/environments/producti
 
 ## Monitoring and Observability
 
-- **Prometheus**: Metrics collection from all applications
-- **Grafana**: Visualization dashboards
-- **Loki**: Log aggregation
-- **Jaeger**: Distributed tracing
+- **Prometheus** (kube-prometheus-stack): Metrics collection with 15-day local retention
+- **Grafana**: Visualization dashboards at grafana.el-jefe.me
+- **Mimir**: Long-term metrics storage (90-day retention) with MinIO S3 backend
+- **Loki + Alloy**: Centralized log aggregation with 15-day retention
+- **AlertManager + Gotify**: Alert routing with push notifications
+- **Langfuse**: LLM observability via LiteLLM callbacks
 
 ## Security
 
