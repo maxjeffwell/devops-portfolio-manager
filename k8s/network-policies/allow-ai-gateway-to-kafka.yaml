@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ai-gateway-to-kafka
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: shared-ai-gateway
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 9092
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: microservices
