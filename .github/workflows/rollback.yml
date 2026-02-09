@@ -14,6 +14,7 @@ on:
           - educationelly
           - educationelly-graphql
           - code-talk
+          - portfolio-gatsby
           - podrick
       commits-back:
         description: 'Number of commits back to rollback (1 = previous version)'

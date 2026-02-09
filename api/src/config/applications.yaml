@@ -61,6 +61,15 @@ applications:
       owner: maxjeffwell
       repo: spaced-repetition-capstone-Docker
 
+  - id: portfolio-gatsby
+    name: Portfolio Gatsby
+    description: Personal portfolio site built with Gatsby
+    namespace: default
+    argocdApp: portfolio-gatsby
+    github:
+      owner: maxjeffwell
+      repo: portfolio-gatsby
+
   # ===========================================
   # Infrastructure Applications
   # ===========================================

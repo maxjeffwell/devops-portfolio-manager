@@ -11,7 +11,8 @@ const REPOS = [
   { name: 'devops-portfolio-manager', displayName: 'PodRick' },
   { name: 'portfolio-orchestration-platform', displayName: 'POP' },
   { name: 'k8s-multi-tenant-platform', displayName: 'TenantFlow' },
-  { name: 'microservices-platform', displayName: 'Vertex Platform' }
+  { name: 'microservices-platform', displayName: 'Vertex Platform' },
+  { name: 'portfolio-gatsby', displayName: 'Portfolio Gatsby' }
 ];
 
 // Helper function to calculate time difference in hours
