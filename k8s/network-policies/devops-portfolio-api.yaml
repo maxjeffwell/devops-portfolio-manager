@@ -57,13 +57,7 @@ spec:
     ports:
     - port: 5001
       protocol: TCP
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: ingress-nginx
-    ports:
-    - port: 5001
-      protocol: TCP
+  # Traefik ingress is allowed by the blanket allow-traefik-ingress policy
   - ports:
     - port: 5001
       protocol: TCP
