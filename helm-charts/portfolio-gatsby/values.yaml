@@ -6,7 +6,7 @@ strategy:
 image:
   client:
     repository: maxjeffwell/portfolio-gatsby
-    tag: 20260209-050700-6989329
+    tag: 20260209-060447-4b515a0
     pullPolicy: Always
 
 service:
