@@ -1,0 +1,43 @@
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  client:
+    repository: maxjeffwell/portfolio-gatsby
+    tag: latest
+    pullPolicy: Always
+
+service:
+  client:
+    type: NodePort
+    port: 80
+    targetPort: 80
+    nodePort: 30012
+
+resources:
+  client:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+env:
+  client: []
+
+serviceAccount:
+  create: false
+
+podSecurityContext: {}
+
+securityContext: {}
+
+ingress:
+  enabled: true
+  host: portfolio.el-jefe.me
