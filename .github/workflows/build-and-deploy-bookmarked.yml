@@ -55,6 +55,7 @@ jobs:
           echo "Using image tag: ${TAG}"
 
       - name: Update Helm values and push
+        if: steps.tag.outputs.tag != 'latest'
         env:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
