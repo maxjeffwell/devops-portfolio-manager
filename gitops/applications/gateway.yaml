@@ -8,11 +8,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
     targetRevision: main
-    path: k8s/deployments
-    directory:
-      include: 'gateway-deployment.yaml'
+    path: helm-charts/gateway
+    helm:
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default

@@ -1,0 +1,96 @@
+name: Build and Deploy Gateway
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'helm-charts/gateway/**'
+  repository_dispatch:
+    types: [deploy-gateway]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (e.g., 20260208-062132-2076cdd)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update-helm-values:
+    # Skip if triggered by bot commit (prevents cascade)
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: gitops-update-gateway
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Determine image tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.image_tag }}
+          PAYLOAD_TAG: ${{ github.event.client_payload.image_tag }}
+          PAYLOAD_SHA: ${{ github.event.client_payload.sha }}
+          PAYLOAD_TIMESTAMP: ${{ github.event.client_payload.timestamp }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [ -n "$PAYLOAD_TAG" ]; then
+            TAG="$PAYLOAD_TAG"
+          elif [ -n "$PAYLOAD_SHA" ]; then
+            SHORT_SHA="${PAYLOAD_SHA:0:7}"
+            TIMESTAMP="${PAYLOAD_TIMESTAMP:-$(date +%Y%m%d-%H%M%S)}"
+            TAG="${TIMESTAMP}-${SHORT_SHA}"
+          else
+            TAG="latest"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using image tag: ${TAG}"
+
+      - name: Update Helm values and push
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          VALUES_FILE="helm-charts/gateway/values.yaml"
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            sed -i "s|^\(    tag: \).*|\\1${TAG}|" "$VALUES_FILE"
+
+            echo "Updated $VALUES_FILE with tag: $TAG"
+            grep -A2 "image:" "$VALUES_FILE" | head -20
+
+            if git diff --quiet; then
+              echo "No changes to commit - tag already set to ${TAG}"
+              exit 0
+            fi
+
+            git add "$VALUES_FILE"
+            git commit -m "Update Gateway image tag to ${TAG}"
+
+            if git push origin main; then
+              echo "Helm values updated. ArgoCD will automatically deploy."
+              exit 0
+            fi
+
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Push failed (attempt $RETRY_COUNT/$MAX_RETRIES), retrying..."
+            sleep $((RETRY_COUNT * 2))
+          done
+
+          echo "Failed to push after $MAX_RETRIES attempts"
+          exit 1

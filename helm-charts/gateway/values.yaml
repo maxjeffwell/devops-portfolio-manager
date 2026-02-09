@@ -1,0 +1,105 @@
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  server:
+    repository: maxjeffwell/graphql-gateway
+    tag: 20260208-062132-2076cdd
+    pullPolicy: Always
+
+service:
+  server:
+    type: ClusterIP
+    port: 4000
+    targetPort: 4000
+
+resources:
+  server:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+autoscaling:
+  enabled: false
+
+env:
+  server:
+    - name: PORT
+      value: "4000"
+    - name: NODE_ENV
+      value: "production"
+    - name: CORS_ORIGIN
+      value: "https://el-jefe.me,https://portfolio.el-jefe.me"
+    - name: PROMETHEUS_URL
+      value: "http://prometheus-kube-prometheus-prometheus.monitoring:9090"
+    - name: KAFKA_ENABLED
+      value: "true"
+    - name: KAFKA_BROKERS
+      value: "vertex-kafka-kafka-bootstrap.microservices.svc:9092"
+    - name: KAFKA_CLIENT_ID
+      value: "graphql-gateway"
+    - name: KAFKA_GROUP_ID
+      value: "graphql-gateway-group"
+    - name: KAFKA_AI_EVENTS_TOPIC
+      value: "ai.gateway.events"
+    - name: ARGOCD_SERVER
+      value: "argocd-server.argocd.svc:443"
+    - name: ARGOCD_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: gateway-credentials
+          key: argocd-username
+    - name: ARGOCD_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: gateway-credentials
+          key: argocd-password
+    - name: GITHUB_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: gateway-credentials
+          key: github-token
+    - name: GITHUB_OWNER
+      value: "maxjeffwell"
+    - name: GOTIFY_URL
+      value: "http://gotify.monitoring.svc:80"
+    - name: GOTIFY_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: gateway-credentials
+          key: gotify-token
+
+serviceAccount:
+  create: false
+  name: gateway-sa
+
+podSecurityContext: {}
+
+securityContext: {}
+
+ingress:
+  enabled: true
+  host: gateway.el-jefe.me
+
+livenessProbeServer:
+  httpGet:
+    path: /health
+    port: 4000
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbeServer:
+  httpGet:
+    path: /health
+    port: 4000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3

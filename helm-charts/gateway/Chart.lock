@@ -1,0 +1,6 @@
+dependencies:
+- name: portfolio-common
+  repository: file://../portfolio-common
+  version: 1.0.0
+digest: sha256:13270de822015fcba638ec6d2d44c9abde409d5de882ef359548d85b01fb8efb
+generated: "2026-02-08T22:20:34.370675693-05:00"
