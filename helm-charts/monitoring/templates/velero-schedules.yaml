@@ -1,0 +1,25 @@
+{{- if .Values.veleroSchedules.enabled }}
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup
+  namespace: {{ .Values.veleroSchedules.namespace | default "velero" }}
+spec:
+  schedule: {{ .Values.veleroSchedules.daily.schedule | quote }}
+  template:
+    excludedNamespaces:
+      {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
+    ttl: {{ .Values.veleroSchedules.daily.ttl }}
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-backup
+  namespace: {{ .Values.veleroSchedules.namespace | default "velero" }}
+spec:
+  schedule: {{ .Values.veleroSchedules.weekly.schedule | quote }}
+  template:
+    excludedNamespaces:
+      {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
+    ttl: {{ .Values.veleroSchedules.weekly.ttl }}
+{{- end }}

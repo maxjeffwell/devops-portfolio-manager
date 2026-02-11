@@ -1,3 +1,16 @@
+# Velero Backup Schedules
+veleroSchedules:
+  enabled: true
+  namespace: velero
+  excludedNamespaces:
+    - gpu-operator
+  daily:
+    schedule: "0 2 * * *"
+    ttl: 168h0m0s
+  weekly:
+    schedule: "0 3 * * 0"
+    ttl: 720h0m0s
+
 # Velero Backup Alerts
 veleroAlerts:
   enabled: true
@@ -523,6 +536,8 @@ mimir-distributed:
         value: "16777216"
     nodeSelector:
       kubernetes.io/hostname: vmi2951245
+    podAnnotations:
+      backup.velero.io/backup-volumes-excludes: kafka-data
   # Disable Mimir's built-in MinIO sub-chart (using shared MinIO)
   minio:
     enabled: false
