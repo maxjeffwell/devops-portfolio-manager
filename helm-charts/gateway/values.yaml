@@ -6,7 +6,7 @@ strategy:
 image:
   server:
     repository: maxjeffwell/graphql-gateway
-    tag: 20260209-060429-3cc7e51
+    tag: 20260211-051213-6c94db7
     pullPolicy: Always
 
 service:
