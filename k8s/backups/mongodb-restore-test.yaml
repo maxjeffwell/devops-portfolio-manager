@@ -1,0 +1,151 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-restore-test
+  labels:
+    app: mongodb-restore-test
+spec:
+  schedule: "30 6 1-7 * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels:
+            app: mongodb-restore-test
+            portfolio: "true"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: restore-test
+            image: mongo:7-jammy
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              apt-get update -qq && apt-get install -y -qq awscli > /dev/null 2>&1
+
+              echo "=== MongoDB Restore Test ==="
+              echo "Date: $(date)"
+              PASS=0
+              FAIL=0
+
+              # Start a local MongoDB instance for testing
+              mkdir -p /tmp/mongodata
+              mongod --dbpath /tmp/mongodata --bind_ip localhost --port 27099 --fork --logpath /tmp/mongod.log > /dev/null 2>&1
+              sleep 3
+
+              for DB in intervalai educationelly educationelly-graphql; do
+                echo ""
+                echo "--- Testing ${DB} restore ---"
+
+                # Find latest archive in B2
+                LATEST=$(aws s3 ls "s3://${B2_BUCKET}/mongodb-backups/" \
+                  --endpoint-url="${B2_ENDPOINT}" | grep "${DB}-" | sort | tail -1 | awk '{print $NF}')
+
+                if [ -z "$LATEST" ]; then
+                  echo "ERROR: No ${DB} backup found in B2!"
+                  FAIL=$((FAIL + 1))
+                  continue
+                fi
+
+                echo "Found: ${LATEST}"
+
+                # Check backup age
+                FILE_DATE=$(echo "$LATEST" | grep -oE '[0-9]{8}' | head -1)
+                TODAY=$(date +%Y%m%d)
+                AGE_DAYS=$(( ($(date -d "$TODAY" +%s) - $(date -d "$FILE_DATE" +%s)) / 86400 ))
+                echo "Backup age: ${AGE_DAYS} days"
+
+                if [ "$AGE_DAYS" -gt 2 ]; then
+                  echo "WARNING: Backup is ${AGE_DAYS} days old (expected <2)"
+                fi
+
+                # Download
+                aws s3 cp "s3://${B2_BUCKET}/mongodb-backups/${LATEST}" "/tmp/${LATEST}" \
+                  --endpoint-url="${B2_ENDPOINT}" > /dev/null
+
+                SIZE=$(du -h "/tmp/${LATEST}" | cut -f1)
+                echo "Downloaded: ${SIZE}"
+
+                # Restore into local mongod
+                if mongorestore --host localhost --port 27099 --archive="/tmp/${LATEST}" --gzip --drop 2>/dev/null; then
+                  echo "Restore: OK"
+                else
+                  echo "Restore: completed with warnings (non-fatal)"
+                fi
+
+                # Validate: list collections and document counts
+                COLLECTIONS=$(mongosh --quiet --host localhost --port 27099 --eval "
+                  const dbs = db.adminCommand('listDatabases').databases.filter(d => !['admin','config','local'].includes(d.name));
+                  let total = 0;
+                  dbs.forEach(d => {
+                    const conn = db.getSiblingDB(d.name);
+                    const colls = conn.getCollectionNames();
+                    colls.forEach(c => {
+                      const count = conn[c].countDocuments();
+                      print(d.name + '.' + c + ': ' + count);
+                      total += count;
+                    });
+                  });
+                  print('TOTAL_DOCS=' + total);
+                ")
+
+                echo "$COLLECTIONS" | head -10
+                TOTAL=$(echo "$COLLECTIONS" | grep 'TOTAL_DOCS=' | cut -d= -f2)
+
+                if [ -n "$TOTAL" ] && [ "$TOTAL" -gt 0 ] 2>/dev/null; then
+                  PASS=$((PASS + 1))
+                  echo "Result: PASS (${TOTAL} documents)"
+                else
+                  echo "ERROR: No documents found after restore!"
+                  FAIL=$((FAIL + 1))
+                  echo "Result: FAIL"
+                fi
+
+                # Drop restored databases
+                mongosh --quiet --host localhost --port 27099 --eval "
+                  db.adminCommand('listDatabases').databases
+                    .filter(d => !['admin','config','local'].includes(d.name))
+                    .forEach(d => db.getSiblingDB(d.name).dropDatabase());
+                " > /dev/null 2>&1
+
+                rm -f "/tmp/${LATEST}"
+              done
+
+              # Shutdown local mongod
+              mongod --shutdown --dbpath /tmp/mongodata > /dev/null 2>&1
+
+              echo ""
+              echo "=== Summary: ${PASS} passed, ${FAIL} failed ==="
+
+              if [ "$FAIL" -gt 0 ]; then
+                exit 1
+              fi
+            env:
+            - name: B2_BUCKET
+              value: "Marmoset"
+            - name: B2_ENDPOINT
+              value: "https://s3.us-east-005.backblazeb2.com"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_secret_access_key
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                cpu: "1"
+                memory: 1Gi

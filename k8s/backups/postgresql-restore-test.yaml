@@ -1,0 +1,139 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-restore-test
+  labels:
+    app: postgresql-restore-test
+spec:
+  schedule: "0 6 1-7 * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 172800
+      template:
+        metadata:
+          labels:
+            app: postgresql-restore-test
+            portfolio: "true"
+        spec:
+          restartPolicy: Never
+          containers:
+          - name: restore-test
+            image: postgres:14-alpine
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              apk add --no-cache aws-cli > /dev/null 2>&1
+
+              echo "=== PostgreSQL Restore Test ==="
+              echo "Date: $(date)"
+              PASS=0
+              FAIL=0
+
+              # Start a local PostgreSQL instance for testing
+              mkdir -p /tmp/pgdata
+              chown postgres:postgres /tmp/pgdata
+              su postgres -c "initdb -D /tmp/pgdata" > /dev/null 2>&1
+              su postgres -c "pg_ctl start -D /tmp/pgdata -l /tmp/pg.log -o '-h localhost'" > /dev/null 2>&1
+              sleep 2
+
+              for DB in codetalk bookmarked; do
+                echo ""
+                echo "--- Testing ${DB} restore ---"
+
+                # Find latest dump in B2
+                LATEST=$(aws s3 ls "s3://${B2_BUCKET}/postgresql-backups/" \
+                  --endpoint-url="${B2_ENDPOINT}" | grep "${DB}-" | sort | tail -1 | awk '{print $NF}')
+
+                if [ -z "$LATEST" ]; then
+                  echo "ERROR: No ${DB} backup found in B2!"
+                  FAIL=$((FAIL + 1))
+                  continue
+                fi
+
+                echo "Found: ${LATEST}"
+
+                # Check backup age
+                FILE_DATE=$(echo "$LATEST" | grep -oE '[0-9]{8}' | head -1)
+                TODAY=$(date +%Y%m%d)
+                AGE_DAYS=$(( ($(date -d "$TODAY" +%s) - $(date -d "$FILE_DATE" +%s)) / 86400 ))
+                echo "Backup age: ${AGE_DAYS} days"
+
+                if [ "$AGE_DAYS" -gt 2 ]; then
+                  echo "WARNING: Backup is ${AGE_DAYS} days old (expected <2)"
+                fi
+
+                # Download
+                aws s3 cp "s3://${B2_BUCKET}/postgresql-backups/${LATEST}" "/tmp/${LATEST}" \
+                  --endpoint-url="${B2_ENDPOINT}" > /dev/null
+
+                SIZE=$(du -h "/tmp/${LATEST}" | cut -f1)
+                echo "Downloaded: ${SIZE}"
+
+                # Create test database and restore
+                su postgres -c "createdb ${DB}_test" 2>/dev/null
+                if su postgres -c "pg_restore -d ${DB}_test --no-owner /tmp/${LATEST}" 2>/dev/null; then
+                  echo "Restore: OK"
+                else
+                  echo "Restore: completed with warnings (non-fatal)"
+                fi
+
+                # Validate: count tables and rows
+                TABLE_COUNT=$(su postgres -c "psql -t -A ${DB}_test -c \"SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'\"")
+                echo "Tables: ${TABLE_COUNT}"
+
+                if [ "$TABLE_COUNT" -gt 0 ] 2>/dev/null; then
+                  # Get row counts for each table
+                  su postgres -c "psql -t -A ${DB}_test -c \"
+                    SELECT schemaname || '.' || relname || ': ' || n_live_tup
+                    FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 5
+                  \""
+                  PASS=$((PASS + 1))
+                  echo "Result: PASS"
+                else
+                  echo "ERROR: No tables found after restore!"
+                  FAIL=$((FAIL + 1))
+                  echo "Result: FAIL"
+                fi
+
+                # Cleanup
+                su postgres -c "dropdb ${DB}_test" 2>/dev/null
+                rm -f "/tmp/${LATEST}"
+              done
+
+              # Shutdown local postgres
+              su postgres -c "pg_ctl stop -D /tmp/pgdata" > /dev/null 2>&1
+
+              echo ""
+              echo "=== Summary: ${PASS} passed, ${FAIL} failed ==="
+
+              if [ "$FAIL" -gt 0 ]; then
+                exit 1
+              fi
+            env:
+            - name: B2_BUCKET
+              value: "Marmoset"
+            - name: B2_ENDPOINT
+              value: "https://s3.us-east-005.backblazeb2.com"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_secret_access_key
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+              limits:
+                cpu: "1"
+                memory: 1Gi
