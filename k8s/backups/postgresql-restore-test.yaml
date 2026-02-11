@@ -58,10 +58,11 @@ spec:
 
                 echo "Found: ${LATEST}"
 
-                # Check backup age
+                # Check backup age (Alpine date needs YYYY-MM-DD format)
                 FILE_DATE=$(echo "$LATEST" | grep -oE '[0-9]{8}' | head -1)
-                TODAY=$(date +%Y%m%d)
-                AGE_DAYS=$(( ($(date -d "$TODAY" +%s) - $(date -d "$FILE_DATE" +%s)) / 86400 ))
+                FILE_DATE_FMT=$(echo "$FILE_DATE" | sed 's/\(.\{4\}\)\(.\{2\}\)/\1-\2-/')
+                TODAY_FMT=$(date +%Y-%m-%d)
+                AGE_DAYS=$(( ($(date -d "$TODAY_FMT" +%s) - $(date -d "$FILE_DATE_FMT" +%s)) / 86400 ))
                 echo "Backup age: ${AGE_DAYS} days"
 
                 if [ "$AGE_DAYS" -gt 2 ]; then
@@ -88,7 +89,8 @@ spec:
                 echo "Tables: ${TABLE_COUNT}"
 
                 if [ "$TABLE_COUNT" -gt 0 ] 2>/dev/null; then
-                  # Get row counts for each table
+                  # Run ANALYZE then get row counts for top tables
+                  su postgres -c "psql -q ${DB}_test -c 'ANALYZE'" 2>/dev/null
                   su postgres -c "psql -t -A ${DB}_test -c \"
                     SELECT schemaname || '.' || relname || ': ' || n_live_tup
                     FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 5
