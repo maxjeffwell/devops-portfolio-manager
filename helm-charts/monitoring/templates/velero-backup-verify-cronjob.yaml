@@ -21,7 +21,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: verify
-            image: velero/velero:v1.14.0
+            image: velero/velero:v1.17.1
             command:
             - /bin/sh
             - -c
