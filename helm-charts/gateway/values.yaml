@@ -74,6 +74,11 @@ env:
           name: gateway-credentials
           key: gotify-token
 
+initContainers:
+  - name: wait-for-kafka
+    image: busybox:1.37
+    command: ['sh', '-c', 'until nc -z vertex-kafka-kafka-bootstrap.microservices.svc 9092; do echo "Waiting for Kafka..."; sleep 5; done']
+
 serviceAccount:
   create: false
   name: gateway-sa

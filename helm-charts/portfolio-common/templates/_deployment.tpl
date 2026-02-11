@@ -45,6 +45,10 @@ spec:
       {{- if $.Values.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ $.Values.terminationGracePeriodSeconds }}
       {{- end }}
+      {{- if $.Values.initContainers }}
+      initContainers:
+        {{- toYaml $.Values.initContainers | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ $component }}
         {{- if index $.Values (printf "securityContext%s" (title $component)) }}
