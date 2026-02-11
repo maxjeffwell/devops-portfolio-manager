@@ -40,7 +40,7 @@ spec:
               mongod --dbpath /tmp/mongodata --bind_ip localhost --port 27099 --fork --logpath /tmp/mongod.log > /dev/null 2>&1
               sleep 3
 
-              for DB in intervalai educationelly educationelly-graphql; do
+              for DB in intervalai educationelly educationelly-graphql microservices vertex-platform; do
                 echo ""
                 echo "--- Testing ${DB} restore ---"
 
