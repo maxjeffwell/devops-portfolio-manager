@@ -164,9 +164,18 @@ secret:
     # openssl rand -base64 32 | base64
     JWT_SECRET: "REPLACE_WITH_BASE64_ENCODED_JWT_SECRET"
 
-# MongoDB Connection Pool Configuration
-# These settings prevent connection exhaustion under load
+# MongoDB Configuration
 mongodb:
+  # Backup configuration (mongodump to Backblaze B2)
+  backup:
+    enabled: true
+    schedule: "5 3 * * *"
+    b2Bucket: "Marmoset"
+    b2Endpoint: "https://s3.us-east-005.backblazeb2.com"
+    b2SecretName: "velero-b2-credentials"
+    retentionDays: 30
+  # Connection Pool Configuration
+  # These settings prevent connection exhaustion under load
   pool:
     # Minimum number of connections to maintain
     minSize: 10

@@ -1,0 +1,130 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dns-zone-backup
+  labels:
+    app: dns-zone-backup
+spec:
+  schedule: "0 4 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: dns-zone-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: dns-export
+            image: alpine:3.21
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              apk add --no-cache curl jq aws-cli > /dev/null 2>&1
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+              echo "[$(date)] Starting Cloudflare DNS zone export..."
+
+              # Export DNS records via Cloudflare API
+              PAGE=1
+              echo "[]" > /tmp/all_records.json
+              while true; do
+                RESPONSE=$(curl -s -X GET \
+                  "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records?per_page=100&page=${PAGE}" \
+                  -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                  -H "Content-Type: application/json")
+
+                RECORDS=$(echo "$RESPONSE" | jq '.result')
+                COUNT=$(echo "$RECORDS" | jq 'length')
+
+                if [ "$COUNT" -eq 0 ]; then
+                  break
+                fi
+
+                # Merge records
+                jq -s '.[0] + .[1]' /tmp/all_records.json <(echo "$RECORDS") > /tmp/merged.json
+                mv /tmp/merged.json /tmp/all_records.json
+                PAGE=$((PAGE + 1))
+              done
+
+              TOTAL=$(jq 'length' /tmp/all_records.json)
+              echo "[$(date)] Exported ${TOTAL} DNS records"
+
+              # Export zone settings
+              curl -s -X GET \
+                "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}" \
+                -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                -H "Content-Type: application/json" \
+                | jq '.result' > /tmp/zone_settings.json
+
+              # Also export BIND-format zone file
+              curl -s -X GET \
+                "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/dns_records/export" \
+                -H "Authorization: Bearer ${CF_API_TOKEN}" \
+                > /tmp/zone-export.txt
+
+              # Package everything
+              tar czf "/tmp/dns-zone-${TIMESTAMP}.tar.gz" \
+                -C /tmp all_records.json zone_settings.json zone-export.txt
+
+              SIZE=$(du -h "/tmp/dns-zone-${TIMESTAMP}.tar.gz" | cut -f1)
+              echo "[$(date)] Packaged zone backup: ${SIZE}"
+
+              # Upload to B2
+              aws s3 cp "/tmp/dns-zone-${TIMESTAMP}.tar.gz" \
+                "s3://${B2_BUCKET}/dns-backups/dns-zone-${TIMESTAMP}.tar.gz" \
+                --endpoint-url="${B2_ENDPOINT}"
+
+              echo "[$(date)] Uploaded to B2"
+
+              # Keep only last 12 backups (3 months of weekly)
+              aws s3 ls "s3://${B2_BUCKET}/dns-backups/" \
+                --endpoint-url="${B2_ENDPOINT}" | sort | head -n -12 | while read -r line; do
+                FILE_NAME=$(echo "$line" | awk '{print $NF}')
+                if [ -n "$FILE_NAME" ]; then
+                  echo "Deleting old backup: $FILE_NAME"
+                  aws s3 rm "s3://${B2_BUCKET}/dns-backups/${FILE_NAME}" \
+                    --endpoint-url="${B2_ENDPOINT}"
+                fi
+              done
+
+              echo "[$(date)] DNS zone backup complete!"
+            env:
+            - name: CF_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-secrets
+                  key: api-token
+            - name: CF_ZONE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare-secrets
+                  key: zone-id
+            - name: B2_BUCKET
+              value: "Marmoset"
+            - name: B2_ENDPOINT
+              value: "https://s3.us-east-005.backblazeb2.com"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_secret_access_key
+            resources:
+              requests:
+                cpu: 50m
+                memory: 64Mi
+              limits:
+                cpu: 200m
+                memory: 128Mi

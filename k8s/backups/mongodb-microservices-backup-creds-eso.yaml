@@ -1,0 +1,18 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mongodb-microservices-backup-creds-eso
+  labels:
+    app: mongodb-backup
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-secret-store
+  target:
+    name: mongodb-microservices-backup-creds
+    creationPolicy: Owner
+  data:
+  - secretKey: MONGO_ROOT_PASSWORD
+    remoteRef:
+      key: MICROSERVICES_MONGODB_ROOT_PASSWORD

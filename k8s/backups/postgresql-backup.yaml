@@ -1,0 +1,98 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-backup
+  labels:
+    app: postgresql-backup
+spec:
+  schedule: "30 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app: postgresql-backup
+            portfolio: "true"
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: pgdump
+            image: postgres:14-alpine
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              apk add --no-cache aws-cli > /dev/null 2>&1
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+              echo "[$(date)] Starting PostgreSQL backup..."
+
+              # Dump all databases from the codetalk instance
+              PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
+                -h postgresql-codetalk \
+                -U codetalk_user \
+                -d codetalk \
+                -Fc \
+                --no-owner \
+                -f "/tmp/codetalk-${TIMESTAMP}.dump"
+
+              SIZE=$(du -h "/tmp/codetalk-${TIMESTAMP}.dump" | cut -f1)
+              echo "[$(date)] Dump complete: codetalk-${TIMESTAMP}.dump (${SIZE})"
+
+              # Upload to Backblaze B2
+              aws s3 cp "/tmp/codetalk-${TIMESTAMP}.dump" \
+                "s3://${B2_BUCKET}/postgresql-backups/codetalk-${TIMESTAMP}.dump" \
+                --endpoint-url="${B2_ENDPOINT}"
+
+              echo "[$(date)] Uploaded to B2"
+
+              # Clean up local file
+              rm -f "/tmp/codetalk-${TIMESTAMP}.dump"
+
+              # Delete backups older than 30 days (Alpine/busybox compatible)
+              CUTOFF_DATE=$(date -d "@$(($(date +%s) - 2592000))" +%Y%m%d)
+              aws s3 ls "s3://${B2_BUCKET}/postgresql-backups/" \
+                --endpoint-url="${B2_ENDPOINT}" | while read -r line; do
+                FILE_DATE=$(echo "$line" | awk '{print $NF}' | grep -oE '[0-9]{8}' | head -1)
+                FILE_NAME=$(echo "$line" | awk '{print $NF}')
+                if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" -lt "$CUTOFF_DATE" ] 2>/dev/null; then
+                  echo "Deleting old backup: $FILE_NAME"
+                  aws s3 rm "s3://${B2_BUCKET}/postgresql-backups/${FILE_NAME}" \
+                    --endpoint-url="${B2_ENDPOINT}"
+                fi
+              done
+
+              echo "[$(date)] PostgreSQL backup complete!"
+            env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-codetalk-secrets
+                  key: postgres-password
+            - name: B2_BUCKET
+              value: "Marmoset"
+            - name: B2_ENDPOINT
+              value: "https://s3.us-east-005.backblazeb2.com"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: velero-b2-credentials
+                  key: aws_secret_access_key
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi

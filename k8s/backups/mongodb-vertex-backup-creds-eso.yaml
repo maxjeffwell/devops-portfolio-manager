@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: mongodb-vertex-backup-creds-eso
+  labels:
+    app: mongodb-backup
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-secret-store
+  target:
+    name: mongodb-vertex-backup-creds
+    creationPolicy: Owner
+  data:
+  - secretKey: MONGO_USERNAME
+    remoteRef:
+      key: VERTEX_MONGO_USERNAME
+  - secretKey: MONGO_PASSWORD
+    remoteRef:
+      key: VERTEX_MONGO_PASSWORD

@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: mongodb-backup
+  name: mongodb-backup-educationelly
   labels:
     app: mongodb-backup
 spec:
@@ -30,26 +30,22 @@ spec:
             - |
               set -e
               TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-              BACKUP_FILE="/tmp/intervalai-${TIMESTAMP}.archive"
+              BACKUP_FILE="/tmp/educationelly-${TIMESTAMP}.archive"
 
-              echo "Starting MongoDB backup at ${TIMESTAMP}"
+              echo "Starting educationelly MongoDB backup at ${TIMESTAMP}"
 
-              # Run mongodump
               mongodump --uri="${MONGODB_URI}" --archive="${BACKUP_FILE}" --gzip
 
               echo "Backup complete, uploading to B2..."
 
-              # Upload to Backblaze B2
-              aws s3 cp "${BACKUP_FILE}" "s3://${B2_BUCKET}/mongodb-backups/intervalai-${TIMESTAMP}.archive" \
+              aws s3 cp "${BACKUP_FILE}" "s3://${B2_BUCKET}/mongodb-backups/educationelly-${TIMESTAMP}.archive" \
                 --endpoint-url="${B2_ENDPOINT}"
 
-              # Clean up local file
               rm -f "${BACKUP_FILE}"
 
-              # Delete backups older than retention period
               echo "Cleaning up backups older than {{ .Values.mongodb.backup.retentionDays | default 30 }} days..."
               CUTOFF_DATE=$(date -d "-{{ .Values.mongodb.backup.retentionDays | default 30 }} days" +%Y%m%d)
-              aws s3 ls "s3://${B2_BUCKET}/mongodb-backups/" --endpoint-url="${B2_ENDPOINT}" | while read -r line; do
+              aws s3 ls "s3://${B2_BUCKET}/mongodb-backups/" --endpoint-url="${B2_ENDPOINT}" | grep educationelly- | grep -v educationelly-graphql- | while read -r line; do
                 FILE_DATE=$(echo "$line" | awk '{print $NF}' | grep -oP '\d{8}' | head -1)
                 FILE_NAME=$(echo "$line" | awk '{print $NF}')
                 if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" -lt "$CUTOFF_DATE" ] 2>/dev/null; then
@@ -58,16 +54,12 @@ spec:
                 fi
               done
 
-              # List recent backups
-              echo "Recent backups in B2:"
-              aws s3 ls "s3://${B2_BUCKET}/mongodb-backups/" --endpoint-url="${B2_ENDPOINT}" | tail -5
-
               echo "Backup uploaded successfully!"
             env:
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
-                  name: intervalai-secret
+                  name: educationelly-secret
                   key: MONGODB_URI
             - name: B2_BUCKET
               value: {{ .Values.mongodb.backup.b2Bucket | quote }}
