@@ -21,16 +21,13 @@ spec:
           restartPolicy: Never
           containers:
           - name: restore-test
-            image: mongo:7-jammy
-            imagePullPolicy: IfNotPresent
+            image: maxjeffwell/mongodb-backup:latest
+            imagePullPolicy: Always
             command:
             - /bin/bash
             - -c
             - |
               set -e
-              # Force IPv4 — cluster has no IPv6 egress, apt resolves some mirrors to IPv6
-              echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
-              apt-get update -qq && apt-get install -y -qq awscli > /dev/null 2>&1
 
               echo "=== MongoDB Restore Test ==="
               echo "Date: $(date)"
