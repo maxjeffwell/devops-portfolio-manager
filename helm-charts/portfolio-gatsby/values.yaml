@@ -40,4 +40,5 @@ securityContext: {}
 
 ingress:
   enabled: true
-  host: portfolio.el-jefe.me
+  host: el-jefe.me
+  wwwRedirect: true
