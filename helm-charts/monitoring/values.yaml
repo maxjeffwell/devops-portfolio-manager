@@ -481,7 +481,7 @@ mimir-distributed:
     resources:
       requests:
         cpu: 100m
-        memory: 512Mi
+        memory: 256Mi
       limits:
         cpu: 500m
         memory: 2Gi
@@ -557,6 +557,13 @@ mimir-distributed:
       kubernetes.io/hostname: vmi2951245
     podAnnotations:
       backup.velero.io/backup-volumes-excludes: kafka-data
+    resources:
+      requests:
+        cpu: 200m
+        memory: 384Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi
   # Disable Mimir's built-in MinIO sub-chart (using shared MinIO)
   minio:
     enabled: false
