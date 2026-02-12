@@ -1,0 +1,31 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    logs:
+      access:
+        enabled: true
+        format: common
+        filePath: "/var/log/traefik/access.log"
+    deployment:
+      additionalVolumes:
+      - name: access-logs
+        hostPath:
+          path: /var/log/traefik
+          type: DirectoryOrCreate
+      initContainers:
+      - name: fix-log-permissions
+        image: busybox:1.37
+        command: ["sh", "-c", "chown 65532:65532 /var/log/traefik"]
+        securityContext:
+          runAsUser: 0
+          runAsNonRoot: false
+        volumeMounts:
+        - name: access-logs
+          mountPath: /var/log/traefik
+    additionalVolumeMounts:
+    - name: access-logs
+      mountPath: /var/log/traefik
