@@ -46,7 +46,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "sum by (geoip_city_name, geoip_country_name) (count_over_time({job=\"traefik-access-log\"}, geoip_city_name!=\"\" [$__interval]))",
+              "expr": "sum by (geoip_city_name, geoip_country_name) (count_over_time({job=\"traefik-access-log\", geoip_city_name!=\"\"} [$__interval]))",
               "legendFormat": "{{ "{{" }}geoip_city_name{{ "}}" }}, {{ "{{" }}geoip_country_name{{ "}}" }}",
               "refId": "A"
             }
@@ -84,10 +84,8 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(15, sum by (geoip_country_name) (count_over_time({job=\"traefik-access-log\", geoip_country_name!=\"\"} [$__range])))",
+              "expr": "topk(15, sum by (geoip_country_name) (count_over_time({job=\"traefik-access-log\", geoip_country_name!=\"\"} [$__interval])))",
               "legendFormat": "{{ "{{" }}geoip_country_name{{ "}}" }}",
-              "instant": true,
-              "queryType": "instant",
               "refId": "A"
             }
           ]
@@ -118,10 +116,8 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(15, sum by (router) (count_over_time({job=\"traefik-access-log\", router!=\"\"} [$__range])))",
+              "expr": "topk(15, sum by (router) (count_over_time({job=\"traefik-access-log\", router!=\"\"} [$__interval])))",
               "legendFormat": "{{ "{{" }}router{{ "}}" }}",
-              "instant": true,
-              "queryType": "instant",
               "refId": "A"
             }
           ]
@@ -183,7 +179,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "sum by (status) (count_over_time({job=\"traefik-access-log\"}, status!=\"\" [$__interval]))",
+              "expr": "sum by (status) (count_over_time({job=\"traefik-access-log\", status!=\"\"} [$__interval]))",
               "legendFormat": "{{ "{{" }}status{{ "}}" }}",
               "refId": "A"
             }
@@ -208,7 +204,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(25, sum by (path) (count_over_time({job=\"traefik-access-log\"}, path!=\"\" [$__interval])))",
+              "expr": "topk(25, sum by (path) (count_over_time({job=\"traefik-access-log\", path!=\"\", path!~\"/api/.*\"} [$__interval])))",
               "legendFormat": "{{ "{{" }}path{{ "}}" }}",
               "refId": "A"
             }
@@ -243,7 +239,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(25, sum by (referer) (count_over_time({job=\"traefik-access-log\"}, referer!=\"\", referer!~\".*el-jefe\\\\.me.*\" [$__interval])))",
+              "expr": "topk(25, sum by (referer) (count_over_time({job=\"traefik-access-log\", referer!=\"\", referer!=\"-\", referer!~\".*el-jefe\\\\.me.*\"} [$__interval])))",
               "legendFormat": "{{ "{{" }}referer{{ "}}" }}",
               "refId": "A"
             }
@@ -279,7 +275,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(30, sum by (geoip_city_name, geoip_country_name) (count_over_time({job=\"traefik-access-log\"}, geoip_city_name!=\"\" [$__interval])))",
+              "expr": "topk(30, sum by (geoip_city_name, geoip_country_name) (count_over_time({job=\"traefik-access-log\", geoip_city_name!=\"\"} [$__interval])))",
               "legendFormat": "{{ "{{" }}geoip_city_name{{ "}}" }} ({{ "{{" }}geoip_country_name{{ "}}" }})",
               "refId": "A"
             }
