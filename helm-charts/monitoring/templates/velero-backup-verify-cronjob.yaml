@@ -10,7 +10,7 @@ spec:
   # Run weekly on Sundays at 4 AM UTC
   schedule: {{ .Values.veleroBackupVerify.schedule | quote }}
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
