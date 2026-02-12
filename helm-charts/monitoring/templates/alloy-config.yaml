@@ -70,4 +70,51 @@ data:
         url = "http://prometheus-loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
       }
     }
+
+    // --- Traefik Access Log Collection ---
+    local.file_match "traefik_access_log" {
+      path_targets = [{ "__path__" = "/var/log/traefik/access.log" }]
+      sync_period  = "5s"
+    }
+
+    loki.source.file "traefik_access_log" {
+      targets    = local.file_match.traefik_access_log.targets
+      forward_to = [loki.process.traefik.receiver]
+    }
+
+    loki.process "traefik" {
+      // Parse Traefik common log format:
+      // <ip> - - [<ts>] "<method> <path> <proto>" <status> <size> "<referer>" "<ua>" <count> "<router>" "<backend>" <duration>
+      stage.regex {
+        expression = "^(?P<client_ip>[\\d.]+) - - \\[(?P<timestamp>[^\\]]+)\\] \"(?P<method>\\S+) (?P<path>\\S+) [^\"]+\" (?P<status>\\d+) \\d+ \"(?P<referer>[^\"]*)\" \"(?P<user_agent>[^\"]*)\" \\d+ \"(?P<router>[^\"]*)\" \"[^\"]*\" (?P<duration>\\S+)"
+      }
+
+      // GeoIP enrichment from MaxMind database
+      stage.geoip {
+        db      = "/usr/share/GeoIP/GeoLite2-City.mmdb"
+        source  = "client_ip"
+        db_type = "city"
+      }
+
+      // Promote to labels for Grafana queries
+      stage.labels {
+        values = {
+          status     = "",
+          method     = "",
+          path       = "",
+          referer    = "",
+          user_agent = "",
+          router     = "",
+          geoip_country_name = "",
+          geoip_city_name    = "",
+        }
+      }
+
+      // Static label to identify these as traefik access logs
+      stage.static_labels {
+        values = { job = "traefik-access-log", source = "traefik" }
+      }
+
+      forward_to = [loki.write.default.receiver]
+    }
 {{- end }}

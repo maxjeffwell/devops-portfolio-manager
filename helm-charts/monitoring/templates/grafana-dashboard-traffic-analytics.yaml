@@ -1,0 +1,309 @@
+{{- if index .Values "kube-prometheus-stack" "grafana" "enabled" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-traffic-analytics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  traffic-analytics.json: |-
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "links": [],
+      "panels": [
+        {
+          "title": "Visitor Locations",
+          "type": "geomap",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 12, "w": 12, "x": 0, "y": 0 },
+          "options": {
+            "basemap": { "config": {}, "name": "Layer 0", "type": "default" },
+            "layers": [
+              {
+                "config": {
+                  "showLegend": true,
+                  "style": {
+                    "color": { "fixed": "dark-green" },
+                    "opacity": 0.6,
+                    "rotation": { "fixed": 0 },
+                    "size": { "field": "Value", "max": 15, "min": 3 },
+                    "symbol": { "fixed": "img/icons/marker/circle.svg" },
+                    "textConfig": { "fontSize": 12, "offsetX": 0, "offsetY": 0 }
+                  }
+                },
+                "location": { "mode": "coords" },
+                "name": "Visitors",
+                "type": "markers"
+              }
+            ],
+            "tooltip": { "mode": "details" },
+            "view": { "id": "coords", "lat": 30, "lon": 0, "zoom": 2 }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum by (geoip_city_name, geoip_country_name) (count_over_time({job=\"traefik-access-log\"}, geoip_city_name!=\"\" [$__interval]))",
+              "legendFormat": "{{ "{{" }}geoip_city_name{{ "}}" }}, {{ "{{" }}geoip_country_name{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": { "reducers": ["sum"] }
+            }
+          ]
+        },
+        {
+          "title": "Top Countries",
+          "type": "bargauge",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 12, "w": 6, "x": 12, "y": 0 },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic-by-name" },
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+            },
+            "overrides": []
+          },
+          "options": {
+            "displayMode": "gradient",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "namePlacement": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+            "showUnfilled": true,
+            "sizing": "auto",
+            "valueMode": "color"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "topk(15, sum by (geoip_country_name) (count_over_time({job=\"traefik-access-log\", geoip_country_name!=\"\"} [$__range])))",
+              "legendFormat": "{{ "{{" }}geoip_country_name{{ "}}" }}",
+              "instant": true,
+              "queryType": "instant",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Requests by App (Router)",
+          "type": "bargauge",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 12, "w": 6, "x": 18, "y": 0 },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic-by-name" },
+              "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+            },
+            "overrides": []
+          },
+          "options": {
+            "displayMode": "gradient",
+            "minVizHeight": 10,
+            "minVizWidth": 0,
+            "namePlacement": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+            "showUnfilled": true,
+            "sizing": "auto",
+            "valueMode": "color"
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "topk(15, sum by (router) (count_over_time({job=\"traefik-access-log\", router!=\"\"} [$__range])))",
+              "legendFormat": "{{ "{{" }}router{{ "}}" }}",
+              "instant": true,
+              "queryType": "instant",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Requests Over Time",
+          "type": "timeseries",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 8, "w": 16, "x": 0, "y": 12 },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" },
+              "custom": {
+                "axisBorderShow": false,
+                "drawStyle": "line",
+                "fillOpacity": 15,
+                "gradientMode": "none",
+                "lineInterpolation": "smooth",
+                "lineWidth": 2,
+                "pointSize": 5,
+                "showPoints": "auto",
+                "stacking": { "group": "A", "mode": "none" }
+              }
+            },
+            "overrides": []
+          },
+          "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum (count_over_time({job=\"traefik-access-log\"} [$__interval]))",
+              "legendFormat": "Total Requests",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Status Code Distribution",
+          "type": "piechart",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+          "fieldConfig": {
+            "defaults": {
+              "color": { "mode": "palette-classic" }
+            },
+            "overrides": [
+              { "matcher": { "id": "byRegexp", "options": "2.." }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+              { "matcher": { "id": "byRegexp", "options": "3.." }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+              { "matcher": { "id": "byRegexp", "options": "4.." }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+              { "matcher": { "id": "byRegexp", "options": "5.." }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+            ]
+          },
+          "options": {
+            "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+            "pieType": "donut",
+            "reduceOptions": { "calcs": ["sum"], "fields": "", "values": false },
+            "tooltip": { "mode": "single" }
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "sum by (status) (count_over_time({job=\"traefik-access-log\"}, status!=\"\" [$__interval]))",
+              "legendFormat": "{{ "{{" }}status{{ "}}" }}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "title": "Top Paths",
+          "type": "table",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 10, "w": 12, "x": 0, "y": 20 },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Requests" }] },
+              { "matcher": { "id": "byName", "options": "path" }, "properties": [{ "id": "displayName", "value": "Path" }] }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [{ "desc": true, "displayName": "Requests" }]
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "topk(25, sum by (path) (count_over_time({job=\"traefik-access-log\"}, path!=\"\" [$__interval])))",
+              "legendFormat": "{{ "{{" }}path{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": { "reducers": ["sum"] }
+            },
+            {
+              "id": "sortBy",
+              "options": { "fields": {}, "sort": [{ "desc": true, "field": "Sum" }] }
+            }
+          ]
+        },
+        {
+          "title": "Top Referrers (External)",
+          "type": "table",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 10, "w": 12, "x": 12, "y": 20 },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Requests" }] },
+              { "matcher": { "id": "byName", "options": "referer" }, "properties": [{ "id": "displayName", "value": "Referrer" }] }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [{ "desc": true, "displayName": "Requests" }]
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "topk(25, sum by (referer) (count_over_time({job=\"traefik-access-log\"}, referer!=\"\", referer!~\".*el-jefe\\\\.me.*\" [$__interval])))",
+              "legendFormat": "{{ "{{" }}referer{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": { "reducers": ["sum"] }
+            },
+            {
+              "id": "sortBy",
+              "options": { "fields": {}, "sort": [{ "desc": true, "field": "Sum" }] }
+            }
+          ]
+        },
+        {
+          "title": "Top Cities",
+          "type": "table",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "gridPos": { "h": 10, "w": 24, "x": 0, "y": 30 },
+          "fieldConfig": {
+            "defaults": {},
+            "overrides": [
+              { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Requests" }] },
+              { "matcher": { "id": "byName", "options": "geoip_city_name" }, "properties": [{ "id": "displayName", "value": "City" }] },
+              { "matcher": { "id": "byName", "options": "geoip_country_name" }, "properties": [{ "id": "displayName", "value": "Country" }] }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "sortBy": [{ "desc": true, "displayName": "Requests" }]
+          },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "expr": "topk(30, sum by (geoip_city_name, geoip_country_name) (count_over_time({job=\"traefik-access-log\"}, geoip_city_name!=\"\" [$__interval])))",
+              "legendFormat": "{{ "{{" }}geoip_city_name{{ "}}" }} ({{ "{{" }}geoip_country_name{{ "}}" }})",
+              "refId": "A"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "reduce",
+              "options": { "reducers": ["sum"] }
+            },
+            {
+              "id": "sortBy",
+              "options": { "fields": {}, "sort": [{ "desc": true, "field": "Sum" }] }
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["traffic", "analytics", "geo"],
+      "templating": { "list": [] },
+      "time": { "from": "now-24h", "to": "now" },
+      "timepicker": {},
+      "timezone": "utc",
+      "title": "Traffic Analytics",
+      "uid": "traffic-analytics",
+      "version": 1
+    }
+{{- end }}
