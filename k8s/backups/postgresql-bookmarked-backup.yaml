@@ -33,10 +33,10 @@ spec:
 
               echo "[$(date)] Starting PostgreSQL bookmarked backup..."
 
-              PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
-                -h postgresql-bookmarked \
-                -U bookmarked_user \
-                -d bookmarked \
+              PGPASSWORD="${POSTGRES_PASSWORD}" PGSSLMODE=require pg_dump \
+                -h "${POSTGRES_HOST}" \
+                -U "${POSTGRES_USER}" \
+                -d "${POSTGRES_DATABASE}" \
                 -Fc \
                 --no-owner \
                 -f "/tmp/bookmarked-${TIMESTAMP}.dump"
@@ -69,6 +69,21 @@ spec:
 
               echo "[$(date)] PostgreSQL bookmarked backup complete!"
             env:
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-bookmarked-secrets
+                  key: postgres-host
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-bookmarked-secrets
+                  key: postgres-user
+            - name: POSTGRES_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-bookmarked-secrets
+                  key: postgres-database
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
