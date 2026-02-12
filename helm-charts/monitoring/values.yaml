@@ -348,6 +348,25 @@ loki:
           name: minio-credentials
     extraArgs:
       - -config.expand-env=true
+  # Right-sized cache resources (chart defaults are 500m/9.8Gi and 500m/1.2Gi)
+  chunksCache:
+    allocatedMemory: 256
+    resources:
+      requests:
+        cpu: 50m
+        memory: 384Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+  resultsCache:
+    allocatedMemory: 128
+    resources:
+      requests:
+        cpu: 50m
+        memory: 192Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
   # Disable components not needed in single-binary mode
   gateway:
     enabled: false
