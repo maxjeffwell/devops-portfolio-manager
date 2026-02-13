@@ -10,7 +10,7 @@ image:
   client:
     repository: maxjeffwell/portfolio-gatsby
     tag: 20260212-235048-2398b12
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
 service:
   client:
@@ -27,6 +27,12 @@ resources:
     requests:
       cpu: 10m
       memory: 64Mi
+
+readinessProbe:
+  tcpSocket:
+    port: 80
+  initialDelaySeconds: 2
+  periodSeconds: 5
 
 autoscaling:
   enabled: false
