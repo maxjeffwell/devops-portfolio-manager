@@ -68,8 +68,9 @@ env:
           name: educationelly-graphql-secret
           key: SENTRY_DSN
     # MongoDB Connection Pool Configuration
+    # min=2 reduces startup time; connections scale up on demand
     - name: MONGODB_POOL_MIN_SIZE
-      value: "10"
+      value: "2"
     - name: MONGODB_POOL_MAX_SIZE
       value: "50"
     - name: MONGODB_MAX_IDLE_TIME_MS
@@ -101,18 +102,32 @@ securityContextClient:
   readOnlyRootFilesystem: false
   runAsNonRoot: false
 
+# Startup probe gates liveness/readiness until the server is ready
+# babel-node compilation + MongoDB pool init can take 60-90s on a loaded node
+startupProbeServer:
+  httpGet:
+    path: /health
+    port: 8000
+  failureThreshold: 30
+  periodSeconds: 5
+  # 30 * 5s = 150s max startup time before pod is killed
+
 livenessProbe:
   httpGet:
     path: /health
     port: 8000
-  initialDelaySeconds: 30
+  initialDelaySeconds: 10
   periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
 readinessProbe:
   httpGet:
     path: /health
     port: 8000
-  initialDelaySeconds: 10
+  initialDelaySeconds: 5
   periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
 
 # Client-specific probes (nginx on port 80)
 livenessProbeClient:

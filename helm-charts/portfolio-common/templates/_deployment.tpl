@@ -69,6 +69,11 @@ spec:
         env:
         {{- include "portfolio-common.env" $componentEnv | nindent 8 }}
         {{- end }}
+        {{- $startupProbe := index $.Values (printf "startupProbe%s" (title $component)) | default $.Values.startupProbe }}
+        {{- if $startupProbe }}
+        startupProbe:
+          {{- toYaml $startupProbe | nindent 10 }}
+        {{- end }}
         {{- $livenessProbe := index $.Values (printf "livenessProbe%s" (title $component)) | default $.Values.livenessProbe }}
         {{- if $livenessProbe }}
         livenessProbe:
