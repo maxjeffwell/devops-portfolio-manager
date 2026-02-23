@@ -1,0 +1,58 @@
+# GPU Operator Helm values override
+# Fixes restart loops caused by aggressive liveness probe timeouts on vmi2951245
+#
+# Apply with:
+#   sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade gpu-operator nvidia/gpu-operator \
+#     -n gpu-operator -f values-override.yaml
+
+# Preserve existing user values
+driver:
+  enabled: false
+migManager:
+  enabled: false
+toolkit:
+  enabled: true
+devicePlugin:
+  enabled: true
+dcgmExporter:
+  enabled: true
+nodeStatusExporter:
+  enabled: true
+
+# Increase operator controller resources to reduce probe timeout failures
+# Previous: cpu 200m/500m, memory 100Mi/350Mi
+operator:
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 128Mi
+
+# NFD master - add explicit probe timeouts (chart defaults use 1s which is too aggressive)
+node-feature-discovery:
+  master:
+    livenessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+      periodSeconds: 20
+      failureThreshold: 5
+    readinessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+      periodSeconds: 10
+      failureThreshold: 10
+    resources:
+      limits:
+        memory: 4Gi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  gc:
+    livenessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+    readinessProbe:
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
