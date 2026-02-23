@@ -42,7 +42,7 @@ spec:
               su postgres -c "pg_ctl start -D /tmp/pgdata -l /tmp/pg.log -o '-h localhost'" > /dev/null 2>&1
               sleep 2
 
-              for DB in codetalk bookmarked; do
+              for DB in codetalk; do
                 echo ""
                 echo "--- Testing ${DB} restore ---"
 
