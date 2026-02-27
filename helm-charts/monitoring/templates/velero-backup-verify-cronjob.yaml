@@ -14,7 +14,7 @@ spec:
   failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
-      ttlSecondsAfterFinished: 86400
+      ttlSecondsAfterFinished: 3600
       template:
         spec:
           serviceAccountName: velero-server
