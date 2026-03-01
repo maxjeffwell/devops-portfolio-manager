@@ -1,0 +1,19 @@
+# External Secrets Operator Helm values
+# Chart: external-secrets/external-secrets v1.2.1
+# Release: external-secrets (namespace: external-secrets)
+#
+# Install/upgrade:
+#   helm upgrade --install external-secrets external-secrets/external-secrets \
+#     -n external-secrets -f external-secrets-values.yaml
+
+# Pin all ESO components to data node to reduce load on control-plane VPS
+nodeSelector:
+  kubernetes.io/hostname: vmi3115606
+
+webhook:
+  nodeSelector:
+    kubernetes.io/hostname: vmi3115606
+
+certController:
+  nodeSelector:
+    kubernetes.io/hostname: vmi3115606
