@@ -5,6 +5,8 @@
 # Apply with:
 #   sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade gpu-operator nvidia/gpu-operator \
 #     -n gpu-operator -f values-override.yaml
+#
+# After applying, re-run patch-operator-probes.sh to fix hardcoded operator probes.
 
 # Preserve existing user values
 driver:
@@ -42,6 +44,11 @@ operator:
 
 # NFD master - move to data node and add explicit probe timeouts
 node-feature-discovery:
+  # Bump to v0.18.3 (latest patch) - no fix for nil pointer crash on shutdown
+  # but includes arch support and kubectl-nfd plugin fix
+  image:
+    repository: registry.k8s.io/nfd/node-feature-discovery
+    tag: v0.18.3
   master:
     affinity:
       nodeAffinity:
@@ -68,6 +75,20 @@ node-feature-discovery:
       requests:
         cpu: 100m
         memory: 128Mi
+  # NFD worker - fix aggressive probe timeouts causing 383+ restarts on control-plane node
+  # Default: timeoutSeconds=1, failureThreshold=3 (liveness)
+  # With control-plane CPU contention, /healthz regularly times out within 1s
+  worker:
+    livenessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+      periodSeconds: 10
+      failureThreshold: 5
+    readinessProbe:
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+      periodSeconds: 10
+      failureThreshold: 10
   gc:
     livenessProbe:
       initialDelaySeconds: 10
