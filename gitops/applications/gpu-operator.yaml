@@ -20,13 +20,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: gpu-operator
-  # Ignore probe fields patched by patch-operator-probes.sh
-  # The chart hardcodes operator deployment probes; we patch them post-sync
+  # Ignore fields patched by patch-operator-probes.sh
+  # The chart hardcodes operator deployment probes and args; we patch them post-sync
   ignoreDifferences:
     - group: apps
       kind: Deployment
       name: gpu-operator
       jsonPointers:
+        - /spec/template/spec/containers/0/args
         - /spec/template/spec/containers/0/livenessProbe/timeoutSeconds
         - /spec/template/spec/containers/0/livenessProbe/periodSeconds
         - /spec/template/spec/containers/0/livenessProbe/failureThreshold
