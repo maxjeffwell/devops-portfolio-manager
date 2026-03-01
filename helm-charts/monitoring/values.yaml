@@ -236,6 +236,8 @@ kube-prometheus-stack:
   # kube-state-metrics sub-chart overrides
   # The /livez endpoint returns 503 when informer cache falls behind under API server load
   kube-state-metrics:
+    nodeSelector:
+      role: data
     livenessProbe:
       failureThreshold: 10
       periodSeconds: 15
