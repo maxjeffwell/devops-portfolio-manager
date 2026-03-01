@@ -1,5 +1,6 @@
 # GPU Operator Helm values override
-# Fixes restart loops caused by aggressive liveness probe timeouts on vmi2951245
+# Fixes restart loops caused by leader election lease timeouts and aggressive probes
+# on the overloaded control-plane node (vmi2951245)
 #
 # Apply with:
 #   sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade gpu-operator nvidia/gpu-operator \
@@ -19,9 +20,18 @@ dcgmExporter:
 nodeStatusExporter:
   enabled: true
 
-# Increase operator controller resources to reduce probe timeout failures
-# Previous: cpu 200m/500m, memory 100Mi/350Mi
+# Move operator controller to data node (vmi3115606) to avoid leader election
+# lease timeouts caused by API server CPU pressure on vmi2951245
 operator:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                  - data
   resources:
     limits:
       cpu: 1000m
@@ -30,9 +40,18 @@ operator:
       cpu: 200m
       memory: 128Mi
 
-# NFD master - add explicit probe timeouts (chart defaults use 1s which is too aggressive)
+# NFD master - move to data node and add explicit probe timeouts
 node-feature-discovery:
   master:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: role
+                  operator: In
+                  values:
+                    - data
     livenessProbe:
       initialDelaySeconds: 15
       timeoutSeconds: 5
