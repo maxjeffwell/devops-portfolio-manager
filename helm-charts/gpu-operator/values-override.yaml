@@ -39,6 +39,12 @@ node-feature-discovery:
   # NFD master - no node affinity override (defaults to control-plane via
   # chart's built-in toleration for control-plane/master nodes)
   master:
+    config:
+      extraLabelNs: ["nvidia.com"]
+      leaderElection:
+        leaseDuration: 60s
+        renewDeadline: 30s
+        retryPeriod: 5s
     livenessProbe:
       initialDelaySeconds: 15
       timeoutSeconds: 5
