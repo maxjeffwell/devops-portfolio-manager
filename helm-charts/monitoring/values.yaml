@@ -233,6 +233,22 @@ kube-prometheus-stack:
   kubeStateMetrics:
     enabled: true
 
+  # kube-state-metrics sub-chart overrides
+  # The /livez endpoint returns 503 when informer cache falls behind under API server load
+  kube-state-metrics:
+    livenessProbe:
+      failureThreshold: 10
+      periodSeconds: 15
+    readinessProbe:
+      failureThreshold: 10
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
   # Prometheus Operator
   prometheusOperator:
     enabled: true
