@@ -129,6 +129,18 @@ readinessProbe:
   timeoutSeconds: 3
   failureThreshold: 3
 
+# Client-specific probes (node server on port 3000)
+livenessProbeClient:
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+readinessProbeClient:
+  tcpSocket:
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+
 # ⚠️ CRITICAL SECURITY WARNING ⚠️
 # NEVER commit real secrets to Git repositories!
 # Use one of these secure alternatives:
