@@ -1,12 +1,10 @@
 # GPU Operator Helm values override
-# Fixes restart loops caused by leader election lease timeouts and aggressive probes
-# on the overloaded control-plane node (vmi2951245)
+# Keeps operator + NFD master on the control-plane node (vmi2951245) so leader
+# election lease renewals use loopback to the local API server, avoiding the
+# cross-node network timeouts that cause CrashLoopBackOff.
 #
-# Apply with:
-#   sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml helm upgrade gpu-operator nvidia/gpu-operator \
-#     -n gpu-operator -f values-override.yaml
-#
-# After applying, re-run patch-operator-probes.sh to fix hardcoded operator probes.
+# Managed by ArgoCD (gitops/applications/gpu-operator.yaml).
+# After manual sync, re-run patch-operator-probes.sh to fix hardcoded operator probes.
 
 # Preserve existing user values
 driver:
@@ -22,18 +20,9 @@ dcgmExporter:
 nodeStatusExporter:
   enabled: true
 
-# Move operator controller to data node (vmi3115606) to avoid leader election
-# lease timeouts caused by API server CPU pressure on vmi2951245
+# Operator controller - no node affinity override (defaults to control-plane
+# via chart's built-in preferredDuringScheduling for control-plane/master nodes)
 operator:
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: role
-                operator: In
-                values:
-                  - data
   resources:
     limits:
       cpu: 1000m
@@ -42,23 +31,14 @@ operator:
       cpu: 200m
       memory: 128Mi
 
-# NFD master - move to data node and add explicit probe timeouts
 node-feature-discovery:
-  # Bump to v0.18.3 (latest patch) - no fix for nil pointer crash on shutdown
-  # but includes arch support and kubectl-nfd plugin fix
+  # Bump to v0.18.3 (latest patch)
   image:
     repository: registry.k8s.io/nfd/node-feature-discovery
     tag: v0.18.3
+  # NFD master - no node affinity override (defaults to control-plane via
+  # chart's built-in toleration for control-plane/master nodes)
   master:
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: role
-                  operator: In
-                  values:
-                    - data
     livenessProbe:
       initialDelaySeconds: 15
       timeoutSeconds: 5
