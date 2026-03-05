@@ -51,13 +51,16 @@ node-feature-discovery:
     tag: v0.18.3
   # NFD master - no node affinity override (defaults to control-plane via
   # chart's built-in toleration for control-plane/master nodes)
+  # Leader election has a known panic bug in v0.18.x (NamespaceLister.stop nil
+  # pointer on lease loss). Can't disable via values — flag is hardcoded in chart
+  # template. Aggressive lease durations reduce loss frequency to near zero.
   master:
     config:
       extraLabelNs: ["nvidia.com"]
       leaderElection:
-        leaseDuration: 60s
-        renewDeadline: 30s
-        retryPeriod: 5s
+        leaseDuration: 120s
+        renewDeadline: 90s
+        retryPeriod: 10s
     livenessProbe:
       initialDelaySeconds: 15
       timeoutSeconds: 5
