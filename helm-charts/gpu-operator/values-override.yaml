@@ -20,6 +20,19 @@ dcgmExporter:
 nodeStatusExporter:
   enabled: true
 
+# GPU DaemonSets (device-plugin, toolkit, validator, etc.) need to tolerate
+# both the standard nvidia.com/gpu taint and the custom workload=gpu taint on
+# marmoset. Without both, DaemonSets show DESIRED: 0 and no GPU is advertised.
+daemonsets:
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+    - key: workload
+      operator: Equal
+      value: gpu
+      effect: NoSchedule
+
 # Operator controller - no node affinity override (defaults to control-plane
 # via chart's built-in preferredDuringScheduling for control-plane/master nodes)
 operator:
