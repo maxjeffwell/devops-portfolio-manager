@@ -211,3 +211,6 @@ ingress:
     - /api
     - /health
     - /metrics
+
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"

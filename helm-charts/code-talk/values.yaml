@@ -172,3 +172,6 @@ ingress:
 #   --from-literal=DATABASE_URL=<url> \
 #   --from-literal=JWT_SECRET=<secret> \
 #   --from-literal=REDIS_URL=<url>
+
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"

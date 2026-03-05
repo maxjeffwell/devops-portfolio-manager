@@ -108,3 +108,6 @@ readinessProbeServer:
   periodSeconds: 10
   timeoutSeconds: 3
   failureThreshold: 3
+
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"

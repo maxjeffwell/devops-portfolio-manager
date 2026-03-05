@@ -55,3 +55,6 @@ securityContext:
 ingress:
   enabled: true
   host: firebook-k8s.el-jefe.me
+
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"

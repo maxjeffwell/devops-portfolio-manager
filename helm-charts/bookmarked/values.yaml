@@ -87,7 +87,8 @@ autoscaling:
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
 
-nodeSelector: {}
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"
 tolerations: []
 affinity: {}
 

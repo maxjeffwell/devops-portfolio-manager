@@ -210,3 +210,6 @@ mongodb:
     waitQueueTimeoutMs: 5000
     # Timeout (ms) for server selection
     serverSelectionTimeoutMs: 5000
+
+nodeSelector:
+  node-role.kubernetes.io/worker: "true"
