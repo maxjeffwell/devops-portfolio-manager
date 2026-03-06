@@ -87,6 +87,9 @@ charts/*/charts/
 # Serena
 .serena/
 
+# kubectl cache
+.kube/
+
 # Misc
 .cache/
 .parcel-cache/
