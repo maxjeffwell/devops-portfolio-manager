@@ -87,6 +87,10 @@ autoscaling:
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
 
+pdb:
+  enabled: true
+  maxUnavailable: 1
+
 nodeSelector: {}
 tolerations: []
 affinity:

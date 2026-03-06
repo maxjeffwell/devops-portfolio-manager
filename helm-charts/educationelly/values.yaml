@@ -44,6 +44,10 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
+
+pdb:
+  enabled: true
+  maxUnavailable: 1
 env:
   server:
     - name: NODE_ENV

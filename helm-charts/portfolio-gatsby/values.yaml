@@ -37,6 +37,10 @@ readinessProbe:
 autoscaling:
   enabled: false
 
+pdb:
+  enabled: true
+  maxUnavailable: 1
+
 env:
   client: []
 

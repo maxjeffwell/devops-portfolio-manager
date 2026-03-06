@@ -112,6 +112,10 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
+pdb:
+  enabled: true
+  maxUnavailable: 1
+
 nodeSelector: {}
 
 tolerations: []
