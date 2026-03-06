@@ -237,7 +237,7 @@ kube-prometheus-stack:
   # The /livez endpoint returns 503 when informer cache falls behind under API server load
   kube-state-metrics:
     nodeSelector:
-      role: data
+      kubernetes.io/hostname: vmi2951245
     livenessProbe:
       failureThreshold: 10
       periodSeconds: 15
@@ -289,6 +289,22 @@ minio:
     limits:
       cpu: 500m
       memory: 1Gi
+  # Resources for MinIO post-install/post-upgrade hook jobs (bucket creation)
+  # Required by monitoring-quota ResourceQuota
+  makeBucketJob:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
+  makeUserJob:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
   # Auto-create buckets for Loki and Mimir
   buckets:
     - name: loki-chunks
