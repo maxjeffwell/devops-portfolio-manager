@@ -24,6 +24,21 @@ resources:
       cpu: 10m
       memory: 64Mi
 
+livenessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+readinessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+
 autoscaling:
   enabled: false
 

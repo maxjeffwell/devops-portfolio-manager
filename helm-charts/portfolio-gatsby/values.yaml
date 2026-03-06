@@ -27,6 +27,13 @@ resources:
       cpu: 10m
       memory: 64Mi
 
+livenessProbe:
+  httpGet:
+    path: /
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
 readinessProbe:
   tcpSocket:
     port: 80
