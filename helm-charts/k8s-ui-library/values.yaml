@@ -1,3 +1,4 @@
+priorityClassName: portfolio-app
 replicaCount: 1
 
 strategy:

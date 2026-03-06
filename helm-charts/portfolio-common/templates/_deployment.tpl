@@ -41,6 +41,9 @@ spec:
     spec:
       {{- include "portfolio-common.imagePullSecrets" $ | nindent 6 }}
       serviceAccountName: {{ include "portfolio-common.serviceAccountName" $ }}
+      {{- if $.Values.priorityClassName }}
+      priorityClassName: {{ $.Values.priorityClassName }}
+      {{- end }}
       {{- include "portfolio-common.podSecurityContext" $ | nindent 6 }}
       {{- if $.Values.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ $.Values.terminationGracePeriodSeconds }}

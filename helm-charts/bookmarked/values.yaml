@@ -1,3 +1,4 @@
+priorityClassName: portfolio-app
 # Default values for Bookmarked application
 
 replicaCount: 1

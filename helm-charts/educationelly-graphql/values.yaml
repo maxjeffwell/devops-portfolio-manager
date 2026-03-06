@@ -1,3 +1,4 @@
+priorityClassName: portfolio-app
 replicaCount: 1
 
 # Use Recreate strategy to avoid resource pressure during deploys

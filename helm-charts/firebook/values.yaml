@@ -1,3 +1,4 @@
+priorityClassName: portfolio-app
 # Firebook - Frontend-only application (Firebase backend)
 replicaCount: 1
 
