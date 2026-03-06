@@ -216,6 +216,10 @@ mongodb:
     # Timeout (ms) for server selection
     serverSelectionTimeoutMs: 5000
 
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+
 nodeSelector: {}
 
 affinity:

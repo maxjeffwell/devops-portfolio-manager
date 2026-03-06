@@ -89,6 +89,17 @@ spec:
         resources:
           {{- toYaml $componentResources | nindent 10 }}
         {{- end }}
+      {{- if $.Values.topologySpreadConstraints }}
+      {{- if $.Values.topologySpreadConstraints.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ $.Values.topologySpreadConstraints.maxSkew | default 1 }}
+          topologyKey: {{ $.Values.topologySpreadConstraints.topologyKey | default "kubernetes.io/hostname" }}
+          whenUnsatisfiable: {{ $.Values.topologySpreadConstraints.whenUnsatisfiable | default "ScheduleAnyway" }}
+          labelSelector:
+            matchLabels:
+              app: {{ include "portfolio-common.name" $ }}-{{ $component }}
+      {{- end }}
+      {{- end }}
       {{- include "portfolio-common.nodeSelector" $ | nindent 6 }}
       {{- include "portfolio-common.affinity" $ | nindent 6 }}
       {{- include "portfolio-common.tolerations" $ | nindent 6 }}

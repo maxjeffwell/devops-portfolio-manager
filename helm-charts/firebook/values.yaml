@@ -56,6 +56,10 @@ ingress:
   enabled: true
   host: firebook-k8s.el-jefe.me
 
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+
 nodeSelector: {}
 
 affinity:
