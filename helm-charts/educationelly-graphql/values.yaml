@@ -212,5 +212,15 @@ mongodb:
     # Timeout (ms) for server selection
     serverSelectionTimeoutMs: 5000
 
-nodeSelector:
-  node-role.kubernetes.io/worker: "true"
+nodeSelector: {}
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - "true"

@@ -145,6 +145,15 @@ readinessProbeServer:
 # Pod anti-affinity to spread replicas across nodes
 # This improves availability when scaling horizontally
 affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - "true"
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
       - weight: 100
@@ -173,5 +182,4 @@ ingress:
 #   --from-literal=JWT_SECRET=<secret> \
 #   --from-literal=REDIS_URL=<url>
 
-nodeSelector:
-  node-role.kubernetes.io/worker: "true"
+nodeSelector: {}

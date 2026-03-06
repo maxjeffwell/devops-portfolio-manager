@@ -87,10 +87,18 @@ autoscaling:
   maxReplicas: 2
   targetCPUUtilizationPercentage: 80
 
-nodeSelector:
-  node-role.kubernetes.io/worker: "true"
+nodeSelector: {}
 tolerations: []
-affinity: {}
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - "true"
 
 # Environment variables
 env:

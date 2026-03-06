@@ -42,5 +42,15 @@ ingress:
   enabled: true
   host: showcase.el-jefe.me
 
-nodeSelector:
-  node-role.kubernetes.io/worker: "true"
+nodeSelector: {}
+
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: In
+              values:
+                - "true"
