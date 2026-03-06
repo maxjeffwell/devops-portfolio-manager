@@ -1,0 +1,46 @@
+{{- if .Values.mimirMonolithic.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir-monolithic
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+spec:
+  type: ClusterIP
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: http-metrics
+      protocol: TCP
+    - name: grpc
+      port: 9095
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mimir-monolithic-headless
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http-metrics
+      port: 8080
+      targetPort: http-metrics
+      protocol: TCP
+    - name: grpc
+      port: 9095
+      targetPort: grpc
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+{{- end }}

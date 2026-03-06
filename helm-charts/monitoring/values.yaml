@@ -84,7 +84,7 @@ kube-prometheus-stack:
           memory: 4Gi
       # Remote write to Mimir for long-term metric storage
       remoteWrite:
-        - url: http://prometheus-mimir-gateway.monitoring.svc.cluster.local/api/v1/push
+        - url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/api/v1/push
           name: mimir
           remoteTimeout: 30s
           writeRelabelConfigs:
@@ -131,7 +131,7 @@ kube-prometheus-stack:
         type: prometheus
         uid: mimir
         access: proxy
-        url: http://prometheus-mimir-gateway.monitoring.svc.cluster.local/prometheus
+        url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus
         editable: true
 
     # Resource limits
@@ -435,165 +435,46 @@ alloy:
       cpu: 200m
       memory: 256Mi
 
-# Mimir - Long-term metric storage
+# Mimir Distributed - DISABLED (replaced by monolithic deployment below)
 mimir-distributed:
-  rollout_operator:
-    enabled: false
+  enabled: false
+
+# Mimir Monolithic - Long-term metric storage (single binary, all components in one pod)
+# When ready to switch to Garage on NAS, just update storage.s3.endpoint
+mimirMonolithic:
   enabled: true
-  nameOverride: ""
-  # Inject MinIO credentials into all Mimir pods for S3 config expansion
-  global:
-    extraEnvFrom:
-      - secretRef:
-          name: minio-credentials
-  mimir:
-    structuredConfig:
-      common:
-        storage:
-          backend: s3
-          s3:
-            endpoint: prometheus-minio.monitoring.svc.cluster.local:9000
-            access_key_id: ${rootUser}
-            secret_access_key: ${rootPassword}
-            insecure: true
-      blocks_storage:
-        s3:
-          bucket_name: mimir-blocks
-        tsdb:
-          dir: /data/tsdb
-        bucket_store:
-          sync_dir: /data/tsdb-sync
-      ruler_storage:
-        s3:
-          bucket_name: mimir-ruler
-      alertmanager_storage:
-        s3:
-          bucket_name: mimir-alertmanager
-      compactor:
-        data_dir: /data/compactor
-        compaction_interval: 30m
-      ingester:
-        ring:
-          replication_factor: 1
-      store_gateway:
-        sharding_ring:
-          replication_factor: 1
-      alertmanager:
-        sharding_ring:
-          replication_factor: 1
-      limits:
-        # Single-tenant setup: generous limits to avoid rate limiting
-        max_global_series_per_user: 500000
-        ingestion_rate: 100000
-        ingestion_burst_size: 2000000
-        compactor_blocks_retention_period: 2160h
-  # Single-node distributed deployment (1 replica each for essential components)
-  ingester:
-    replicas: 1
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    persistentVolume:
-      storageClass: local-path
-      size: 10Gi
-    resources:
-      requests:
-        cpu: 100m
-        memory: 512Mi
-      limits:
-        cpu: 1000m
-        memory: 2Gi
-    zoneAwareReplication:
-      enabled: false
-  distributor:
-    replicas: 1
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        cpu: 500m
-        memory: 2Gi
-  querier:
-    replicas: 1
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    resources:
-      requests:
-        cpu: 50m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-  query_frontend:
-    replicas: 1
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        cpu: 200m
-        memory: 256Mi
-  compactor:
-    replicas: 1
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    persistentVolume:
-      storageClass: local-path
-      size: 10Gi
-    resources:
-      requests:
-        cpu: 50m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-  store_gateway:
-    replicas: 1
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    persistentVolume:
-      storageClass: local-path
-      size: 10Gi
-    resources:
-      requests:
-        cpu: 50m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
-    zoneAwareReplication:
-      enabled: false
-  # Non-essential components disabled for single-node
-  query_scheduler:
-    replicas: 0
-  ruler:
-    replicas: 0
-  alertmanager:
-    replicas: 0
-  overrides_exporter:
-    replicas: 0
-  # Align Kafka message.max.bytes with Mimir producer expectation (~16MB)
-  kafka:
-    extraEnv:
-      - name: KAFKA_MESSAGE_MAX_BYTES
-        value: "16777216"
-      - name: KAFKA_REPLICA_FETCH_MAX_BYTES
-        value: "16777216"
-    nodeSelector:
-      kubernetes.io/hostname: vmi2951245
-    podAnnotations:
-      backup.velero.io/backup-volumes-excludes: kafka-data
-    resources:
-      requests:
-        cpu: 200m
-        memory: 384Mi
-      limits:
-        cpu: "1"
-        memory: 1Gi
-  # Disable Mimir's built-in MinIO sub-chart (using shared MinIO)
-  minio:
-    enabled: false
+  image:
+    repository: grafana/mimir
+    tag: "3.0.1"
+  priorityClassName: monitoring
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  # Combined resources for all Mimir components in a single process
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 4Gi
+  persistence:
+    storageClass: local-path
+    size: 20Gi
+  storage:
+    credentialsSecret: minio-credentials
+    s3:
+      endpoint: prometheus-minio.monitoring.svc.cluster.local:9000
+      insecure: true
+    buckets:
+      blocks: mimir-blocks
+      ruler: mimir-ruler
+      alertmanager: mimir-alertmanager
+  config:
+    compactor:
+      compactionInterval: 30m
+    limits:
+      maxGlobalSeriesPerUser: 500000
+      ingestionRate: 100000
+      ingestionBurstSize: 2000000
+      compactorBlocksRetentionPeriod: 2160h
+  serviceMonitor:
+    enabled: true

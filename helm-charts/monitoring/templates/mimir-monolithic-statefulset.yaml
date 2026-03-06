@@ -1,0 +1,86 @@
+{{- if .Values.mimirMonolithic.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mimir-monolithic
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+spec:
+  serviceName: mimir-monolithic-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mimir
+      app.kubernetes.io/component: monolithic
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mimir
+        app.kubernetes.io/component: monolithic
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/mimir-monolithic-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.mimirMonolithic.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.mimirMonolithic.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: mimir
+          image: "{{ .Values.mimirMonolithic.image.repository }}:{{ .Values.mimirMonolithic.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/mimir/mimir.yaml
+            - -config.expand-env=true
+          ports:
+            - name: http-metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 9095
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ .Values.mimirMonolithic.storage.credentialsSecret }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.mimirMonolithic.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/mimir
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: mimir-monolithic-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.mimirMonolithic.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.mimirMonolithic.persistence.size }}
+{{- end }}

@@ -1,0 +1,68 @@
+{{- if .Values.mimirMonolithic.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-monolithic-config
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+data:
+  mimir.yaml: |
+    target: all
+    multitenancy_enabled: false
+
+    server:
+      http_listen_port: 8080
+      grpc_listen_port: 9095
+      log_level: warn
+
+    common:
+      storage:
+        backend: s3
+        s3:
+          endpoint: {{ .Values.mimirMonolithic.storage.s3.endpoint }}
+          access_key_id: ${rootUser}
+          secret_access_key: ${rootPassword}
+          insecure: {{ .Values.mimirMonolithic.storage.s3.insecure }}
+
+    blocks_storage:
+      s3:
+        bucket_name: {{ .Values.mimirMonolithic.storage.buckets.blocks }}
+      tsdb:
+        dir: /data/tsdb
+      bucket_store:
+        sync_dir: /data/tsdb-sync
+
+    ruler_storage:
+      s3:
+        bucket_name: {{ .Values.mimirMonolithic.storage.buckets.ruler }}
+
+    alertmanager_storage:
+      s3:
+        bucket_name: {{ .Values.mimirMonolithic.storage.buckets.alertmanager }}
+
+    compactor:
+      data_dir: /data/compactor
+      compaction_interval: {{ .Values.mimirMonolithic.config.compactor.compactionInterval }}
+
+    ingester:
+      ring:
+        replication_factor: 1
+
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+
+    alertmanager:
+      sharding_ring:
+        replication_factor: 1
+
+    limits:
+      max_global_series_per_user: {{ .Values.mimirMonolithic.config.limits.maxGlobalSeriesPerUser }}
+      ingestion_rate: {{ .Values.mimirMonolithic.config.limits.ingestionRate }}
+      ingestion_burst_size: {{ .Values.mimirMonolithic.config.limits.ingestionBurstSize | int }}
+      compactor_blocks_retention_period: {{ .Values.mimirMonolithic.config.limits.compactorBlocksRetentionPeriod }}
+
+    ingest_storage:
+      enabled: false
+{{- end }}

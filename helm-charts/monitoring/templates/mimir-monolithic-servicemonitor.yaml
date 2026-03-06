@@ -1,0 +1,17 @@
+{{- if and .Values.mimirMonolithic.enabled .Values.mimirMonolithic.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mimir-monolithic
+  labels:
+    app.kubernetes.io/name: mimir
+    app.kubernetes.io/component: monolithic
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mimir
+      app.kubernetes.io/component: monolithic
+  endpoints:
+    - port: http-metrics
+      interval: 30s
+{{- end }}
