@@ -9,8 +9,8 @@
 #
 # Leader election changes:
 #   Previous: --leader-elect (defaults: renew=10s, lease=renew+5s=15s)
-#   New:      -leader-lease-renew-deadline=60s (lease=65s)
-#   Note: 30s was insufficient — two consecutive 15s API timeouts exhaust the window
+#   New:      -leader-lease-duration=120s -leader-lease-renew-deadline=90s
+#   Note: 60s renew was still marginal; 120s/90s matches cert-manager/strimzi pattern
 #
 # NOTE: This patch will be overwritten by the next helm upgrade.
 # Re-run this script after every `helm upgrade gpu-operator`.
@@ -51,7 +51,8 @@ kubectl patch deployment gpu-operator -n gpu-operator --type=json -p='[
     "path": "/spec/template/spec/containers/0/args",
     "value": [
       "--leader-elect",
-      "-leader-lease-renew-deadline=60s",
+      "-leader-lease-duration=120s",
+      "-leader-lease-renew-deadline=90s",
       "--zap-time-encoding=epoch",
       "--zap-log-level=info"
     ]
