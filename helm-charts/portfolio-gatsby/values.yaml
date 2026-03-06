@@ -22,7 +22,6 @@ service:
 resources:
   client:
     limits:
-      cpu: 100m
       memory: 128Mi
     requests:
       cpu: 10m

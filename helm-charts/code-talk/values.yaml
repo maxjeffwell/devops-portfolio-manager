@@ -36,14 +36,12 @@ service:
 resources:
   server:
     limits:
-      cpu: 500m
       memory: 512Mi
     requests:
       cpu: 100m
       memory: 256Mi
   client:
     limits:
-      cpu: 100m
       memory: 128Mi
     requests:
       cpu: 10m
@@ -141,6 +139,20 @@ readinessProbeServer:
   periodSeconds: 5
   timeoutSeconds: 3
   failureThreshold: 3
+livenessProbeClient:
+  httpGet:
+    path: /
+    port: 5000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+readinessProbeClient:
+  httpGet:
+    path: /
+    port: 5000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
 
 # Pod anti-affinity to spread replicas across nodes
 # This improves availability when scaling horizontally
