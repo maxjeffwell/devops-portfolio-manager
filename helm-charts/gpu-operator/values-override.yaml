@@ -77,9 +77,9 @@ node-feature-discovery:
       requests:
         cpu: 100m
         memory: 128Mi
-  # NFD worker - fix aggressive probe timeouts causing 383+ restarts on control-plane node
-  # Default: timeoutSeconds=1, failureThreshold=3 (liveness)
-  # With control-plane CPU contention, /healthz regularly times out within 1s
+  # NFD worker - fix aggressive probe timeouts causing restarts on all nodes
+  # Root cause: health server at :8080 starts slowly → "connection refused"
+  # before liveness kicks in. startupProbe gates liveness until server is ready.
   worker:
     tolerations:
       - key: node-role.kubernetes.io/master
@@ -95,13 +95,20 @@ node-feature-discovery:
         operator: Equal
         value: gpu
         effect: NoSchedule
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: http
+      periodSeconds: 10
+      failureThreshold: 30
+      timeoutSeconds: 5
     livenessProbe:
-      initialDelaySeconds: 10
+      initialDelaySeconds: 0
       timeoutSeconds: 5
       periodSeconds: 10
       failureThreshold: 5
     readinessProbe:
-      initialDelaySeconds: 5
+      initialDelaySeconds: 0
       timeoutSeconds: 5
       periodSeconds: 10
       failureThreshold: 10

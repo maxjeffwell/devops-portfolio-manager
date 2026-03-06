@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-export KUBECONFIG="${KUBECONFIG:-/etc/rancher/k3s/k3s.yaml}"
+export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
 
 echo "Patching gpu-operator deployment probes..."
 kubectl patch deployment gpu-operator -n gpu-operator --type=json -p='[
