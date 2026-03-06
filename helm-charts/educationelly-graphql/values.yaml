@@ -110,6 +110,7 @@ startupProbeServer:
     port: 8000
   failureThreshold: 30
   periodSeconds: 5
+  timeoutSeconds: 5
   # 30 * 5s = 150s max startup time before pod is killed
 
 livenessProbe:
