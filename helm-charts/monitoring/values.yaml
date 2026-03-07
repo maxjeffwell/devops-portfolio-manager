@@ -82,6 +82,23 @@ kube-prometheus-stack:
         limits:
           cpu: 1000m
           memory: 4Gi
+      # Config-reloader sidecar and init container resources (required by monitoring-quota)
+      containers:
+        - name: config-reloader
+          resources:
+            requests:
+              cpu: 10m
+              memory: 25Mi
+            limits:
+              memory: 50Mi
+      initContainers:
+        - name: init-config-reloader
+          resources:
+            requests:
+              cpu: 10m
+              memory: 25Mi
+            limits:
+              memory: 50Mi
       # Remote write to Mimir for long-term metric storage
       remoteWrite:
         - url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/api/v1/push
@@ -142,6 +159,21 @@ kube-prometheus-stack:
       limits:
         cpu: 500m
         memory: 512Mi
+
+    # Grafana sidecar resources (required by monitoring-quota)
+    sidecar:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
+      datasources:
+        enabled: true
+        defaultDatasourceEnabled: false
+
+    # Priority class
+    priorityClassName: monitoring
 
     # Default dashboards
     defaultDashboardsEnabled: true
@@ -220,6 +252,21 @@ kube-prometheus-stack:
         limits:
           cpu: 200m
           memory: 256Mi
+      containers:
+        - name: config-reloader
+          resources:
+            requests:
+              cpu: 10m
+              memory: 25Mi
+            limits:
+              memory: 50Mi
+        - name: init-config-reloader
+          resources:
+            requests:
+              cpu: 10m
+              memory: 25Mi
+            limits:
+              memory: 50Mi
 
     # Disable kube-prometheus-stack's built-in ingress (we use a custom Traefik ingress in templates/ingress.yaml)
     ingress:
@@ -228,6 +275,13 @@ kube-prometheus-stack:
   # Node Exporter - collect node-level metrics
   nodeExporter:
     enabled: true
+  prometheus-node-exporter:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
 
   # Kube State Metrics - collect Kubernetes object metrics
   kubeStateMetrics:
@@ -420,6 +474,30 @@ loki:
     replicas: 0
   write:
     replicas: 0
+  # Loki sidecar (rules watcher) resources
+  sidecar:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+  # Loki canary resources (required by monitoring-quota)
+  lokiCanary:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 32Mi
+  # Memcached exporter sidecar resources
+  memcachedExporter:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 32Mi
   monitoring:
     selfMonitoring:
       enabled: false
@@ -443,21 +521,28 @@ alloy:
         - name: geoip-db
           mountPath: /usr/share/GeoIP
           readOnly: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
+  configReloader:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 25Mi
+      limits:
+        memory: 50Mi
   controller:
     type: daemonset
+    priorityClassName: monitoring
     volumes:
       extra:
         - name: geoip-db
           hostPath:
             path: /usr/share/GeoIP
             type: Directory
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
-      memory: 256Mi
 
 # Mimir Distributed - DISABLED (replaced by monolithic deployment below)
 mimir-distributed:
