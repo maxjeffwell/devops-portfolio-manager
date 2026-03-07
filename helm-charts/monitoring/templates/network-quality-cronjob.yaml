@@ -1,0 +1,40 @@
+{{- if .Values.networkQuality.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: network-quality-monitor
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.networkQuality.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: vmi2951245
+          containers:
+            - name: network-quality
+              image: alpine:3.21
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  apk add --no-cache curl traceroute >/dev/null 2>&1
+                  TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  echo "{\"timestamp\":\"$TIMESTAMP\",\"type\":\"traceroute\",\"target\":\"{{ .Values.networkQuality.ddnsHostname }}\"}"
+                  traceroute -m 20 {{ .Values.networkQuality.ddnsHostname }} 2>&1
+                  echo "=== LATENCY ==="
+                  for i in 1 2 3 4 5; do
+                    LATENCY=$(curl -so /dev/null -w "%{time_total}" --connect-timeout 5 "http://{{ .Values.networkQuality.ddnsHostname }}" 2>/dev/null || echo "0")
+                    echo "{\"probe\":$i,\"latency_s\":$LATENCY,\"target\":\"{{ .Values.networkQuality.ddnsHostname }}\"}"
+                  done
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+{{- end }}

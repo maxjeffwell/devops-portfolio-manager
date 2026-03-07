@@ -1,0 +1,35 @@
+{{- if .Values.perimeterAudit.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nmap-perimeter-audit
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.perimeterAudit.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: vmi2951245
+          containers:
+            - name: nmap
+              image: instrumentisto/nmap:7.95
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+                  RESULT=$(nmap -Pn -sT --top-ports 1000 {{ .Values.perimeterAudit.ddnsHostname }} -oG -)
+                  OPEN_PORTS=$(echo "$RESULT" | grep "Ports:" | grep -oE '[0-9]+/open' || echo "none")
+                  echo "{\"timestamp\":\"$TIMESTAMP\",\"target\":\"{{ .Values.perimeterAudit.ddnsHostname }}\",\"open_ports\":\"$OPEN_PORTS\",\"raw\":\"$(echo $RESULT | tr '\n' ' ')\"}"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 128Mi
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+{{- end }}

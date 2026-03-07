@@ -64,11 +64,62 @@ data:
       forward_to = [loki.write.default.receiver]
     }
 
-    // Push logs to Loki
+    // Push logs to Loki on ASUSTOR (centralized log aggregation over WireGuard)
     loki.write "default" {
       endpoint {
-        url = "http://prometheus-loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
+        url = "http://10.0.0.4:3100/loki/api/v1/push"
       }
+    }
+
+    // --- Mimir Remote Write (metrics sink for all scrapers) ---
+    prometheus.remote_write "mimir" {
+      endpoint {
+        url = "http://mimir-monolithic.monitoring.svc.cluster.local:8080/api/v1/push"
+      }
+    }
+
+    // --- Host Metrics (unix exporter) ---
+    prometheus.exporter.unix "node" {
+      set_collectors = ["cpu", "diskstats", "filesystem", "loadavg", "meminfo", "netdev", "uname"]
+    }
+
+    prometheus.scrape "node_metrics" {
+      targets         = prometheus.exporter.unix.node.targets
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "30s"
+    }
+
+    // --- Systemd Journal Collection ---
+    loki.source.journal "systemd" {
+      forward_to = [loki.write.default.receiver]
+      labels     = { job = "systemd-journal" }
+    }
+
+    // --- Blackbox Probes (VPS -> Home Network) ---
+    prometheus.exporter.blackbox "home_network" {
+      config = "{ modules: { icmp_probe: { prober: icmp, timeout: 5s }, http_2xx: { prober: http, timeout: 10s, http: { valid_http_versions: ['HTTP/1.1', 'HTTP/2.0'], valid_status_codes: [200, 301, 302] } }, tcp_connect: { prober: tcp, timeout: 5s } } }"
+
+      target {
+        name    = "home_icmp"
+        address = "maxjeffwell@ddns.net"
+        module  = "icmp_probe"
+      }
+      target {
+        name    = "embeddings_http"
+        address = "https://embeddings.el-jefe.me"
+        module  = "http_2xx"
+      }
+      target {
+        name    = "eljefe_http"
+        address = "https://el-jefe.me"
+        module  = "http_2xx"
+      }
+    }
+
+    prometheus.scrape "blackbox" {
+      targets         = prometheus.exporter.blackbox.home_network.targets
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "60s"
     }
 
     // --- Traefik Access Log Collection ---
@@ -89,13 +140,6 @@ data:
         expression = "^(?P<client_ip>[\\d.]+) - - \\[(?P<timestamp>[^\\]]+)\\] \"(?P<method>\\S+) (?P<path>\\S+) [^\"]+\" (?P<status>\\d+) \\d+ \"(?P<referer>[^\"]*)\" \"(?P<user_agent>[^\"]*)\" \\d+ \"(?P<router>[^\"]*)\" \"[^\"]*\" (?P<duration>\\S+)"
       }
 
-      // GeoIP enrichment from MaxMind database
-      stage.geoip {
-        db      = "/usr/share/GeoIP/GeoLite2-City.mmdb"
-        source  = "client_ip"
-        db_type = "city"
-      }
-
       // Promote to labels for Grafana queries
       stage.labels {
         values = {
@@ -105,8 +149,6 @@ data:
           referer    = "",
           user_agent = "",
           router     = "",
-          geoip_country_name = "",
-          geoip_city_name    = "",
         }
       }
 

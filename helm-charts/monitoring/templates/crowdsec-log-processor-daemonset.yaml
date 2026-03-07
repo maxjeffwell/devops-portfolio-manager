@@ -1,0 +1,96 @@
+{{- if .Values.crowdsec.logProcessor.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: crowdsec-log-processor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-log-processor
+spec:
+  selector:
+    matchLabels:
+      app: crowdsec-log-processor
+  template:
+    metadata:
+      labels:
+        app: crowdsec-log-processor
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - vmi2951245
+                - vmi3115606
+      containers:
+      - name: crowdsec
+        image: "{{ .Values.crowdsec.logProcessor.image.repository }}:{{ .Values.crowdsec.logProcessor.image.tag }}"
+        ports:
+        - containerPort: 6060
+          name: metrics
+          protocol: TCP
+        env:
+        - name: DISABLE_LOCAL_API
+          value: "true"
+        - name: AGENT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-log-processor-credentials
+              key: username
+        - name: AGENT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-log-processor-credentials
+              key: password
+        - name: LOCAL_API_URL
+          value: "http://10.0.0.4:8080"
+        - name: COLLECTIONS
+          value: "crowdsecurity/traefik"
+        - name: DISABLE_ONLINE_API
+          value: "true"
+        volumeMounts:
+        - name: acquis-config
+          mountPath: /etc/crowdsec/acquis.yaml
+          subPath: acquis.yaml
+        - name: traefik-logs
+          mountPath: /var/log/traefik
+          readOnly: true
+        resources:
+          requests:
+            cpu: {{ .Values.crowdsec.logProcessor.resources.requests.cpu }}
+            memory: {{ .Values.crowdsec.logProcessor.resources.requests.memory }}
+          limits:
+            memory: {{ .Values.crowdsec.logProcessor.resources.limits.memory }}
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 18
+      volumes:
+      - name: acquis-config
+        configMap:
+          name: crowdsec-log-processor-config
+      - name: traefik-logs
+        hostPath:
+          path: /var/log/traefik
+          type: Directory
+{{- end }}

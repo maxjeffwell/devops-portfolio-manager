@@ -142,7 +142,7 @@ kube-prometheus-stack:
         type: loki
         uid: loki
         access: proxy
-        url: http://prometheus-loki.monitoring.svc.cluster.local:3100
+        url: http://10.0.0.4:3100
         editable: true
       - name: Mimir
         type: prometheus
@@ -380,9 +380,9 @@ minio:
     serviceMonitor:
       enabled: true
 
-# Loki - Log aggregation
+# Loki - DISABLED (replaced by ASUSTOR Loki with Garage S3 backend)
 loki:
-  enabled: true
+  enabled: false
   deploymentMode: SingleBinary
   loki:
     auth_enabled: false
@@ -518,8 +518,8 @@ alloy:
       varlog: true
       dockercontainers: true
       extra:
-        - name: geoip-db
-          mountPath: /usr/share/GeoIP
+        - name: journal
+          mountPath: /var/log/journal
           readOnly: true
     resources:
       requests:
@@ -537,12 +537,44 @@ alloy:
   controller:
     type: daemonset
     priorityClassName: monitoring
+    tolerations:
+      - key: workload
+        value: gpu
+        effect: NoSchedule
     volumes:
       extra:
-        - name: geoip-db
+        - name: journal
           hostPath:
-            path: /usr/share/GeoIP
-            type: Directory
+            path: /var/log/journal
+            type: DirectoryOrCreate
+
+# Perimeter Audit - nmap scan of home network from VPS
+perimeterAudit:
+  enabled: true
+  schedule: "0 */6 * * *"
+  ddnsHostname: "maxjeffwell.ddns.net"
+
+# Network Quality - speedtest + traceroute to home network
+networkQuality:
+  enabled: true
+  schedule: "*/30 * * * *"
+  ddnsHostname: "maxjeffwell.ddns.net"
+
+# CrowdSec Log Processor - parses Traefik access logs and sends alerts to LAPI
+crowdsec:
+  logProcessor:
+    enabled: true
+    image:
+      repository: crowdsecurity/crowdsec
+      tag: "v1.6.8"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+    serviceMonitor:
+      enabled: true
 
 # Mimir Distributed - DISABLED (replaced by monolithic deployment below)
 mimir-distributed:

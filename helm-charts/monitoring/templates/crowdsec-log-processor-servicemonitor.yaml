@@ -1,0 +1,34 @@
+{{- if and .Values.crowdsec.logProcessor.enabled .Values.crowdsec.logProcessor.serviceMonitor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: crowdsec-log-processor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-log-processor
+spec:
+  clusterIP: None
+  selector:
+    app: crowdsec-log-processor
+  ports:
+  - name: metrics
+    port: 6060
+    targetPort: metrics
+    protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: crowdsec-log-processor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-log-processor
+spec:
+  selector:
+    matchLabels:
+      app: crowdsec-log-processor
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+{{- end }}
