@@ -28,7 +28,14 @@ spec:
             - -c
             - |
               set -e
-              apk add --no-cache aws-cli > /dev/null 2>&1
+              # Install aws-cli with retry and lock cleanup for restartPolicy races
+              for i in 1 2 3; do
+                rm -f /lib/apk/db/lock 2>/dev/null
+                apk add --no-cache aws-cli > /dev/null 2>&1 && break
+                echo "apk add attempt $i failed, retrying..."
+                sleep 2
+              done
+              command -v aws > /dev/null || { echo "ERROR: aws-cli not installed"; exit 1; }
               TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 
               echo "[$(date)] Starting PostgreSQL backup..."
