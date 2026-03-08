@@ -151,6 +151,25 @@ kube-prometheus-stack:
         url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus
         editable: true
 
+    # Liveness probe tuning — give Grafana time to load dashboards/plugins at startup
+    livenessProbe:
+      httpGet:
+        path: /api/health
+        port: 3000
+      initialDelaySeconds: 120
+      timeoutSeconds: 30
+      failureThreshold: 10
+      periodSeconds: 10
+
+    readinessProbe:
+      httpGet:
+        path: /api/health
+        port: 3000
+      initialDelaySeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      periodSeconds: 10
+
     # Resource limits
     resources:
       requests:
