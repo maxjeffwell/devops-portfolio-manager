@@ -120,6 +120,9 @@ data:
       targets         = prometheus.exporter.blackbox.home_network.targets
       forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "60s"
+      clustering {
+        enabled = true
+      }
     }
 
     // --- Traefik Access Log Collection ---

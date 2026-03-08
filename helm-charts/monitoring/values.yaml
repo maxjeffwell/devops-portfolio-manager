@@ -356,9 +356,9 @@ minio:
     resources:
       requests:
         cpu: 10m
-        memory: 32Mi
-      limits:
         memory: 64Mi
+      limits:
+        memory: 128Mi
   # Auto-create buckets for Loki and Mimir
   buckets:
     - name: loki-chunks
@@ -510,6 +510,8 @@ loki:
 alloy:
   enabled: true
   alloy:
+    clustering:
+      enabled: true
     configMap:
       create: false
       name: alloy-config
