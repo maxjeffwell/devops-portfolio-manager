@@ -151,14 +151,15 @@ kube-prometheus-stack:
         url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus
         editable: true
 
-    # Liveness probe tuning — give Grafana time to load dashboards/plugins at startup
+    # Liveness probe tuning — Grafana runs ~500 SQLite migrations on every startup
+    # (EmptyDir storage), taking 5-8 minutes. Give it enough time.
     livenessProbe:
       httpGet:
         path: /api/health
         port: 3000
-      initialDelaySeconds: 120
+      initialDelaySeconds: 300
       timeoutSeconds: 30
-      failureThreshold: 10
+      failureThreshold: 15
       periodSeconds: 10
 
     readinessProbe:
