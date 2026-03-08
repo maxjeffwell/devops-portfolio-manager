@@ -241,7 +241,7 @@ env:
 
 # Health check configuration
 # /health returns 503 when MongoDB is disconnected, enabling auto-restart
-startupProbe:
+startupProbeServer:
   httpGet:
     path: /health
     port: 8080
