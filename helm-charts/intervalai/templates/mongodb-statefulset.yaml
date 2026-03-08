@@ -40,20 +40,14 @@ spec:
         resources:
           {{- toYaml .Values.mongodb.resources | nindent 12 }}
         livenessProbe:
-          exec:
-            command:
-              - mongosh
-              - --eval
-              - "db.adminCommand('ping')"
+          tcpSocket:
+            port: 27017
           initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 10
+          timeoutSeconds: 5
         readinessProbe:
-          exec:
-            command:
-              - mongosh
-              - --eval
-              - "db.adminCommand('ping')"
+          tcpSocket:
+            port: 27017
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 5
