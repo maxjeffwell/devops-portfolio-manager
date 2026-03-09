@@ -136,6 +136,12 @@ kube-prometheus-stack:
         serve_from_sub_path: false
 
 
+    # Plugins
+    plugins:
+      - grafana-polystat-panel
+      - yesoreyeram-infinity-datasource 3.7.1
+      - marcusolsson-treemap-panel
+
     # Additional data sources for Loki and Mimir
     additionalDataSources:
       - name: Loki
@@ -150,6 +156,7 @@ kube-prometheus-stack:
         access: proxy
         url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus
         editable: true
+        isDefault: true
 
     # Liveness probe tuning — Grafana runs ~500 SQLite migrations on every startup
     # (EmptyDir storage), taking 5-8 minutes. Give it enough time.
@@ -543,6 +550,11 @@ alloy:
         - name: journal
           mountPath: /var/log/journal
           readOnly: true
+    extraEnv:
+      - name: HOST_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.hostIP
     resources:
       requests:
         cpu: 50m

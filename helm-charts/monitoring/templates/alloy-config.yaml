@@ -125,6 +125,14 @@ data:
       }
     }
 
+    // --- WireGuard Metrics (scraped from node's prometheus_wireguard_exporter) ---
+    prometheus.scrape "wireguard" {
+      targets         = [{ "__address__" = env("HOST_IP") + ":9586" }]
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "30s"
+      job_name        = "wireguard"
+    }
+
     // --- Traefik Access Log Collection ---
     local.file_match "traefik_access_log" {
       path_targets = [{ "__path__" = "/var/log/traefik/access.log" }]
