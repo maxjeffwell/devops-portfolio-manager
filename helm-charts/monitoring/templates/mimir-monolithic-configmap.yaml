@@ -62,7 +62,7 @@ data:
       ingestion_rate: {{ .Values.mimirMonolithic.config.limits.ingestionRate }}
       ingestion_burst_size: {{ .Values.mimirMonolithic.config.limits.ingestionBurstSize | int }}
       compactor_blocks_retention_period: {{ .Values.mimirMonolithic.config.limits.compactorBlocksRetentionPeriod }}
-      max_exemplars_per_series: {{ .Values.mimirMonolithic.config.limits.maxExemplarsPerSeries }}
+      max_global_exemplars_per_user: {{ .Values.mimirMonolithic.config.limits.maxGlobalExemplarsPerUser }}
 
     ingest_storage:
       enabled: false

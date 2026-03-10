@@ -822,6 +822,6 @@ mimirMonolithic:
       ingestionRate: 100000
       ingestionBurstSize: 2000000
       compactorBlocksRetentionPeriod: 2160h
-      maxExemplarsPerSeries: 100
+      maxGlobalExemplarsPerUser: 100000
   serviceMonitor:
     enabled: true
