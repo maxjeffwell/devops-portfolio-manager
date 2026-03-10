@@ -61,6 +61,8 @@ spec:
       containers:
         - name: garage
           image: "{{ .Values.garage.image.repository }}:{{ .Values.garage.image.tag }}"
+          command: ["/garage"]
+          args: ["server", "-c", "/etc/garage/garage.toml"]
           ports:
             - name: s3-api
               containerPort: 3900
