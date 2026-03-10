@@ -53,7 +53,8 @@ beyla.ebpf "auto" {
     }
   }
   output {
-    traces = [otelcol.processor.batch.tempo.input]
+    traces  = [otelcol.processor.batch.tempo.input]
+    metrics = [prometheus.remote_write.mimir.receiver]
   }
 }
 
