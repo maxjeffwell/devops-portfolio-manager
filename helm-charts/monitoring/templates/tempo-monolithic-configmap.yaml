@@ -13,7 +13,7 @@ data:
 
     server:
       http_listen_port: 3200
-      log_level: warn
+      log_level: info
 
     distributor:
       receivers:
