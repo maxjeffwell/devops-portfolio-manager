@@ -675,6 +675,7 @@ alloy:
         memory: 50Mi
   controller:
     type: daemonset
+    hostPID: true
     priorityClassName: monitoring
     tolerations:
       - key: workload
