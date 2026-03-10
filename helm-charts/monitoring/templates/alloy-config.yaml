@@ -125,6 +125,15 @@ data:
       }
     }
 
+    // --- Garage Metrics (S3-compatible object storage) ---
+    prometheus.scrape "garage" {
+      targets         = [{ "__address__" = "garage.monitoring.svc.cluster.local:3903" }]
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "30s"
+      job_name        = "garage"
+      metrics_path    = "/metrics"
+    }
+
     // --- WireGuard Metrics (scraped from node's prometheus_wireguard_exporter) ---
     prometheus.scrape "wireguard" {
       targets         = [{ "__address__" = env("HOST_IP") + ":9586" }]
