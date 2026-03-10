@@ -75,6 +75,7 @@ data:
     prometheus.remote_write "mimir" {
       endpoint {
         url = "http://mimir-monolithic.monitoring.svc.cluster.local:8080/api/v1/push"
+        send_exemplars = true
       }
     }
 
@@ -198,6 +199,15 @@ data:
       endpoint {
         url = "http://pyroscope.monitoring.svc.cluster.local:4040"
       }
+    }
+
+    // --- Pyroscope SDK Receiver (for app-instrumented profiles) ---
+    pyroscope.receive_http "default" {
+      http {
+        listen_address = "0.0.0.0"
+        listen_port    = 9999
+      }
+      forward_to = [pyroscope.write.endpoint.receiver]
     }
 
     // --- Pyroscope Self-Profiling (pprof scrape) ---

@@ -244,6 +244,12 @@ kube-prometheus-stack:
         url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus
         editable: true
         isDefault: true
+        jsonData:
+          exemplarTraceIdDestinations:
+            - datasourceUid: tempo
+              name: trace_id
+            - datasourceUid: pyroscope
+              name: profile_id
       - name: Tempo
         type: tempo
         uid: tempo
@@ -262,6 +268,11 @@ kube-prometheus-stack:
             enabled: true
           serviceMap:
             datasourceUid: mimir
+          tracesToProfiles:
+            datasourceUid: pyroscope
+            tags:
+              - service.name
+              - job
       - name: Pyroscope
         type: grafana-pyroscope-datasource
         uid: pyroscope
@@ -737,6 +748,10 @@ alloy:
         port: 4318
         targetPort: 4318
         protocol: TCP
+      - name: pyroscope-http
+        port: 9999
+        targetPort: 9999
+        protocol: TCP
 
 # Perimeter Audit - nmap scan of home network from VPS
 perimeterAudit:
@@ -807,5 +822,6 @@ mimirMonolithic:
       ingestionRate: 100000
       ingestionBurstSize: 2000000
       compactorBlocksRetentionPeriod: 2160h
+      maxExemplarsPerSeries: 100
   serviceMonitor:
     enabled: true
