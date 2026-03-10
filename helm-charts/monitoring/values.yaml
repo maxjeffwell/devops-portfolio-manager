@@ -351,9 +351,9 @@ kube-prometheus-stack:
           limits:
             memory: 64Mi
 
-# MinIO - S3-compatible object storage for Loki and Mimir
+# MinIO - DISABLED (replaced by Garage March 2026)
 minio:
-  enabled: true
+  enabled: false
   mode: standalone
   replicas: 1
   existingSecret: minio-credentials
