@@ -1,0 +1,174 @@
+priorityClassName: portfolio-app
+
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  backend:
+    repository: maxjeffwell/lunary-backend
+    tag: latest
+    pullPolicy: Always
+  frontend:
+    repository: maxjeffwell/lunary-frontend
+    tag: latest
+    pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  backend:
+    type: ClusterIP
+    port: 3333
+    targetPort: 3333
+  frontend:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+
+ingress:
+  enabled: true
+
+resources:
+  backend:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  frontend:
+    limits:
+      memory: 384Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+
+pdb:
+  enabled: false
+  maxUnavailable: 1
+
+nodeSelector: {}
+tolerations: []
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - vmi3115606
+
+env:
+  backend:
+    - name: NODE_ENV
+      value: "production"
+    - name: PORT
+      value: "3333"
+    - name: API_URL
+      value: "https://lunary-api.el-jefe.me"
+    - name: APP_URL
+      value: "https://lunary.el-jefe.me"
+    - name: SKIP_EMAIL_VERIFY
+      value: "true"
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: lunary-secrets
+          key: jwt-secret
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: lunary-secrets
+          key: database-url
+  frontend:
+    - name: NODE_ENV
+      value: "production"
+    - name: API_URL
+      value: "https://lunary-api.el-jefe.me"
+
+startupProbeBackend:
+  httpGet:
+    path: /v1/health
+    port: 3333
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 18
+
+livenessProbeBackend:
+  httpGet:
+    path: /v1/health
+    port: 3333
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbeBackend:
+  httpGet:
+    path: /v1/health
+    port: 3333
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+startupProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 12
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+secret:
+  create: false
+
+externalSecrets:
+  enabled: true
+  refreshInterval: 1h
+  secretStoreName: doppler-secret-store
+  secretStoreKind: ClusterSecretStore
+  targetSecretName: lunary-secrets
+  data:
+    - secretKey: jwt-secret
+      remoteKey: LUNARY_JWT_SECRET
+    - secretKey: database-url
+      remoteKey: LUNARY_DATABASE_URL

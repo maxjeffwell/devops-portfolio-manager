@@ -1,0 +1,49 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-frontend
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - lunary.el-jefe.me
+      secretName: lunary-frontend-tls
+  rules:
+    - host: lunary.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-frontend
+                port:
+                  number: {{ .Values.service.frontend.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-backend
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - lunary-api.el-jefe.me
+      secretName: lunary-backend-tls
+  rules:
+    - host: lunary-api.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-backend
+                port:
+                  number: {{ .Values.service.backend.port }}
+{{- end }}

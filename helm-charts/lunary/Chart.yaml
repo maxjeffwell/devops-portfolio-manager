@@ -1,0 +1,18 @@
+apiVersion: v2
+name: lunary
+description: Lunary - Self-hosted LLM observability platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - lunary
+  - llm
+  - observability
+home: https://github.com/maxjeffwell/lunary
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me
+dependencies:
+  - name: portfolio-common
+    version: 1.0.0
+    repository: "file://../portfolio-common"
