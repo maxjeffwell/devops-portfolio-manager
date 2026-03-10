@@ -1,0 +1,92 @@
+{{- if .Values.tempoMonolithic.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: tempo-monolithic
+  labels:
+    app.kubernetes.io/name: tempo
+    app.kubernetes.io/component: monolithic
+spec:
+  serviceName: tempo-monolithic-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: tempo
+      app.kubernetes.io/component: monolithic
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: tempo
+        app.kubernetes.io/component: monolithic
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/tempo-monolithic-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.tempoMonolithic.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.tempoMonolithic.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: tempo
+          image: "{{ .Values.tempoMonolithic.image.repository }}:{{ .Values.tempoMonolithic.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/tempo/tempo.yaml
+            - -config.expand-env=true
+          env:
+            - name: GOMEMLIMIT
+              value: "1800MiB"
+          ports:
+            - name: http-metrics
+              containerPort: 3200
+              protocol: TCP
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ .Values.tempoMonolithic.storage.credentialsSecret }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.tempoMonolithic.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/tempo
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: tempo-monolithic-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.tempoMonolithic.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.tempoMonolithic.persistence.size }}
+{{- end }}
