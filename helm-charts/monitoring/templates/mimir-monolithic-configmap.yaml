@@ -63,6 +63,7 @@ data:
       ingestion_burst_size: {{ .Values.mimirMonolithic.config.limits.ingestionBurstSize | int }}
       compactor_blocks_retention_period: {{ .Values.mimirMonolithic.config.limits.compactorBlocksRetentionPeriod }}
       max_global_exemplars_per_user: {{ .Values.mimirMonolithic.config.limits.maxGlobalExemplarsPerUser }}
+      out_of_order_time_window: {{ .Values.mimirMonolithic.config.limits.outOfOrderTimeWindow }}
 
     ingest_storage:
       enabled: false
