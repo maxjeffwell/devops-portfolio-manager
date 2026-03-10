@@ -224,6 +224,31 @@ data:
       }
     }
 
+    // --- Faro Frontend Observability Receiver ---
+    faro.receiver "default" {
+      server {
+        listen_address = "0.0.0.0"
+        listen_port    = 12347
+        cors_allowed_origins = [
+          "https://bookmarked-k8s.el-jefe.me",
+          "https://el-jefe.me",
+          "https://www.el-jefe.me",
+          "https://educationelly-k8s.el-jefe.me",
+          "https://educationelly-graphql-k8s.el-jefe.me",
+          "https://intervalai-k8s.el-jefe.me",
+          "https://code-talk-k8s.el-jefe.me",
+          "https://firebook-k8s.el-jefe.me",
+          "https://showcase.el-jefe.me",
+          "http://localhost:3000",
+        ]
+        max_allowed_payload_size = "5MiB"
+      }
+      output {
+        logs   = [loki.write.default.receiver]
+        traces = [otelcol.processor.batch.tempo.input]
+      }
+    }
+
     // --- Beyla eBPF Auto-Instrumentation ---
     beyla.ebpf "auto" {
       discovery {

@@ -1,0 +1,31 @@
+{{- if .Values.alloy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: faro-ingress
+  labels:
+    app: monitoring
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/component: faro
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: faro.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-alloy-receivers
+                port:
+                  number: 12347
+  tls:
+    - hosts:
+        - faro.el-jefe.me
+      secretName: faro-tls
+{{- end }}

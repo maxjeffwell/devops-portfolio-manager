@@ -192,6 +192,8 @@ env:
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
+    - name: REACT_APP_FARO_URL
+      value: "https://faro.el-jefe.me/collect"
 
 livenessProbe:
   httpGet:
