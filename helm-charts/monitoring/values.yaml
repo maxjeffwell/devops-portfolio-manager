@@ -258,6 +258,8 @@ kube-prometheus-stack:
         editable: true
         isDefault: false
         jsonData:
+          streamingEnabled:
+            search: false
           tracesToLogs:
             datasourceUid: loki
             filterByTraceID: true

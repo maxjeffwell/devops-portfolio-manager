@@ -1,0 +1,27 @@
+{{- if .Values.alloy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-alloy-receivers
+  labels:
+    app.kubernetes.io/name: alloy
+    app.kubernetes.io/component: receivers
+spec:
+  type: ClusterIP
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: pyroscope-http
+      port: 9999
+      targetPort: 9999
+      protocol: TCP
+  selector:
+    app.kubernetes.io/instance: prometheus
+    app.kubernetes.io/name: alloy
+{{- end }}
