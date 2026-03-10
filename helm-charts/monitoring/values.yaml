@@ -656,6 +656,8 @@ alloy:
           mountPath: /sys/kernel/debug
           readOnly: true
     extraEnv:
+      - name: GOMEMLIMIT
+        value: "900MiB"
       - name: HOST_IP
         valueFrom:
           fieldRef:
