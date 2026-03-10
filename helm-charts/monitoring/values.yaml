@@ -43,6 +43,65 @@ gotifyBridge:
   serviceMonitor:
     enabled: true
 
+# Tempo Monolithic - Distributed tracing (single binary, OTLP receiver + S3 storage)
+# Design: docs/plans/2026-03-10-grafana-tempo-design.md
+tempoMonolithic:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.7.2"
+  priorityClassName: monitoring
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  persistence:
+    storageClass: local-path
+    size: 20Gi
+  storage:
+    credentialsSecret: garage-tempo-credentials
+    s3:
+      endpoint: garage.monitoring.svc.cluster.local:3900
+      bucket: tempo-traces
+      insecure: true
+      region: garage
+  config:
+    retention: 720h
+    ingester:
+      flushCheckPeriod: 30s
+      maxBlockDuration: 30m
+    compactor:
+      compactionWindow: 4h
+    metricsGenerator:
+      remoteWriteUrl: http://mimir-monolithic.monitoring.svc.cluster.local:8080/api/v1/push
+  redis:
+    address: tempo-redis.monitoring.svc.cluster.local:6379
+    cacheMinCompactionLevel: 1
+    cacheMaxBlockAge: 48h
+  serviceMonitor:
+    enabled: true
+
+# Tempo Redis - Bloom filter and index header cache (no persistence, rebuilt from S3)
+tempoRedis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 2Gi
+  maxmemory: 2gb
+  maxmemoryPolicy: allkeys-lru
+
 # Custom Ingress Configuration (separate from kube-prometheus-stack ingress)
 ingress:
   enabled: true
@@ -157,6 +216,23 @@ kube-prometheus-stack:
         url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus
         editable: true
         isDefault: true
+      - name: Tempo
+        type: tempo
+        uid: tempo
+        access: proxy
+        url: http://tempo-monolithic.monitoring.svc.cluster.local:3200
+        editable: true
+        jsonData:
+          tracesToLogs:
+            datasourceUid: loki
+            filterByTraceID: true
+            filterBySpanID: true
+          tracesToMetrics:
+            datasourceUid: mimir
+          nodeGraph:
+            enabled: true
+          serviceMap:
+            datasourceUid: mimir
 
     # Liveness probe tuning — Grafana runs ~500 SQLite migrations on every startup
     # (EmptyDir storage), taking 5-8 minutes. Give it enough time.
@@ -604,6 +680,15 @@ alloy:
           hostPath:
             path: /var/log/journal
             type: DirectoryOrCreate
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
 
 # Perimeter Audit - nmap scan of home network from VPS
 perimeterAudit:
