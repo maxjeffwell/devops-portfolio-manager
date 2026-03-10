@@ -703,6 +703,19 @@ alloy:
         - name: debugfs
           mountPath: /sys/kernel/debug
           readOnly: true
+    extraPorts:
+      - name: otlp-grpc
+        port: 4317
+        targetPort: 4317
+        protocol: TCP
+      - name: otlp-http
+        port: 4318
+        targetPort: 4318
+        protocol: TCP
+      - name: pyroscope-http
+        port: 9999
+        targetPort: 9999
+        protocol: TCP
     extraEnv:
       - name: GOMEMLIMIT
         value: "1800MiB"
