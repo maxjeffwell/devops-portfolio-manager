@@ -222,6 +222,7 @@ kube-prometheus-stack:
         access: proxy
         url: http://tempo-monolithic.monitoring.svc.cluster.local:3200
         editable: true
+        isDefault: false
         jsonData:
           tracesToLogs:
             datasourceUid: loki
