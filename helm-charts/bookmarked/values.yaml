@@ -180,6 +180,15 @@ env:
         secretKeyRef:
           name: bookmarked-secret
           key: JWT_REFRESH_SECRET
+    # OpenTelemetry + Pyroscope SDK
+    - name: NODE_OPTIONS
+      value: "--require ./tracing.cjs"
+    - name: OTEL_SERVICE_NAME
+      value: "bookmarked-server"
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: "http://prometheus-alloy.monitoring.svc.cluster.local:4317"
+    - name: PYROSCOPE_SERVER_ADDRESS
+      value: "http://prometheus-alloy.monitoring.svc.cluster.local:9999"
   client:
     - name: REACT_APP_API_URL
       value: "http://bookmarked-server:8000"
