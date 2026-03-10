@@ -1,0 +1,91 @@
+{{- if .Values.tempoMonolithic.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-monolithic-config
+  labels:
+    app.kubernetes.io/name: tempo
+    app.kubernetes.io/component: monolithic
+data:
+  tempo.yaml: |
+    target: all
+    multitenancy_enabled: false
+
+    server:
+      http_listen_port: 3200
+      log_level: warn
+
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4317"
+            http:
+              endpoint: "0.0.0.0:4318"
+
+    ingester:
+      trace_idle_period: 10s
+      flush_check_period: {{ .Values.tempoMonolithic.config.ingester.flushCheckPeriod }}
+      max_block_duration: {{ .Values.tempoMonolithic.config.ingester.maxBlockDuration }}
+
+    compactor:
+      compaction:
+        compaction_window: {{ .Values.tempoMonolithic.config.compactor.compactionWindow }}
+        block_retention: {{ .Values.tempoMonolithic.config.retention }}
+
+    storage:
+      trace:
+        backend: s3
+        s3:
+          endpoint: {{ .Values.tempoMonolithic.storage.s3.endpoint }}
+          bucket: {{ .Values.tempoMonolithic.storage.s3.bucket }}
+          access_key: ${accessKeyId}
+          secret_key: ${secretAccessKey}
+          insecure: {{ .Values.tempoMonolithic.storage.s3.insecure }}
+          region: {{ .Values.tempoMonolithic.storage.s3.region }}
+        wal:
+          path: /data/wal
+          encoding: snappy
+        block:
+          encoding: zstd
+          bloom_filter_false_positive: 0.01
+        cache: redis
+        redis:
+          endpoint: {{ .Values.tempoMonolithic.redis.address }}
+          cache_min_compaction_level: {{ .Values.tempoMonolithic.redis.cacheMinCompactionLevel }}
+          cache_max_block_age: {{ .Values.tempoMonolithic.redis.cacheMaxBlockAge }}
+        dedicated_columns:
+          - scope: resource
+            name: service.name
+          - scope: span
+            name: http.status_code
+          - scope: span
+            name: http.route
+
+    metrics_generator:
+      registry:
+        external_labels:
+          source: tempo
+      storage:
+        path: /data/generator/wal
+        remote_write:
+          - url: {{ .Values.tempoMonolithic.config.metricsGenerator.remoteWriteUrl }}
+      processor:
+        service_graphs:
+          dimensions:
+            - service.namespace
+        span_metrics:
+          dimensions:
+            - service.namespace
+            - http.method
+            - http.status_code
+          enable_target_info: true
+
+    overrides:
+      defaults:
+        metrics_generator:
+          processors:
+            - service-graphs
+            - span-metrics
+{{- end }}
