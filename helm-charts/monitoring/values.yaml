@@ -102,6 +102,34 @@ tempoRedis:
   maxmemory: 2gb
   maxmemoryPolicy: allkeys-lru
 
+# Pyroscope - Continuous profiling (monolithic mode, Garage S3 backend)
+pyroscope:
+  enabled: true
+  image:
+    repository: grafana/pyroscope
+    tag: "1.18.1"
+  priorityClassName: monitoring
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+  persistence:
+    storageClass: local-path
+    size: 20Gi
+  storage:
+    credentialsSecret: garage-pyroscope-credentials
+    s3:
+      endpoint: garage.monitoring.svc.cluster.local:3900
+      bucket: pyroscope-profiles
+      insecure: true
+      region: garage
+  serviceMonitor:
+    enabled: true
+
 # Custom Ingress Configuration (separate from kube-prometheus-stack ingress)
 ingress:
   enabled: true
@@ -234,6 +262,13 @@ kube-prometheus-stack:
             enabled: true
           serviceMap:
             datasourceUid: mimir
+      - name: Pyroscope
+        type: grafana-pyroscope-datasource
+        uid: pyroscope
+        access: proxy
+        url: http://pyroscope.monitoring.svc.cluster.local:4040
+        editable: true
+        isDefault: false
 
     # Liveness probe tuning — Grafana runs ~500 SQLite migrations on every startup
     # (EmptyDir storage), taking 5-8 minutes. Give it enough time.
