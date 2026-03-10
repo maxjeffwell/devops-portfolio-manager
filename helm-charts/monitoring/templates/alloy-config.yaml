@@ -190,8 +190,7 @@ data:
         }
       }
       output {
-        traces  = [otelcol.processor.batch.tempo.input]
-        metrics = [prometheus.remote_write.mimir.receiver]
+        traces = [otelcol.processor.batch.tempo.input]
       }
     }
 
