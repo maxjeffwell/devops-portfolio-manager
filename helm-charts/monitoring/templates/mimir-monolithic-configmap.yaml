@@ -21,8 +21,8 @@ data:
         backend: s3
         s3:
           endpoint: {{ .Values.mimirMonolithic.storage.s3.endpoint }}
-          access_key_id: ${rootUser}
-          secret_access_key: ${rootPassword}
+          access_key_id: ${accessKeyId}
+          secret_access_key: ${secretAccessKey}
           insecure: {{ .Values.mimirMonolithic.storage.s3.insecure }}
 
     blocks_storage:

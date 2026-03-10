@@ -638,7 +638,7 @@ mimir-distributed:
   enabled: false
 
 # Mimir Monolithic - Long-term metric storage (single binary, all components in one pod)
-# When ready to switch to Garage on NAS, just update storage.s3.endpoint
+# S3 backend: Garage (replaced MinIO March 2026)
 mimirMonolithic:
   enabled: true
   image:
@@ -658,9 +658,9 @@ mimirMonolithic:
     storageClass: local-path
     size: 20Gi
   storage:
-    credentialsSecret: minio-credentials
+    credentialsSecret: garage-mimir-credentials
     s3:
-      endpoint: prometheus-minio.monitoring.svc.cluster.local:9000
+      endpoint: garage.monitoring.svc.cluster.local:3900
       insecure: true
     buckets:
       blocks: mimir-blocks
