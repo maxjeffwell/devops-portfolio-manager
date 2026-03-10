@@ -61,8 +61,6 @@ spec:
       containers:
         - name: garage
           image: "{{ .Values.garage.image.repository }}:{{ .Values.garage.image.tag }}"
-          command: ["/garage"]
-          args: ["server", "-c", "/etc/garage/garage.toml"]
           ports:
             - name: s3-api
               containerPort: 3900
@@ -74,6 +72,8 @@ spec:
               containerPort: 3903
               protocol: TCP
           env:
+            - name: GARAGE_CONFIG_FILE
+              value: /etc/garage/garage.toml
             - name: RUST_LOG
               value: garage=info
           readinessProbe:
