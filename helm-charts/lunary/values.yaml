@@ -8,11 +8,11 @@ strategy:
 image:
   backend:
     repository: maxjeffwell/lunary-backend
-    tag: latest
+    tag: 20260310-051510-4765d53
     pullPolicy: Always
   frontend:
     repository: maxjeffwell/lunary-frontend
-    tag: latest
+    tag: 20260310-051510-4765d53
     pullPolicy: Always
 
 imagePullSecrets: []
