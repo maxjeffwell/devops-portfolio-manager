@@ -1,0 +1,86 @@
+{{- if .Values.pyroscope.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pyroscope
+  labels:
+    app.kubernetes.io/name: pyroscope
+    app.kubernetes.io/component: monolithic
+spec:
+  serviceName: pyroscope-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pyroscope
+      app.kubernetes.io/component: monolithic
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pyroscope
+        app.kubernetes.io/component: monolithic
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/pyroscope-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.pyroscope.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.pyroscope.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: pyroscope
+          image: "{{ .Values.pyroscope.image.repository }}:{{ .Values.pyroscope.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          args:
+            - -config.file=/etc/pyroscope/config.yaml
+            - -config.expand-env=true
+          env:
+            - name: GOMEMLIMIT
+              value: "1800MiB"
+          ports:
+            - name: http
+              containerPort: 4040
+              protocol: TCP
+          envFrom:
+            - secretRef:
+                name: {{ .Values.pyroscope.storage.credentialsSecret }}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 60
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: http
+            failureThreshold: 30
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.pyroscope.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/pyroscope
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: config
+          configMap:
+            name: pyroscope-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.pyroscope.persistence.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.pyroscope.persistence.size }}
+{{- end }}
