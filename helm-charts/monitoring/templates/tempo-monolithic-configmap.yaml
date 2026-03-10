@@ -46,22 +46,28 @@ data:
           region: {{ .Values.tempoMonolithic.storage.s3.region }}
         wal:
           path: /data/wal
-          encoding: snappy
         block:
-          encoding: zstd
+          version: vParquet4
           bloom_filter_false_positive: 0.01
-        cache: redis
-        redis:
-          endpoint: {{ .Values.tempoMonolithic.redis.address }}
-          cache_min_compaction_level: {{ .Values.tempoMonolithic.redis.cacheMinCompactionLevel }}
-          cache_max_block_age: {{ .Values.tempoMonolithic.redis.cacheMaxBlockAge }}
-        dedicated_columns:
-          - scope: resource
-            name: service.name
-          - scope: span
-            name: http.status_code
-          - scope: span
-            name: http.route
+          parquet_dedicated_columns:
+            - scope: resource
+              name: service.name
+              type: string
+            - scope: span
+              name: http.status_code
+              type: string
+            - scope: span
+              name: http.route
+              type: string
+        cache_min_compaction_level: {{ .Values.tempoMonolithic.redis.cacheMinCompactionLevel }}
+        cache_max_block_age: {{ .Values.tempoMonolithic.redis.cacheMaxBlockAge }}
+        cache:
+          caches:
+            - roles:
+                - bloom
+                - parquet-footer
+              redis:
+                endpoint: {{ .Values.tempoMonolithic.redis.address }}
 
     metrics_generator:
       registry:
