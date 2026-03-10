@@ -51,6 +51,8 @@ spec:
           value: "crowdsecurity/traefik"
         - name: DISABLE_ONLINE_API
           value: "true"
+        - name: CROWDSEC_BYPASS_DB_VOLUME_CHECK
+          value: "true"
         volumeMounts:
         - name: acquis-config
           mountPath: /etc/crowdsec/acquis.yaml
