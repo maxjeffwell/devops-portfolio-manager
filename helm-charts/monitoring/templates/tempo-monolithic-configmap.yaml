@@ -61,13 +61,9 @@ data:
               type: string
         cache_min_compaction_level: {{ .Values.tempoMonolithic.redis.cacheMinCompactionLevel }}
         cache_max_block_age: {{ .Values.tempoMonolithic.redis.cacheMaxBlockAge }}
-        cache:
-          caches:
-            - roles:
-                - bloom
-                - parquet-footer
-              redis:
-                endpoint: {{ .Values.tempoMonolithic.redis.address }}
+        cache: redis
+        redis:
+          endpoint: {{ .Values.tempoMonolithic.redis.address }}
 
     metrics_generator:
       registry:
