@@ -639,6 +639,8 @@ alloy:
   alloy:
     clustering:
       enabled: true
+    securityContext:
+      privileged: true
     configMap:
       create: false
       name: alloy-config
@@ -650,6 +652,9 @@ alloy:
         - name: journal
           mountPath: /var/log/journal
           readOnly: true
+        - name: debugfs
+          mountPath: /sys/kernel/debug
+          readOnly: true
     extraEnv:
       - name: HOST_IP
         valueFrom:
@@ -658,9 +663,9 @@ alloy:
     resources:
       requests:
         cpu: 50m
-        memory: 64Mi
+        memory: 128Mi
       limits:
-        memory: 256Mi
+        memory: 512Mi
   configReloader:
     resources:
       requests:
@@ -681,6 +686,10 @@ alloy:
           hostPath:
             path: /var/log/journal
             type: DirectoryOrCreate
+        - name: debugfs
+          hostPath:
+            path: /sys/kernel/debug
+            type: Directory
     extraPorts:
       - name: otlp-grpc
         port: 4317
