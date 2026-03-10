@@ -200,10 +200,24 @@ data:
       }
     }
 
+    // --- Pyroscope Self-Profiling (pprof scrape) ---
+    pyroscope.scrape "pyroscope_self" {
+      targets = [
+        { "__address__" = "pyroscope.monitoring.svc.cluster.local:4040", "service_name" = "pyroscope" },
+      ]
+      forward_to = [pyroscope.write.endpoint.receiver]
+      clustering {
+        enabled = true
+      }
+      profiling_config {
+        profile.process_cpu { enabled = false }
+      }
+    }
+
     // --- Beyla eBPF Auto-Instrumentation ---
     beyla.ebpf "auto" {
       discovery {
-        services {
+        instrument {
           kubernetes {
             namespace = "default"
           }

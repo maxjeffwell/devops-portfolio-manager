@@ -692,7 +692,7 @@ alloy:
           readOnly: true
     extraEnv:
       - name: GOMEMLIMIT
-        value: "900MiB"
+        value: "1800MiB"
       - name: HOST_IP
         valueFrom:
           fieldRef:
@@ -700,9 +700,9 @@ alloy:
     resources:
       requests:
         cpu: 50m
-        memory: 256Mi
+        memory: 512Mi
       limits:
-        memory: 1Gi
+        memory: 2Gi
   configReloader:
     resources:
       requests:
