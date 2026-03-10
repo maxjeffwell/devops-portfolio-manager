@@ -37,7 +37,7 @@ Apps (snappy/gRPC:4317) → Alloy (DaemonSet) → Tempo Monolithic → Garage S3
 - **Image**: `grafana/tempo:2.7.2`
 - **Replicas**: 1
 - **Mode**: Monolithic (`-target=all`)
-- **PVC**: 10Gi for WAL (`local-path`, control plane node)
+- **PVC**: 20Gi for WAL + compactor scratch (`local-path`, control plane node)
 - **Resources**: 512Mi request / 2Gi limit memory, 100m CPU request / no limit
 - **`GOMEMLIMIT=1800MiB`** (90% of memory limit) — prevents Go GC death spirals under load
 - **NodeSelector**: `kubernetes.io/hostname: vmi2951245` (control plane, co-located with Garage)
