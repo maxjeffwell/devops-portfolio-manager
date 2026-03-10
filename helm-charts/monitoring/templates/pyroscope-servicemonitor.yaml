@@ -1,0 +1,17 @@
+{{- if and .Values.pyroscope.enabled .Values.pyroscope.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pyroscope
+  labels:
+    app.kubernetes.io/name: pyroscope
+    app.kubernetes.io/component: monolithic
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pyroscope
+      app.kubernetes.io/component: monolithic
+  endpoints:
+    - port: http
+      interval: 30s
+{{- end }}

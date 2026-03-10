@@ -1,0 +1,38 @@
+{{- if .Values.pyroscope.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: pyroscope
+  labels:
+    app.kubernetes.io/name: pyroscope
+    app.kubernetes.io/component: monolithic
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 4040
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: pyroscope
+    app.kubernetes.io/component: monolithic
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pyroscope-headless
+  labels:
+    app.kubernetes.io/name: pyroscope
+    app.kubernetes.io/component: monolithic
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 4040
+      targetPort: http
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: pyroscope
+    app.kubernetes.io/component: monolithic
+{{- end }}
