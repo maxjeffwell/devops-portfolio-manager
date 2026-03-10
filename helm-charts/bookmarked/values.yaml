@@ -10,11 +10,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/bookmarks-react-hooks-server
-    tag: 20260310-182005-6ad4f49
+    tag: 20260310-183902-06d22c3
     pullPolicy: Always
   client:
     repository: maxjeffwell/bookmarks-react-hooks-client
-    tag: 20260310-182005-6ad4f49
+    tag: 20260310-183902-06d22c3
     pullPolicy: Always
 
 imagePullSecrets: []
