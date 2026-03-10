@@ -407,6 +407,29 @@ minio:
     serviceMonitor:
       enabled: true
 
+# Garage - Lightweight S3-compatible object storage (replaces MinIO)
+garage:
+  enabled: true
+  image:
+    repository: dxflrs/garage
+    tag: "v1.1.0"
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 512Mi
+  persistence:
+    storageClass: local-path
+    size: 80Gi
+  buckets:
+    - mimir-blocks
+    - mimir-ruler
+    - mimir-alertmanager
+    - tempo-traces
+
 # Loki - DISABLED (replaced by ASUSTOR Loki with Garage S3 backend)
 loki:
   enabled: false
@@ -600,7 +623,7 @@ crowdsec:
     enabled: true
     image:
       repository: crowdsecurity/crowdsec
-      tag: "v1.6.8"
+      tag: "v1.7.6"
     resources:
       requests:
         cpu: 50m

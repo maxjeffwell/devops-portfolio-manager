@@ -1,0 +1,52 @@
+{{- if .Values.garage.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/component: object-storage
+spec:
+  type: ClusterIP
+  ports:
+    - name: s3-api
+      port: 3900
+      targetPort: s3-api
+      protocol: TCP
+    - name: admin
+      port: 3903
+      targetPort: admin
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/component: object-storage
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/component: object-storage
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: s3-api
+      port: 3900
+      targetPort: s3-api
+      protocol: TCP
+    - name: rpc
+      port: 3901
+      targetPort: rpc
+      protocol: TCP
+    - name: admin
+      port: 3903
+      targetPort: admin
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: garage
+    app.kubernetes.io/component: object-storage
+{{- end }}
