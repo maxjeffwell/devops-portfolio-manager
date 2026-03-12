@@ -221,6 +221,8 @@ kube-prometheus-stack:
         domain: grafana.el-jefe.me
         root_url: "https://grafana.el-jefe.me/"
         serve_from_sub_path: false
+      plugins:
+        allow_loading_unsigned_plugins: k8s-app
 
 
     # Plugins
@@ -228,6 +230,28 @@ kube-prometheus-stack:
       - grafana-polystat-panel
       - yesoreyeram-infinity-datasource 3.7.1
       - marcusolsson-treemap-panel
+
+    # Init container to install URL-based plugins not in the Grafana catalog
+    extraInitContainers:
+      - name: install-k8s-plugin
+        image: busybox:1.36
+        command:
+          - /bin/sh
+          - -c
+          - |
+            wget -O /tmp/k8s-app.zip https://github.com/tiithansen/grafana-k8s-app/releases/download/v0.11.2/grafana-k8s-app-v0.11.2.zip &&
+            mkdir -p /var/lib/grafana/plugins/tiithansen-grafana-k8s-app &&
+            unzip -o /tmp/k8s-app.zip -d /var/lib/grafana/plugins/tiithansen-grafana-k8s-app &&
+            rm /tmp/k8s-app.zip
+        volumeMounts:
+          - name: storage
+            mountPath: /var/lib/grafana
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 64Mi
 
     # Additional data sources for Loki and Mimir
     additionalDataSources:
