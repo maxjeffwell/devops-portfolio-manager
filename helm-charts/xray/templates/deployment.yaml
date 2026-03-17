@@ -15,16 +15,8 @@ spec:
       labels:
         app: xray
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values:
-                      - {{ .Values.nodeAffinity.preferredNode }}
+      nodeSelector:
+        kubernetes.io/hostname: {{ .Values.nodeAffinity.preferredNode }}
       initContainers:
         - name: config-generator
           image: busybox:latest
