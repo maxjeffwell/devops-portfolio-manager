@@ -8,7 +8,7 @@ image:
 service:
   type: ClusterIP
   port: 443
-  hostPort: 8443
+  hostPort: 2083
 
 reality:
   serverName: www.microsoft.com
