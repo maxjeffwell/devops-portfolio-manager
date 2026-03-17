@@ -55,6 +55,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: 443
+              hostPort: {{ .Values.service.hostPort }}
               protocol: TCP
           volumeMounts:
             - name: xray-config
