@@ -1,0 +1,14 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: xray-reality
+  namespace: {{ .Release.Namespace }}
+spec:
+  entryPoints:
+    - xray
+  routes:
+    - match: HostSNI(`*`)
+      services:
+        - name: xray
+          port: 443
+          terminationDelay: 100

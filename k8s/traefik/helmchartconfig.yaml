@@ -33,6 +33,12 @@ spec:
           - 2c0f:f248::/32
           - 10.42.0.0/16
           - 10.43.0.0/16
+      xray:
+        port: 2083
+        expose:
+          default: true
+        exposedPort: 2083
+        protocol: TCP
     experimental:
       plugins:
         crowdsec-bouncer:

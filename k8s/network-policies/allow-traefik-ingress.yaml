@@ -13,6 +13,16 @@ spec:
       podSelector:
         matchLabels:
           app.kubernetes.io/name: traefik
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: traefik
+    ports:
+    - port: 443
+      protocol: TCP
   podSelector: {}
   policyTypes:
   - Ingress
