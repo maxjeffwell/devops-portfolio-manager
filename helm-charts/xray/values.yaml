@@ -8,7 +8,7 @@ image:
 service:
   type: ClusterIP
   port: 443
-  hostPort: 443
+  hostPort: 8443
 
 reality:
   serverName: www.microsoft.com
@@ -22,7 +22,7 @@ resources:
     memory: 128Mi
 
 nodeAffinity:
-  preferredNode: vmi3115606
+  preferredNode: vmi2951245
 
 externalSecrets:
   enabled: true
