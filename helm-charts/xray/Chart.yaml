@@ -1,0 +1,15 @@
+apiVersion: v2
+name: xray
+description: Xray-core with XTLS-Reality for WireGuard obfuscation
+type: application
+version: 1.0.0
+appVersion: "26.2.6"
+keywords:
+  - xray
+  - reality
+  - proxy
+  - obfuscation
+home: https://github.com/XTLS/Xray-core
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me

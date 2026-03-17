@@ -1,0 +1,39 @@
+replicaCount: 1
+
+image:
+  repository: teddysun/xray
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: NodePort
+  port: 443
+  nodePort: 30443
+
+reality:
+  serverName: www.microsoft.com
+  dest: "www.microsoft.com:443"
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 128Mi
+
+nodeAffinity:
+  preferredNode: vmi3115606
+
+externalSecrets:
+  enabled: true
+  refreshInterval: 1h
+  secretStoreName: doppler-secret-store
+  secretStoreKind: ClusterSecretStore
+  targetSecretName: xray-secrets
+  data:
+    - secretKey: private-key
+      remoteKey: XRAY_PRIVATE_KEY
+    - secretKey: uuid
+      remoteKey: XRAY_UUID
+    - secretKey: short-id
+      remoteKey: XRAY_SHORT_ID

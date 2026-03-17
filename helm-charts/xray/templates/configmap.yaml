@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xray-config-template
+  namespace: {{ .Release.Namespace }}
+data:
+  config.json.tmpl: |
+    {
+      "log": {
+        "loglevel": "warning"
+      },
+      "inbounds": [
+        {
+          "listen": "0.0.0.0",
+          "port": 443,
+          "protocol": "vless",
+          "settings": {
+            "clients": [
+              {
+                "id": "XRAY_UUID_PLACEHOLDER",
+                "flow": "xtls-rprx-vision"
+              }
+            ],
+            "decryption": "none"
+          },
+          "streamSettings": {
+            "network": "tcp",
+            "security": "reality",
+            "realitySettings": {
+              "dest": "{{ .Values.reality.dest }}",
+              "serverNames": [
+                "{{ .Values.reality.serverName }}"
+              ],
+              "privateKey": "XRAY_PRIVATE_KEY_PLACEHOLDER",
+              "shortIds": [
+                "XRAY_SHORT_ID_PLACEHOLDER"
+              ]
+            }
+          }
+        }
+      ],
+      "outbounds": [
+        {
+          "protocol": "freedom",
+          "tag": "direct"
+        }
+      ]
+    }

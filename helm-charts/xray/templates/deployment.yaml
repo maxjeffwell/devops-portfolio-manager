@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xray
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: xray
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: xray
+  template:
+    metadata:
+      labels:
+        app: xray
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - {{ .Values.nodeAffinity.preferredNode }}
+      initContainers:
+        - name: config-generator
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              cp /config-template/config.json.tmpl /etc/xray/config.json
+              sed -i "s|XRAY_UUID_PLACEHOLDER|$(cat /secrets/uuid)|g" /etc/xray/config.json
+              sed -i "s|XRAY_PRIVATE_KEY_PLACEHOLDER|$(cat /secrets/private-key)|g" /etc/xray/config.json
+              sed -i "s|XRAY_SHORT_ID_PLACEHOLDER|$(cat /secrets/short-id)|g" /etc/xray/config.json
+          volumeMounts:
+            - name: config-template
+              mountPath: /config-template
+            - name: xray-config
+              mountPath: /etc/xray
+            - name: secrets
+              mountPath: /secrets
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 32Mi
+      containers:
+        - name: xray
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 443
+              protocol: TCP
+          volumeMounts:
+            - name: xray-config
+              mountPath: /etc/xray
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            tcpSocket:
+              port: 443
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 443
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: config-template
+          configMap:
+            name: xray-config-template
+        - name: xray-config
+          emptyDir: {}
+        - name: secrets
+          secret:
+            secretName: {{ .Values.externalSecrets.targetSecretName }}
