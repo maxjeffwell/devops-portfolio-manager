@@ -6,6 +6,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
@@ -47,6 +48,8 @@ spec:
     - match: Host(`podrick.el-jefe.me`) && PathPrefix(`/devops-api`)
       kind: Rule
       middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
         - name: strip-devops-api-prefix
       services:
         - name: devops-portfolio-api

@@ -5,6 +5,7 @@ metadata:
   name: {{ .Release.Name }}-frontend
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
@@ -29,6 +30,7 @@ metadata:
   name: {{ .Release.Name }}-backend
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:

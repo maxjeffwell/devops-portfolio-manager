@@ -5,6 +5,7 @@ metadata:
   name: {{ .Release.Name }}-ingress
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     # WebSocket sticky sessions for horizontal scaling
     traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
