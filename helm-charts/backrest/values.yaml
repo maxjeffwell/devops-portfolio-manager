@@ -37,6 +37,8 @@ affinity:
                 - vmi3115606
 
 env:
+  - name: BACKREST_PORT
+    value: ":9898"
   - name: BACKREST_DATA
     value: "/data"
   - name: BACKREST_CONFIG
