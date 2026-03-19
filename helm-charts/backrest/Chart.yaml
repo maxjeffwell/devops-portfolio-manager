@@ -1,0 +1,14 @@
+apiVersion: v2
+name: backrest
+description: Backrest - Web UI for Restic backup management
+type: application
+version: 1.0.0
+appVersion: "1.6.0"
+keywords:
+  - backrest
+  - restic
+  - backup
+home: https://github.com/garethgeorge/backrest
+maintainers:
+  - name: Jeff Maxwell
+    email: jeff@el-jefe.me

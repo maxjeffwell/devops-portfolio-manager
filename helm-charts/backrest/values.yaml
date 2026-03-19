@@ -1,0 +1,93 @@
+replicaCount: 1
+
+strategy:
+  type: Recreate
+
+image:
+  repository: garethgeorge/backrest
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 9898
+  targetPort: 9898
+
+ingress:
+  enabled: true
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    cpu: 50m
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - vmi3115606
+
+env:
+  - name: BACKREST_DATA
+    value: "/data"
+  - name: BACKREST_CONFIG
+    value: "/config/config.json"
+  - name: XDG_CACHE_HOME
+    value: "/cache"
+  - name: TZ
+    value: "America/New_York"
+
+persistence:
+  data:
+    enabled: true
+    size: 1Gi
+    storageClass: local-path
+    mountPath: /data
+  config:
+    enabled: true
+    size: 100Mi
+    storageClass: local-path
+    mountPath: /config
+  cache:
+    enabled: true
+    size: 2Gi
+    storageClass: local-path
+    mountPath: /cache
+
+sshSecret:
+  enabled: true
+  name: backrest-ssh-key
+
+startupProbe:
+  httpGet:
+    path: /
+    port: 9898
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 12
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 9898
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 9898
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
