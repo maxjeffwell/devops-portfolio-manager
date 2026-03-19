@@ -49,7 +49,6 @@ spec:
       kind: Rule
       middlewares:
         - name: crowdsec-bouncer
-          namespace: kube-system
         - name: strip-devops-api-prefix
       services:
         - name: devops-portfolio-api
