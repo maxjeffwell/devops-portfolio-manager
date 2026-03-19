@@ -50,7 +50,7 @@ spec:
     logs:
       access:
         enabled: true
-        format: common
+        format: json
         filePath: "/var/log/traefik/access.log"
     deployment:
       additionalVolumes:
