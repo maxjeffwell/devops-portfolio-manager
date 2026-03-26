@@ -1,0 +1,43 @@
+# Allow shared-ai-gateway to reach triton-embeddings (Tier 2 embedding fallback)
+# Egress: gateway → triton-embeddings:8000
+# Ingress: triton-embeddings ← gateway on port 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ai-gateway-to-triton-embeddings
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: shared-ai-gateway
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 8000
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: triton-embeddings
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-triton-embeddings-from-gateway
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: triton-embeddings
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: shared-ai-gateway
+    ports:
+    - port: 8000
+      protocol: TCP
