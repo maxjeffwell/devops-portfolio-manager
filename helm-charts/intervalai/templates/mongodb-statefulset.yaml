@@ -51,7 +51,12 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 5
-  {{- if .Values.mongodb.persistence.enabled }}
+  {{- if and .Values.mongodb.persistence.enabled .Values.mongodb.persistence.existingClaim }}
+      volumes:
+      - name: mongodb-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.mongodb.persistence.existingClaim }}
+  {{- else if .Values.mongodb.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
       name: mongodb-data
@@ -64,9 +69,9 @@ spec:
         requests:
           storage: {{ .Values.mongodb.persistence.size }}
   {{- else }}
-  volumes:
-  - name: mongodb-data
-    emptyDir: {}
+      volumes:
+      - name: mongodb-data
+        emptyDir: {}
   {{- end }}
 ---
 apiVersion: v1
