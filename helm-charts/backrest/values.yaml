@@ -51,19 +51,28 @@ env:
 persistence:
   data:
     enabled: true
-    size: 1Gi
-    storageClass: local-path
+    size: 2Gi
+    storageClass: iscsi-local
     mountPath: /data
+    existingClaim: backrest-data-iscsi
   config:
     enabled: true
-    size: 100Mi
-    storageClass: local-path
+    size: 500Mi
+    storageClass: iscsi-local
     mountPath: /config
+    existingClaim: backrest-config-iscsi
   cache:
     enabled: true
-    size: 2Gi
-    storageClass: local-path
+    size: 3Gi
+    storageClass: iscsi-local
     mountPath: /cache
+    existingClaim: backrest-cache-iscsi
+
+hostPaths:
+  - name: iscsi-worker
+    path: /mnt/iscsi
+    mountPath: /mnt/iscsi
+    readOnly: true
 
 sshSecret:
   enabled: true

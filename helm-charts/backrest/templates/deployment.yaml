@@ -74,25 +74,40 @@ spec:
               mountPath: /root/.ssh
               readOnly: true
             {{- end }}
+            {{- if .Values.hostPaths }}
+            {{- range .Values.hostPaths }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              readOnly: {{ .readOnly | default false }}
+            {{- end }}
+            {{- end }}
       volumes:
         {{- if .Values.persistence.data.enabled }}
         - name: data
           persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-data
+            claimName: {{ .Values.persistence.data.existingClaim | default (printf "%s-data" .Release.Name) }}
         {{- end }}
         {{- if .Values.persistence.config.enabled }}
         - name: config
           persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-config
+            claimName: {{ .Values.persistence.config.existingClaim | default (printf "%s-config" .Release.Name) }}
         {{- end }}
         {{- if .Values.persistence.cache.enabled }}
         - name: cache
           persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-cache
+            claimName: {{ .Values.persistence.cache.existingClaim | default (printf "%s-cache" .Release.Name) }}
         {{- end }}
         {{- if .Values.sshSecret.enabled }}
         - name: ssh-key
           secret:
             secretName: {{ .Values.sshSecret.name }}
             defaultMode: 0600
+        {{- end }}
+        {{- if .Values.hostPaths }}
+        {{- range .Values.hostPaths }}
+        - name: {{ .name }}
+          hostPath:
+            path: {{ .path }}
+            type: {{ .type | default "Directory" }}
+        {{- end }}
         {{- end }}
