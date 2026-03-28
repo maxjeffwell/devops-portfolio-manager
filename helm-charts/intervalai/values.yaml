@@ -147,7 +147,7 @@ mongodb:
     enabled: true
     size: 8Gi
     storageClass: ""
-    existingClaim: mongodb-intervalai-iscsi
+    existingClaim: mongodb-intervalai-synology
   resources:
     limits:
       memory: 512Mi
