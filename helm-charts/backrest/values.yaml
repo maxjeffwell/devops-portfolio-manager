@@ -52,21 +52,21 @@ persistence:
   data:
     enabled: true
     size: 2Gi
-    storageClass: iscsi-local
+    storageClass: synology-iscsi
     mountPath: /data
-    existingClaim: backrest-data-iscsi
+    existingClaim: backrest-data-synology
   config:
     enabled: true
-    size: 500Mi
-    storageClass: iscsi-local
+    size: 1Gi
+    storageClass: synology-iscsi
     mountPath: /config
-    existingClaim: backrest-config-iscsi
+    existingClaim: backrest-config-synology
   cache:
     enabled: true
     size: 3Gi
-    storageClass: iscsi-local
+    storageClass: synology-iscsi
     mountPath: /cache
-    existingClaim: backrest-cache-iscsi
+    existingClaim: backrest-cache-synology
 
 hostPaths:
   - name: iscsi-worker
