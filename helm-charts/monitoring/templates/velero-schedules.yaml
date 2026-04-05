@@ -22,4 +22,17 @@ spec:
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
     ttl: {{ .Values.veleroSchedules.weekly.ttl }}
+---
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-backup-local
+  namespace: {{ .Values.veleroSchedules.namespace | default "velero" }}
+spec:
+  schedule: {{ .Values.veleroSchedules.weeklyLocal.schedule | quote }}
+  template:
+    storageLocation: {{ .Values.veleroSchedules.weeklyLocal.storageLocation }}
+    excludedNamespaces:
+      {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
+    ttl: {{ .Values.veleroSchedules.weeklyLocal.ttl }}
 {{- end }}

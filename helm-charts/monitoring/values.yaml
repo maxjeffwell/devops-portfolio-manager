@@ -10,6 +10,10 @@ veleroSchedules:
   weekly:
     schedule: "0 3 * * 0"
     ttl: 720h0m0s
+  weeklyLocal:
+    schedule: "0 3 * * 0"
+    ttl: 720h0m0s
+    storageLocation: local
 
 # Velero Backup Alerts
 veleroAlerts:
