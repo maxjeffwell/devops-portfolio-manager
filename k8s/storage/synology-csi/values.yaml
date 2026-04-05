@@ -1,0 +1,23 @@
+# Synology CSI Driver Helm Values
+# Chart: synology-csi (from SynologyOpenSource/synology-csi repo)
+# Chart version: 0.9.3-SNAPSHOT
+# Image: synology/synology-csi:v1.2.1
+#
+# Install:
+#   helm install synology-csi ./deploy/helm \
+#     -n synology-csi --create-namespace \
+#     -f values.yaml
+#
+# The client-info secret must be created separately (contains DSM credentials).
+# See client-info-secret.yaml.
+
+storageClasses:
+  - name: synology-iscsi
+    provisioner: csi.san.synology.com
+    reclaimPolicy: Retain
+    allowVolumeExpansion: true
+    volumeBindingMode: Immediate
+    parameters:
+      dsm: "10.0.0.5"
+      fsType: btrfs
+      location: /volume1

@@ -1,0 +1,15 @@
+# Synology iSCSI StorageClass
+# Standalone manifest for reference/re-creation.
+# StorageClass parameters are immutable — delete and recreate to change.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: synology-iscsi
+provisioner: csi.san.synology.com
+parameters:
+  dsm: "10.0.0.5"
+  fsType: btrfs
+  location: /volume1
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate

@@ -1,0 +1,33 @@
+csiDriver:
+  name: "org.democratic-csi.nfs-client"
+
+storageClasses:
+  - name: asustor-nfs
+    defaultClass: false
+    reclaimPolicy: Retain
+    volumeBindingMode: Immediate
+    allowVolumeExpansion: false
+    parameters:
+      fsType: nfs
+    mountOptions:
+      - nfsvers=4
+      - noatime
+
+driver:
+  config:
+    driver: nfs-client
+    nfs:
+      shareHost: 192.168.50.142
+      sharePath: "/mnt/k8s-nfs"
+      shareBasePath: "/mnt/k8s-nfs"
+      controllerBasePath: "/mnt/k8s-nfs"
+      dirPermissionsMode: "0777"
+      dirPermissionsUser: 0
+      dirPermissionsGroup: 0
+
+controller:
+  externalResizer:
+    enabled: false
+
+node:
+  tolerations: []
