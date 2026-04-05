@@ -69,6 +69,10 @@ spec:
             - name: cache
               mountPath: {{ .Values.persistence.cache.mountPath }}
             {{- end }}
+            {{- if .Values.persistence.backups.enabled }}
+            - name: backups
+              mountPath: {{ .Values.persistence.backups.mountPath }}
+            {{- end }}
             {{- if .Values.sshSecret.enabled }}
             - name: ssh-key
               mountPath: /root/.ssh
@@ -96,6 +100,11 @@ spec:
         - name: cache
           persistentVolumeClaim:
             claimName: {{ .Values.persistence.cache.existingClaim | default (printf "%s-cache" .Release.Name) }}
+        {{- end }}
+        {{- if .Values.persistence.backups.enabled }}
+        - name: backups
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.backups.existingClaim | default (printf "%s-backups" .Release.Name) }}
         {{- end }}
         {{- if .Values.sshSecret.enabled }}
         - name: ssh-key

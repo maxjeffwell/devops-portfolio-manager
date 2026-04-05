@@ -211,6 +211,21 @@ kube-prometheus-stack:
     enabled: true
     adminPassword: "REPLACE_AT_DEPLOY_TIME"
 
+    persistence:
+      enabled: true
+      storageClassName: asustor-nfs
+      size: 5Gi
+
+    # init-chown-data is added by the chart when persistence is enabled.
+    # monitoring-quota requires resource specs on all containers.
+    initChownData:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          memory: 64Mi
+
     # Disable kube-prometheus-stack's built-in ingress (we use a custom Traefik ingress in templates/ingress.yaml)
     ingress:
       enabled: false
@@ -239,6 +254,10 @@ kube-prometheus-stack:
           - /bin/sh
           - -c
           - |
+            if [ -d /var/lib/grafana/plugins/tiithansen-grafana-k8s-app/dist ]; then
+              echo "k8s-app plugin already installed, skipping"
+              exit 0
+            fi
             wget -O /tmp/k8s-app.zip https://github.com/tiithansen/grafana-k8s-app/releases/download/v0.11.2/grafana-k8s-app-v0.11.2.zip &&
             mkdir -p /var/lib/grafana/plugins/tiithansen-grafana-k8s-app &&
             unzip -o /tmp/k8s-app.zip -d /var/lib/grafana/plugins/tiithansen-grafana-k8s-app &&
@@ -307,8 +326,8 @@ kube-prometheus-stack:
         editable: true
         isDefault: false
 
-    # Liveness probe tuning — Grafana runs ~500 SQLite migrations on every startup
-    # (EmptyDir storage), taking 5-8 minutes. Give it enough time.
+    # Liveness probe tuning — Grafana startup may take several minutes on first
+    # init (SQLite migrations). Subsequent starts with persistent storage are faster.
     livenessProbe:
       httpGet:
         path: /api/health

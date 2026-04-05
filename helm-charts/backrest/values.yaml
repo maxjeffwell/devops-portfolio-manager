@@ -67,6 +67,11 @@ persistence:
     storageClass: synology-iscsi
     mountPath: /cache
     existingClaim: backrest-cache-synology
+  backups:
+    enabled: true
+    size: 300Gi
+    storageClass: asustor-nfs
+    mountPath: /velero-backups
 
 hostPaths:
   - name: iscsi-worker

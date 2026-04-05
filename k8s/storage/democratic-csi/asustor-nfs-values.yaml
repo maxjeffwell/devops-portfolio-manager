@@ -17,10 +17,10 @@ driver:
   config:
     driver: nfs-client
     nfs:
-      shareHost: 192.168.50.142
-      sharePath: "/mnt/k8s-nfs"
-      shareBasePath: "/mnt/k8s-nfs"
-      controllerBasePath: "/mnt/k8s-nfs"
+      shareHost: 10.0.0.4
+      sharePath: "/mnt/k8s-share"
+      shareBasePath: "/mnt/k8s-share"
+      controllerBasePath: "/mnt/k8s-share"
       dirPermissionsMode: "0777"
       dirPermissionsUser: 0
       dirPermissionsGroup: 0
