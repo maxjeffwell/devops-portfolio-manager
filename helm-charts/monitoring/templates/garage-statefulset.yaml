@@ -67,6 +67,7 @@ spec:
               protocol: TCP
             - name: rpc
               containerPort: 3901
+              hostPort: 3901
               protocol: TCP
             - name: admin
               containerPort: 3903

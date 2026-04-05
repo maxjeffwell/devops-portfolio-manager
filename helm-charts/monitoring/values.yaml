@@ -580,7 +580,7 @@ garage:
   enabled: true
   image:
     repository: dxflrs/garage
-    tag: "v1.1.0"
+    tag: "v2.2.0"
   nodeSelector:
     kubernetes.io/hostname: vmi2951245
   resources:
@@ -597,6 +597,8 @@ garage:
     - mimir-ruler
     - mimir-alertmanager
     - tempo-traces
+    - pyroscope-profiles
+    - velero
 
 # Loki - DISABLED (replaced by ASUSTOR Loki with Garage S3 backend)
 loki:
