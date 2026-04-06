@@ -15,6 +15,8 @@ spec:
       app: {{ .Release.Name }}
   template:
     metadata:
+      annotations:
+        backup.velero.io/backup-volumes-excludes: data,config,cache,backups
       labels:
         app: {{ .Release.Name }}
     spec:
