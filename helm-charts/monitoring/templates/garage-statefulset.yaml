@@ -80,23 +80,20 @@ spec:
             - name: RUST_LOG
               value: garage=info
           readinessProbe:
-            httpGet:
-              path: /health
-              port: admin
+            tcpSocket:
+              port: s3-api
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
-            httpGet:
-              path: /health
-              port: admin
+            tcpSocket:
+              port: s3-api
             initialDelaySeconds: 30
             periodSeconds: 30
             timeoutSeconds: 5
           startupProbe:
-            httpGet:
-              path: /health
-              port: admin
+            tcpSocket:
+              port: s3-api
             failureThreshold: 18
             periodSeconds: 10
           resources:
