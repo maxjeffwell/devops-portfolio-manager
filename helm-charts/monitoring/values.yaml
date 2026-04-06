@@ -594,6 +594,9 @@ garage:
   persistence:
     storageClass: local-path
     size: 80Gi
+  ingress:
+    enabled: true
+    host: s3.el-jefe.me
   buckets:
     - mimir-blocks
     - mimir-ruler
