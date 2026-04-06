@@ -580,11 +580,11 @@ minio:
 # Garage - Lightweight S3-compatible object storage (replaces MinIO)
 garage:
   enabled: true
+  replicas: 2
+  antiAffinity: true
   image:
     repository: dxflrs/garage
     tag: "v2.2.0"
-  nodeSelector:
-    kubernetes.io/hostname: vmi2951245
   resources:
     requests:
       cpu: 50m

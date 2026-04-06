@@ -9,7 +9,8 @@ metadata:
     app.kubernetes.io/component: object-storage
 spec:
   serviceName: garage-headless
-  replicas: 1
+  replicas: {{ .Values.garage.replicas | default 1 }}
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app.kubernetes.io/name: garage
@@ -28,6 +29,20 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.garage.antiAffinity }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: garage
+                  app.kubernetes.io/component: object-storage
+              topologyKey: kubernetes.io/hostname
+      {{- end }}
+      {{- with .Values.garage.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       initContainers:
         - name: inject-secrets
           image: busybox:1.36
@@ -38,6 +53,7 @@ spec:
               cp /etc/garage-template/garage.toml /etc/garage/garage.toml
               sed -i "s|__RPC_SECRET__|${GARAGE_RPC_SECRET}|g" /etc/garage/garage.toml
               sed -i "s|__ADMIN_TOKEN__|${GARAGE_ADMIN_TOKEN}|g" /etc/garage/garage.toml
+              sed -i "s|__HOST_IP__|${HOST_IP}|g" /etc/garage/garage.toml
           env:
             - name: GARAGE_RPC_SECRET
               valueFrom:
@@ -49,6 +65,10 @@ spec:
                 secretKeyRef:
                   name: garage-credentials
                   key: adminToken
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
           volumeMounts:
             - name: config-template
               mountPath: /etc/garage-template
