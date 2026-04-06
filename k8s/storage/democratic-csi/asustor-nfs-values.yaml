@@ -28,6 +28,15 @@ driver:
 controller:
   externalResizer:
     enabled: false
+  extraVolumes:
+    - name: nfs-storage
+      nfs:
+        server: 10.0.0.4
+        path: /mnt/k8s-share
+  driver:
+    extraVolumeMounts:
+      - name: nfs-storage
+        mountPath: /mnt/k8s-share
 
 node:
   tolerations: []
