@@ -258,9 +258,20 @@ data:
           }
         }
       }
+      metrics {
+        features = ["application"]
+      }
       output {
         traces = [otelcol.processor.batch.tempo.input]
       }
+    }
+
+    // --- Scrape Beyla RED metrics into Mimir ---
+    prometheus.scrape "beyla" {
+      targets         = beyla.ebpf.auto.targets
+      honor_labels    = true
+      scrape_interval = "30s"
+      forward_to      = [prometheus.remote_write.mimir.receiver]
     }
 
     // --- OTLP Receiver (for future SDK-instrumented apps) ---
