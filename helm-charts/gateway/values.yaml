@@ -74,6 +74,14 @@ env:
         secretKeyRef:
           name: gateway-credentials
           key: gotify-token
+    - name: NETVIS_SSH_KEY_PATH
+      value: "/etc/netvis/id_ed25519"
+    - name: MIMIR_URL
+      value: "http://mimir-monolithic.monitoring.svc.cluster.local:8080/prometheus"
+    - name: GARAGE_ADMIN_URL
+      value: "http://garage.monitoring.svc.cluster.local:3903"
+    - name: NETWORK_TOPOLOGY_INTERVAL_MS
+      value: "30000"
 
 initContainers:
   - name: wait-for-kafka
@@ -115,6 +123,17 @@ readinessProbeServer:
   periodSeconds: 10
   timeoutSeconds: 3
   failureThreshold: 3
+
+volumes:
+  - name: netvis-ssh-key
+    secret:
+      secretName: netvis-ssh-key
+      defaultMode: 0600
+
+volumeMounts:
+  - name: netvis-ssh-key
+    mountPath: /etc/netvis
+    readOnly: true
 
 nodeSelector: {}
 

@@ -92,6 +92,14 @@ spec:
         resources:
           {{- toYaml $componentResources | nindent 10 }}
         {{- end }}
+        {{- if $.Values.volumeMounts }}
+        volumeMounts:
+          {{- toYaml $.Values.volumeMounts | nindent 10 }}
+        {{- end }}
+      {{- if $.Values.volumes }}
+      volumes:
+        {{- toYaml $.Values.volumes | nindent 8 }}
+      {{- end }}
       {{- if $.Values.topologySpreadConstraints }}
       {{- if $.Values.topologySpreadConstraints.enabled }}
       topologySpreadConstraints:
