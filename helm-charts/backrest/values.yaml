@@ -75,6 +75,10 @@ hostPaths:
     path: /mnt/iscsi
     mountPath: /mnt/iscsi
     readOnly: true
+  - name: k3s-state
+    path: /home/maxjeffwell/k3s-state-backups
+    mountPath: /k3s-state
+    readOnly: true
 
 sshSecret:
   enabled: true
