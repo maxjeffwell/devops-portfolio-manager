@@ -52,21 +52,18 @@ persistence:
   data:
     enabled: true
     size: 2Gi
-    storageClass: synology-iscsi
+    storageClass: asustor-nfs
     mountPath: /data
-    existingClaim: backrest-data-synology
   config:
     enabled: true
     size: 1Gi
-    storageClass: synology-iscsi
+    storageClass: asustor-nfs
     mountPath: /config
-    existingClaim: backrest-config-synology
   cache:
     enabled: true
     size: 3Gi
-    storageClass: synology-iscsi
+    storageClass: asustor-nfs
     mountPath: /cache
-    existingClaim: backrest-cache-synology
   backups:
     enabled: true
     size: 300Gi
