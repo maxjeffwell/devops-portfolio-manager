@@ -51,23 +51,19 @@ env:
 persistence:
   data:
     enabled: true
-    size: 2Gi
-    storageClass: asustor-nfs
+    existingClaim: backrest-data-v2
     mountPath: /data
   config:
     enabled: true
-    size: 1Gi
-    storageClass: asustor-nfs
+    existingClaim: backrest-config-v2
     mountPath: /config
   cache:
     enabled: true
-    size: 3Gi
-    storageClass: asustor-nfs
+    existingClaim: backrest-cache-v2
     mountPath: /cache
   backups:
     enabled: true
-    size: 300Gi
-    storageClass: asustor-nfs
+    existingClaim: backrest-backups-v2
     mountPath: /velero-backups
 
 hostPaths:

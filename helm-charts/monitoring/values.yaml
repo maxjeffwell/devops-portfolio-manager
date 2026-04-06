@@ -216,8 +216,7 @@ kube-prometheus-stack:
 
     persistence:
       enabled: true
-      storageClassName: asustor-nfs
-      size: 5Gi
+      existingClaim: grafana-data
 
     # init-chown-data is added by the chart when persistence is enabled.
     # monitoring-quota requires resource specs on all containers.

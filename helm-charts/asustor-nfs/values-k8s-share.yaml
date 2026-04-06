@@ -1,0 +1,52 @@
+# NFS Subdir External Provisioner — ASUSTOR k8s-share
+# Chart: nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
+# LV: /dev/vg-ssd/k8s-share (500G, ext4)
+# Export: 10.0.0.0/24 (WireGuard only)
+
+replicaCount: 1
+strategyType: Recreate
+
+nfs:
+  server: 10.0.0.4
+  path: /mnt/k8s-share
+  mountOptions:
+    - nfsvers=4
+    - noatime
+    - hard
+    - intr
+  reclaimPolicy: Retain
+
+storageClass:
+  create: true
+  provisionerName: cluster.local/asustor-k8s-share
+  name: asustor-k8s
+  defaultClass: false
+  allowVolumeExpansion: true
+  reclaimPolicy: Retain
+  archiveOnDelete: true
+  onDelete: retain
+  pathPattern: "${.PVC.namespace}-${.PVC.name}"
+  accessModes: ReadWriteOnce
+  volumeBindingMode: Immediate
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+nodeSelector:
+  kubernetes.io/hostname: vmi3115606
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+leaderElection:
+  enabled: true
+
+labels: {}
+tolerations: []

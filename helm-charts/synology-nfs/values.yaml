@@ -1,0 +1,58 @@
+# NFS Subdir External Provisioner — Synology DS423
+# Chart: nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
+#
+# Prerequisites:
+#   1. Create shared folder "k8s-nfs" on Synology DSM (Control Panel → Shared Folder)
+#   2. Enable NFS on Synology (Control Panel → File Services → NFS → Enable)
+#   3. Set NFS permissions on "k8s-nfs": 10.0.0.0/24, rw, no_squash, async
+#   4. Verify export: showmount -e 10.0.0.5
+
+replicaCount: 1
+strategyType: Recreate
+
+nfs:
+  server: 10.0.0.5
+  path: /volume1/k8s-nfs
+  mountOptions:
+    - nfsvers=4
+    - noatime
+    - hard
+    - intr
+  reclaimPolicy: Retain
+
+storageClass:
+  create: true
+  name: synology-nfs
+  defaultClass: false
+  allowVolumeExpansion: true
+  reclaimPolicy: Retain
+  archiveOnDelete: true
+  onDelete: retain
+  pathPattern: "${.PVC.namespace}-${.PVC.name}"
+  accessModes: ReadWriteOnce
+  volumeBindingMode: Immediate
+  annotations: {}
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+nodeSelector:
+  kubernetes.io/hostname: vmi3115606
+
+podAnnotations: {}
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+leaderElection:
+  enabled: true
+
+labels: {}
+tolerations: []

@@ -1,0 +1,56 @@
+# NFS Subdir External Provisioner — ASUSTOR flash-share
+# Chart: nfs-subdir-external-provisioner/nfs-subdir-external-provisioner
+# LV: /dev/vg-flash/flash-share (803G, ext4)
+# Export: 192.168.50.0/24 only — MUST add 10.0.0.0/24 to /etc/exports
+#
+# Prerequisites:
+#   Add to ASUSTOR /etc/exports (and S97lvm-nfs init script):
+#   /mnt/flash-share 10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=103)
+
+replicaCount: 1
+strategyType: Recreate
+
+nfs:
+  server: 10.0.0.4
+  path: /mnt/flash-share
+  mountOptions:
+    - nfsvers=4
+    - noatime
+    - hard
+    - intr
+  reclaimPolicy: Retain
+
+storageClass:
+  create: true
+  provisionerName: cluster.local/asustor-flash
+  name: asustor-flash
+  defaultClass: false
+  allowVolumeExpansion: true
+  reclaimPolicy: Retain
+  archiveOnDelete: true
+  onDelete: retain
+  pathPattern: "${.PVC.namespace}-${.PVC.name}"
+  accessModes: ReadWriteOnce
+  volumeBindingMode: Immediate
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+nodeSelector:
+  kubernetes.io/hostname: vmi3115606
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+
+leaderElection:
+  enabled: true
+
+labels: {}
+tolerations: []
