@@ -68,7 +68,7 @@ tempoMonolithic:
   storage:
     credentialsSecret: garage-tempo-credentials
     s3:
-      endpoint: 10.0.0.1:3900
+      endpoint: garage.monitoring.svc.cluster.local:3900
       bucket: tempo-traces
       insecure: true
       region: garage
@@ -126,7 +126,7 @@ pyroscope:
   storage:
     credentialsSecret: garage-pyroscope-credentials
     s3:
-      endpoint: 10.0.0.1:3900
+      endpoint: garage.monitoring.svc.cluster.local:3900
       bucket: pyroscope-profiles
       insecure: true
       region: garage
@@ -874,7 +874,7 @@ mimirMonolithic:
   storage:
     credentialsSecret: garage-mimir-credentials
     s3:
-      endpoint: 10.0.0.1:3900
+      endpoint: garage.monitoring.svc.cluster.local:3900
       insecure: true
     buckets:
       blocks: mimir-blocks
