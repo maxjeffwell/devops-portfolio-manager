@@ -37,9 +37,9 @@ spec:
               # Run mongodump
               mongodump --uri="${MONGODB_URI}" --archive="${BACKUP_FILE}" --gzip
 
-              echo "Backup complete, uploading to B2..."
+              echo "Backup complete, uploading to Garage..."
 
-              # Upload to Backblaze B2
+              # Upload to Garage S3
               aws s3 cp "${BACKUP_FILE}" "s3://${B2_BUCKET}/mongodb-backups/intervalai-${TIMESTAMP}.archive" \
                 --endpoint-url="${B2_ENDPOINT}"
 
@@ -59,7 +59,7 @@ spec:
               done
 
               # List recent backups
-              echo "Recent backups in B2:"
+              echo "Recent backups in Garage:"
               aws s3 ls "s3://${B2_BUCKET}/mongodb-backups/" --endpoint-url="${B2_ENDPOINT}" | tail -5
 
               echo "Backup uploaded successfully!"

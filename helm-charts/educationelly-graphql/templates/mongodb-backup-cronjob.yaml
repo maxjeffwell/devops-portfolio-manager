@@ -36,7 +36,7 @@ spec:
 
               mongodump --uri="${MONGODB_URI}" --archive="${BACKUP_FILE}" --gzip
 
-              echo "Backup complete, uploading to B2..."
+              echo "Backup complete, uploading to Garage..."
 
               aws s3 cp "${BACKUP_FILE}" "s3://${B2_BUCKET}/mongodb-backups/educationelly-graphql-${TIMESTAMP}.archive" \
                 --endpoint-url="${B2_ENDPOINT}"

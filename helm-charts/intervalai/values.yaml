@@ -167,14 +167,14 @@ mongodb:
     waitQueueTimeoutMs: 5000
     # Timeout (ms) for server selection
     serverSelectionTimeoutMs: 5000
-  # Backup configuration (mongodump to Backblaze B2)
+  # Backup configuration (mongodump to Garage S3)
   backup:
     enabled: true
     # Run daily at 3 AM UTC
     schedule: "0 3 * * *"
-    b2Bucket: "Marmoset"
-    b2Endpoint: "https://s3.us-east-005.backblazeb2.com"
-    b2SecretName: "velero-b2-credentials"
+    b2Bucket: "velero"
+    b2Endpoint: "http://garage.monitoring.svc.cluster.local:3900"
+    b2SecretName: "garage-backup-credentials"
     retentionDays: 30
 
 # Environment variables

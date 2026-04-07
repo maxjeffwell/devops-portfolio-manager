@@ -77,12 +77,12 @@ spec:
               SIZE=$(du -h "/tmp/dns-zone-${TIMESTAMP}.tar.gz" | cut -f1)
               echo "[$(date)] Packaged zone backup: ${SIZE}"
 
-              # Upload to B2
+              # Upload to Garage S3
               aws s3 cp "/tmp/dns-zone-${TIMESTAMP}.tar.gz" \
                 "s3://${B2_BUCKET}/dns-backups/dns-zone-${TIMESTAMP}.tar.gz" \
                 --endpoint-url="${B2_ENDPOINT}"
 
-              echo "[$(date)] Uploaded to B2"
+              echo "[$(date)] Uploaded to Garage"
 
               # Keep only last 12 backups (3 months of weekly)
               aws s3 ls "s3://${B2_BUCKET}/dns-backups/" \
@@ -108,18 +108,18 @@ spec:
                   name: cloudflare-secrets
                   key: zone-id
             - name: B2_BUCKET
-              value: "Marmoset"
+              value: "velero"
             - name: B2_ENDPOINT
-              value: "https://s3.us-east-005.backblazeb2.com"
+              value: "http://garage.monitoring.svc.cluster.local:3900"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: velero-b2-credentials
+                  name: garage-backup-credentials
                   key: aws_access_key_id
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: velero-b2-credentials
+                  name: garage-backup-credentials
                   key: aws_secret_access_key
             resources:
               requests:

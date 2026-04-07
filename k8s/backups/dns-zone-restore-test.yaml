@@ -198,18 +198,18 @@ spec:
                   name: cloudflare-secrets
                   key: zone-id
             - name: B2_BUCKET
-              value: "Marmoset"
+              value: "velero"
             - name: B2_ENDPOINT
-              value: "https://s3.us-east-005.backblazeb2.com"
+              value: "http://garage.monitoring.svc.cluster.local:3900"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: velero-b2-credentials
+                  name: garage-backup-credentials
                   key: aws_access_key_id
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: velero-b2-credentials
+                  name: garage-backup-credentials
                   key: aws_secret_access_key
             resources:
               requests:
