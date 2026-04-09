@@ -184,6 +184,7 @@ secret:
 
 # MongoDB Configuration
 mongodb:
+  enabled: false
   # Backup configuration (mongodump to Garage S3)
   backup:
     enabled: true

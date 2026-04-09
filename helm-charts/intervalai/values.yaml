@@ -136,7 +136,7 @@ affinity:
 
 # MongoDB configuration
 mongodb:
-  enabled: true
+  enabled: false
   auth:
     enabled: true
     rootPassword: "intervalai-root-password"
