@@ -28,6 +28,10 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      securityContext:
+        fsGroup: 10001
+        runAsUser: 10001
+        runAsGroup: 10001
       containers:
         - name: tempo
           image: "{{ .Values.tempoMonolithic.image.repository }}:{{ .Values.tempoMonolithic.image.tag }}"

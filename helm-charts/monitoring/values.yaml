@@ -63,7 +63,7 @@ tempoMonolithic:
     limits:
       memory: 2Gi
   persistence:
-    storageClass: local-path
+    storageClass: openebs-zfs
     size: 20Gi
   storage:
     credentialsSecret: garage-tempo-credentials
@@ -121,7 +121,7 @@ pyroscope:
     limits:
       memory: 2Gi
   persistence:
-    storageClass: local-path
+    storageClass: openebs-zfs
     size: 20Gi
   storage:
     credentialsSecret: garage-pyroscope-credentials
@@ -159,7 +159,7 @@ kube-prometheus-stack:
       storageSpec:
         volumeClaimTemplate:
           spec:
-            storageClassName: local-path
+            storageClassName: openebs-zfs
             accessModes: ["ReadWriteOnce"]
             resources:
               requests:
@@ -872,7 +872,7 @@ mimirMonolithic:
     limits:
       memory: 4Gi
   persistence:
-    storageClass: local-path
+    storageClass: openebs-zfs
     size: 20Gi
   storage:
     credentialsSecret: garage-mimir-credentials
