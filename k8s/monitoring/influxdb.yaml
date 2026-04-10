@@ -96,7 +96,7 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: local-path
+        storageClassName: openebs-lvmpv
         resources:
           requests:
             storage: 20Gi
