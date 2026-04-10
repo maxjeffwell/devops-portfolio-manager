@@ -88,12 +88,12 @@ tempoMonolithic:
   serviceMonitor:
     enabled: true
 
-# Tempo Redis - Bloom filter and index header cache (no persistence, rebuilt from S3)
+# Tempo cache - Dragonfly (Redis-compatible, multi-threaded, lower memory)
 tempoRedis:
   enabled: true
   image:
-    repository: redis
-    tag: "7-alpine"
+    repository: docker.dragonflydb.io/dragonflydb/dragonfly
+    tag: "latest"
   nodeSelector:
     kubernetes.io/hostname: vmi2951245
   resources:
@@ -101,9 +101,9 @@ tempoRedis:
       cpu: 50m
       memory: 256Mi
     limits:
-      memory: 2Gi
-  maxmemory: 2gb
-  maxmemoryPolicy: allkeys-lru
+      memory: 1Gi
+  maxmemory: 800mb
+  proactorThreads: 2
 
 # Pyroscope - Continuous profiling (monolithic mode, Garage S3 backend)
 pyroscope:
@@ -588,12 +588,12 @@ garage:
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 256Mi
     limits:
-      memory: 512Mi
+      memory: 1Gi
   persistence:
-    storageClass: local-path
-    size: 80Gi
+    storageClass: openebs-lvmpv
+    size: 10Gi
   ingress:
     enabled: true
     host: s3.el-jefe.me

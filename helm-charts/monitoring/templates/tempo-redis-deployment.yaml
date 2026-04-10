@@ -23,18 +23,15 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: redis
+        - name: dragonfly
           image: "{{ .Values.tempoRedis.image.repository }}:{{ .Values.tempoRedis.image.tag }}"
           imagePullPolicy: IfNotPresent
           args:
             - --maxmemory
             - {{ .Values.tempoRedis.maxmemory }}
-            - --maxmemory-policy
-            - {{ .Values.tempoRedis.maxmemoryPolicy }}
-            - --save
-            - ""
-            - --appendonly
-            - "no"
+            - --proactor_threads
+            - "{{ .Values.tempoRedis.proactorThreads }}"
+            - --cache_mode
           ports:
             - name: redis
               containerPort: 6379
