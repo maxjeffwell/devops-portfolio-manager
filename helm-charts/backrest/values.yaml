@@ -18,7 +18,7 @@ ingress:
 
 resources:
   limits:
-    memory: 512Mi
+    memory: 1Gi
   requests:
     cpu: 50m
     memory: 128Mi
@@ -51,15 +51,15 @@ env:
 persistence:
   data:
     enabled: true
-    existingClaim: backrest-data-v2
+    existingClaim: backrest-data-v3
     mountPath: /data
   config:
     enabled: true
-    existingClaim: backrest-config-v2
+    existingClaim: backrest-config-v3
     mountPath: /config
   cache:
     enabled: true
-    existingClaim: backrest-cache-v2
+    existingClaim: backrest-cache-v3
     mountPath: /cache
   backups:
     enabled: true
@@ -87,7 +87,7 @@ startupProbe:
   initialDelaySeconds: 5
   periodSeconds: 5
   timeoutSeconds: 3
-  failureThreshold: 12
+  failureThreshold: 60
 
 livenessProbe:
   httpGet:
