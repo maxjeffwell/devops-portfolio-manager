@@ -18,7 +18,7 @@ data:
     rpc_public_addr = "__HOST_IP__:3901"
     rpc_secret = "__RPC_SECRET__"
 
-    bootstrap_peers = ["10.0.0.4:3901"]
+    bootstrap_peers = ["10.0.0.4:3901", "10.0.0.5:3901", "10.0.0.6:3901", "10.0.0.7:3901"]
 
     [s3_api]
     s3_region = "garage"
