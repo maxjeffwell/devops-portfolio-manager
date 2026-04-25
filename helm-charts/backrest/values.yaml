@@ -63,7 +63,7 @@ persistence:
     mountPath: /cache
   backups:
     enabled: true
-    existingClaim: backrest-backups-v2
+    existingClaim: backrest-backups-v3
     mountPath: /velero-backups
 
 hostPaths:
