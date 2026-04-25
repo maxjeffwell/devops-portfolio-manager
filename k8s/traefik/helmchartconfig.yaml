@@ -58,6 +58,9 @@ spec:
         hostPath:
           path: /var/log/traefik
           type: DirectoryOrCreate
+      - name: crowdsec-lapi-key
+        secret:
+          secretName: crowdsec-bouncer-lapi-key
       initContainers:
       - name: fix-log-permissions
         image: busybox:1.37
@@ -71,3 +74,6 @@ spec:
     additionalVolumeMounts:
     - name: access-logs
       mountPath: /var/log/traefik
+    - name: crowdsec-lapi-key
+      mountPath: /etc/crowdsec
+      readOnly: true
