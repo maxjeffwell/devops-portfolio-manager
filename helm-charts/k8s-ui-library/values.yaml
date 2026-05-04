@@ -57,6 +57,12 @@ ingress:
   enabled: true
   host: showcase.el-jefe.me
 
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
 nodeSelector: {}
 
 affinity:

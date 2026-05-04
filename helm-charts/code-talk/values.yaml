@@ -195,4 +195,10 @@ ingress:
 #   --from-literal=JWT_SECRET=<secret> \
 #   --from-literal=REDIS_URL=<url>
 
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
 nodeSelector: {}

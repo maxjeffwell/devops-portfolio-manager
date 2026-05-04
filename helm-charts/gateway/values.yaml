@@ -135,6 +135,12 @@ volumeMounts:
     mountPath: /etc/netvis
     readOnly: true
 
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+
 nodeSelector: {}
 
 affinity:
