@@ -23,6 +23,12 @@ data:
     [s3_api]
     s3_region = "garage"
     api_bind_addr = "[::]:3900"
+    {{- if .Values.garage.ingress.virtualHostedStyle }}
+    # Tells Garage which DNS suffix to strip from the Host header to extract
+    # the bucket name. Required for virtual-hosted-style S3 addressing
+    # (e.g. ovms-models.s3.el-jefe.me -> bucket "ovms-models").
+    root_domain = ".{{ .Values.garage.ingress.host }}"
+    {{- end }}
 
     [admin]
     api_bind_addr = "[::]:3903"
