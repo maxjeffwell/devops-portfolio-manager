@@ -1,0 +1,38 @@
+# Loki ruler alert: Jellyfin authentication failure spike.
+# Jellyfin's auth-failure log lines vary by version — pattern catches multiple
+# common phrasings (10.10.x): "Authentication request ... denied",
+# "Login attempt failed", "Invalid username or password",
+# "AuthenticateByName ... failed".
+#
+# Threshold: 0.05 failures/sec averaged over 5 min (≈ 3/min sustained or
+# 15+ in a 5-min window). Fires after 2 min of sustained breach to avoid
+# alerting on single-burst noise.
+#
+# Source IP enrichment is intentionally not in this rule — Jellyfin's
+# log format requires fragile regex parsing for IPs. When the alert fires,
+# query Loki interactively:
+#   {namespace="jellyfin"} |~ "(?i)(authentication.*denied|login attempt failed)"
+# to see source addresses.
+#
+# DEPLOY: copy to ASUSTOR Loki rules dir (typically /etc/loki/rules/fake/
+# for single-tenant Loki), then `loki -reload` or restart Loki container.
+groups:
+  - name: jellyfin-auth
+    interval: 1m
+    rules:
+      - alert: JellyfinAuthFailureSpike
+        expr: |
+          sum(rate({namespace="jellyfin"} |~ "(?i)(authentication.*denied|login attempt failed|invalid username or password|authenticatebyname.*failed)" [5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          app: jellyfin
+        annotations:
+          summary: "Jellyfin auth-failure spike"
+          description: |
+            Jellyfin is logging >0.05 auth-failures/sec (>~3/min sustained).
+            Investigate via:
+              {namespace="jellyfin"} |~ "(?i)(authentication.*denied|login attempt failed)"
+            Possible causes: brute-force attempt (check source IPs),
+            misconfigured client retry loop, or post-update credential mismatch.
+          gotify_priority: "5"
