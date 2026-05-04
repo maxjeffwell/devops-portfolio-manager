@@ -43,6 +43,9 @@ spec:
             - { name: QDRANT__SERVICE__HTTP_PORT, value: "6333" }
             - { name: QDRANT__SERVICE__GRPC_PORT, value: "6334" }
             - { name: QDRANT__TELEMETRY_DISABLED, value: "true" }
+            # Snapshots default to /qdrant/snapshots (container root fs, owned
+            # by root, not writable by our UID 1000). Redirect into PVC.
+            - { name: QDRANT__STORAGE__SNAPSHOTS_PATH, value: /qdrant/storage/snapshots }
           resources:
             requests: { cpu: 500m, memory: 512Mi }
             limits:   { memory: 1Gi }
