@@ -114,6 +114,24 @@ spec:
               limits:
                 cpu: 500m
                 memory: 512Mi
-# TODO: Once B2_OFFSITE_KEY_ID and B2_OFFSITE_APPLICATION_KEY are added to
-# Doppler (portfolio/prd), restore the ExternalSecret block here so the
-# b2-offsite-credentials Secret gets auto-managed.
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: b2-offsite-credentials-eso
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: b2-offsite-credentials
+    creationPolicy: Owner
+  data:
+  - secretKey: aws_access_key_id
+    remoteRef:
+      key: B2_OFFSITE_KEY_ID
+  - secretKey: aws_secret_access_key
+    remoteRef:
+      key: B2_OFFSITE_APPLICATION_KEY
