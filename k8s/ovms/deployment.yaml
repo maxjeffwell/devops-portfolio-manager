@@ -48,6 +48,9 @@ spec:
             # Must match Garage's [s3_api] s3_region config (currently "garage")
             - { name: AWS_REGION, value: garage }
             - { name: S3_ENDPOINT, value: s3.el-jefe.me }
+            # OVMS bundles its own static CA store; bypassing TLS verify
+            # confirms cert-bundle mismatch is the cause if this works.
+            - { name: S3_VERIFY_SSL, value: "false" }
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
