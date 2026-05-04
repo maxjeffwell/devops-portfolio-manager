@@ -40,7 +40,7 @@ spec:
             - "--port=9000"
             - "--rest_port=8000"
             - "--target_device=GPU"
-            - "--log_level=INFO"
+            - "--log_level=DEBUG"
           ports:
             - { name: rest, containerPort: 8000, protocol: TCP }
             - { name: grpc, containerPort: 9000, protocol: TCP }
