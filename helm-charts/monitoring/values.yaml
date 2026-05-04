@@ -893,6 +893,10 @@ mimirMonolithic:
       compactorBlocksRetentionPeriod: 2160h
       maxGlobalExemplarsPerUser: 100000
       outOfOrderTimeWindow: 5m
+      # Bumped from default 30 → 50: cAdvisor metrics from ASUSTOR docker-compose
+      # containers carry container_label_com_docker_compose_* labels that push
+      # series past the 30-label default. Was rejecting 31-label series.
+      maxLabelNamesPerSeries: 50
   serviceMonitor:
     enabled: true
 
