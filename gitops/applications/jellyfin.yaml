@@ -15,6 +15,16 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: jellyfin
+  ignoreDifferences:
+    # ESO injects defaults (conversionStrategy / decodingStrategy / metadataPolicy)
+    # on every data entry. These never appear in the source YAML, so without this
+    # ignore rule ArgoCD reports permanent OutOfSync on healthy ExternalSecrets.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
   syncPolicy:
     automated:
       prune: true
