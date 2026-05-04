@@ -1,0 +1,16 @@
+# Jellyfin /cache — image cache, trickplay images, TMDB poster downloads.
+# Sized at 10Gi declared (thin-provisioned; actual fill ~5-15GB for moderate library).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-cache
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: openebs-lvmpv

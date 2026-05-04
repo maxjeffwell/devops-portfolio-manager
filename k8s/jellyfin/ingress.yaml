@@ -1,0 +1,32 @@
+# Standard Ingress catches all traffic to jellyfin-k8s.el-jefe.me with the
+# CrowdSec bouncer middleware (cluster-wide IP reputation filtering).
+# cert-manager provisions jellyfin-tls automatically via the annotation.
+# The auth-path-specific rate-limit middleware is applied separately via the
+# IngressRoute in ingressroute-auth.yaml (which takes precedence by path match).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - jellyfin-k8s.el-jefe.me
+      secretName: jellyfin-tls
+  rules:
+    - host: jellyfin-k8s.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin
+                port:
+                  number: 8096
