@@ -1,0 +1,16 @@
+# Jellyfin /config — server.xml, plugin binaries, logs.
+# openebs-lvmpv on debian-marmoset (the only node with openebs-vg).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: openebs-lvmpv

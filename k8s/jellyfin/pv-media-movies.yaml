@@ -1,0 +1,27 @@
+# Static NFS PV for ASUSTOR /volume1/Movies (read-only).
+# Capacity is metadata-only for static NFS PVs (not enforced by NFS or kubelet) —
+# it only governs PVC-binding eligibility. Set to 2Ti as a nominal headroom (current
+# usage ~266 GB; ASUSTOR /volume1 total is 3.6 TB).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-movies
+  labels:
+    app: jellyfin
+    media: movies
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - intr
+  nfs:
+    server: 10.0.0.4
+    path: /volume1/Movies

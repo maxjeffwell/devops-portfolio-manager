@@ -1,0 +1,28 @@
+# Static NFS PV for ASUSTOR /volume1/TV Shows (read-only).
+# NFS server side has the path quoted in /etc/exports as "/volume1/TV Shows"
+# (NFS path quoting via double quotes for paths with spaces — backslash escapes
+# don't work in /etc/exports). The mount client receives the literal path.
+# Capacity is metadata-only; set to 2Ti as nominal headroom (current usage ~365 GB).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-tvshows
+  labels:
+    app: jellyfin
+    media: tvshows
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - intr
+  nfs:
+    server: 10.0.0.4
+    path: /volume1/TV Shows
