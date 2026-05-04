@@ -45,12 +45,11 @@ spec:
             - { name: rest, containerPort: 8000, protocol: TCP }
             - { name: grpc, containerPort: 9000, protocol: TCP }
           env:
-            # Must match Garage's [s3_api] s3_region config (currently "garage")
-            - { name: AWS_REGION, value: garage }
+            # Garage v2 accepts any region in SigV4 signatures; us-east-1 is
+            # the canonical "no region" choice and was confirmed working in logs
+            # at 21:48-21:51 UTC during diagnosis.
+            - { name: AWS_REGION, value: us-east-1 }
             - { name: S3_ENDPOINT, value: s3.el-jefe.me }
-            # OVMS bundles its own static CA store; bypassing TLS verify
-            # confirms cert-bundle mismatch is the cause if this works.
-            - { name: S3_VERIFY_SSL, value: "false" }
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
