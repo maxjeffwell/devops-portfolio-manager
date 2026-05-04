@@ -597,6 +597,11 @@ garage:
   ingress:
     enabled: true
     host: s3.el-jefe.me
+    # Adds *.s3.el-jefe.me Ingress rule + wildcard SAN to garage-s3-tls so S3
+    # SDKs that default to virtual-hosted-style addressing (OVMS, boto3, etc)
+    # work without per-client path-style flags. Requires Cloudflare CNAME
+    # *.s3.el-jefe.me -> s3.el-jefe.me (grey cloud).
+    virtualHostedStyle: true
   buckets:
     - mimir-blocks
     - mimir-ruler
