@@ -66,19 +66,21 @@ spec:
                 secretKeyRef:
                   name: mongodb-microservices-backup-creds
                   key: MONGO_ROOT_PASSWORD
+            - name: AWS_DEFAULT_REGION
+              value: "garage"
             - name: B2_BUCKET
-              value: "velero"
+              value: "app-dumps"
             - name: B2_ENDPOINT
               value: "http://garage.monitoring.svc.cluster.local:3900"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: garage-backup-credentials
+                  name: garage-velero-creds
                   key: aws_access_key_id
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: garage-backup-credentials
+                  name: garage-velero-creds
                   key: aws_secret_access_key
             resources:
               requests:

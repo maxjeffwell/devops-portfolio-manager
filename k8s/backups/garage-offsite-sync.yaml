@@ -1,0 +1,139 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: garage-offsite-sync
+  namespace: default
+  labels:
+    app: garage-offsite-sync
+spec:
+  # Sundays 06:00 UTC — runs after weekly-offsite (04:00) finishes
+  # so the freshest Velero state is included in the off-site copy.
+  schedule: "0 6 * * 0"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 86400
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: garage-offsite-sync
+        spec:
+          restartPolicy: OnFailure
+          # Pin to a node that can reach Garage hostNet endpoints.
+          # debian-marmoset (10.0.0.9) currently can't reach 10.0.0.1/3 from pod CIDR.
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["vmi2951245", "vmi3115606"]
+          containers:
+          - name: rclone-sync
+            image: rclone/rclone:1.69
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              set -eu
+              echo "[$(date -u)] Starting Garage -> B2 off-site sync"
+
+              # Build rclone config from env (avoids writing secrets to disk)
+              export RCLONE_CONFIG_GARAGE_TYPE=s3
+              export RCLONE_CONFIG_GARAGE_PROVIDER=Other
+              export RCLONE_CONFIG_GARAGE_ENDPOINT="${GARAGE_ENDPOINT}"
+              export RCLONE_CONFIG_GARAGE_ACCESS_KEY_ID="${GARAGE_ACCESS_KEY_ID}"
+              export RCLONE_CONFIG_GARAGE_SECRET_ACCESS_KEY="${GARAGE_SECRET_ACCESS_KEY}"
+              export RCLONE_CONFIG_GARAGE_REGION=garage
+              export RCLONE_CONFIG_GARAGE_FORCE_PATH_STYLE=true
+
+              export RCLONE_CONFIG_B2_TYPE=s3
+              export RCLONE_CONFIG_B2_PROVIDER=Other
+              export RCLONE_CONFIG_B2_ENDPOINT="${B2_ENDPOINT}"
+              export RCLONE_CONFIG_B2_ACCESS_KEY_ID="${B2_ACCESS_KEY_ID}"
+              export RCLONE_CONFIG_B2_SECRET_ACCESS_KEY="${B2_SECRET_ACCESS_KEY}"
+              export RCLONE_CONFIG_B2_REGION=us-east-005
+              export RCLONE_CONFIG_B2_FORCE_PATH_STYLE=true
+
+              # Sync each dump-style prefix from Garage:velero -> B2:offsite-bucket.
+              # Skip kopia/, restic/, backups/ (Velero already ships those to B2 directly).
+              for prefix in mongodb-backups postgresql-backups dns-backups doppler-backups influxdb-backups; do
+                echo "[$(date -u)] --- syncing prefix: ${prefix} ---"
+                rclone sync \
+                  "garage:${SOURCE_BUCKET}/${prefix}" \
+                  "b2:${OFFSITE_BUCKET}/${prefix}" \
+                  --transfers=4 \
+                  --checkers=8 \
+                  --stats=30s \
+                  --stats-one-line \
+                  --bwlimit=20M \
+                  --retries=3 \
+                  --low-level-retries=10
+              done
+
+              echo "[$(date -u)] Off-site sync complete"
+              rclone size "b2:${OFFSITE_BUCKET}" || true
+            env:
+            - name: SOURCE_BUCKET
+              value: "app-dumps"
+            - name: OFFSITE_BUCKET
+              value: "garage-offsite"   # create on B2 first; lifecycle: 90d
+            - name: GARAGE_ENDPOINT
+              value: "http://garage.monitoring.svc.cluster.local:3900"
+            - name: B2_ENDPOINT
+              value: "https://s3.us-east-005.backblazeb2.com"
+            - name: GARAGE_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: garage-velero-creds
+                  key: aws_access_key_id
+            - name: GARAGE_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: garage-velero-creds
+                  key: aws_secret_access_key
+            # B2 creds — needs a new secret (see ExternalSecret below if using ESO/Doppler)
+            - name: B2_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: b2-offsite-credentials
+                  key: aws_access_key_id
+            - name: B2_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: b2-offsite-credentials
+                  key: aws_secret_access_key
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+---
+# Optional: ExternalSecret for B2 creds via Doppler (matches your existing pattern).
+# Drop this block if you'd rather kubectl-create the secret manually.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: b2-offsite-credentials-eso
+  namespace: default
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: b2-offsite-credentials
+    creationPolicy: Owner
+  data:
+  - secretKey: aws_access_key_id
+    remoteRef:
+      key: B2_OFFSITE_KEY_ID        # add to Doppler portfolio/prd
+  - secretKey: aws_secret_access_key
+    remoteRef:
+      key: B2_OFFSITE_APPLICATION_KEY

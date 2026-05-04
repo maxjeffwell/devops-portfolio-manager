@@ -61,6 +61,8 @@ spec:
                 secretKeyRef:
                   name: educationelly-secret
                   key: MONGODB_URI
+            - name: AWS_DEFAULT_REGION
+              value: "garage"
             - name: B2_BUCKET
               value: {{ .Values.mongodb.backup.b2Bucket | quote }}
             - name: B2_ENDPOINT

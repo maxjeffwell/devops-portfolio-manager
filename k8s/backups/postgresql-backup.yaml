@@ -40,11 +40,12 @@ spec:
 
               echo "[$(date)] Starting PostgreSQL backup..."
 
-              # Dump all databases from the codetalk instance
+              # Dump from the CNPG codetalk read-write endpoint.
+              # Credentials come from CNPG's auto-generated app secret (cnpg-codetalk-app).
               PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
-                -h postgresql-codetalk \
-                -U codetalk_user \
-                -d codetalk \
+                -h cnpg-codetalk-rw \
+                -U "${POSTGRES_USER}" \
+                -d "${POSTGRES_DB}" \
                 -Fc \
                 --no-owner \
                 -f "/tmp/codetalk-${TIMESTAMP}.dump"
@@ -77,24 +78,36 @@ spec:
 
               echo "[$(date)] PostgreSQL backup complete!"
             env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-codetalk-app
+                  key: username
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgresql-codetalk-secrets
-                  key: postgres-password
+                  name: cnpg-codetalk-app
+                  key: password
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: cnpg-codetalk-app
+                  key: dbname
+            - name: AWS_DEFAULT_REGION
+              value: "garage"
             - name: B2_BUCKET
-              value: "velero"
+              value: "app-dumps"
             - name: B2_ENDPOINT
               value: "http://garage.monitoring.svc.cluster.local:3900"
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
-                  name: garage-backup-credentials
+                  name: garage-velero-creds
                   key: aws_access_key_id
             - name: AWS_SECRET_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: garage-backup-credentials
+                  name: garage-velero-creds
                   key: aws_secret_access_key
             resources:
               requests:
