@@ -49,20 +49,10 @@ spec:
             - { name: PGID, value: "1000" }
             - { name: JELLYFIN_PublishedServerUrl,                value: https://jellyfin-k8s.el-jefe.me }
             - { name: JELLYFIN_FFmpeg__transcoding_temp_path,     value: /transcodes }
-            - { name: JELLYFIN_DATABASE_TYPE,                     value: postgresql }
-            - { name: JELLYFIN_DATABASE_HOST,                     value: cnpg-jellyfin-rw.default.svc.cluster.local }
-            - { name: JELLYFIN_DATABASE_PORT,                     value: "5432" }
-            - { name: JELLYFIN_DATABASE_NAME,                     value: jellyfin }
-            - name: JELLYFIN_DATABASE_USER
-              valueFrom:
-                secretKeyRef:
-                  name: jellyfin-pg-credentials
-                  key: JELLYFIN_DATABASE_USER
-            - name: JELLYFIN_DATABASE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: jellyfin-pg-credentials
-                  key: JELLYFIN_DATABASE_PASSWORD
+            # Jellyfin uses default SQLite backend (jellyfin.db in /config).
+            # PG attempt was abandoned in Phase 5 — JELLYFIN_DATABASE_* env vars
+            # weren't honored (Jellyfin uses .NET-style JELLYFIN__... binding) AND
+            # PG buys nothing meaningful for this single-process workload.
           resources:
             requests:
               cpu: "1"

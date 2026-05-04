@@ -9,7 +9,6 @@ resources:
   - pvc-media-tvshows.yaml
   - pvc-config.yaml
   - pvc-cache.yaml
-  - jellyfin-pg-external-secret.yaml
   - middleware-ratelimit.yaml
   - networkpolicy.yaml
   - deployment.yaml
