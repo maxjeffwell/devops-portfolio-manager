@@ -21,12 +21,22 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: verify
-            image: velero/velero:v1.17.1
+            # Use alpine + downloaded velero CLI because velero/velero:v1.17.1
+            # is distroless (no /bin/sh), which prevents the script below from
+            # bootstrapping. The cluster has direct internet egress for
+            # github.com release downloads via velero ns (no NetworkPolicy).
+            image: alpine:3.21
             command:
             - /bin/sh
             - -c
             - |
               set -e
+              apk add -q --no-cache curl jq >/dev/null
+              cd /tmp
+              VELERO_VERSION={{ .Values.veleroBackupVerify.veleroVersion | default "v1.17.1" }}
+              curl -sL "https://github.com/vmware-tanzu/velero/releases/download/${VELERO_VERSION}/velero-${VELERO_VERSION}-linux-amd64.tar.gz" | tar xz
+              mv "velero-${VELERO_VERSION}-linux-amd64/velero" /usr/local/bin/
+              chmod +x /usr/local/bin/velero
               echo "=== Velero Backup Verification ==="
               echo "Date: $(date)"
 
