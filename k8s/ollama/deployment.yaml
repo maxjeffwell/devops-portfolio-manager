@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: default
+  labels:
+    app: ollama
+    portfolio: "true"
+spec:
+  replicas: 1
+  strategy:
+    # Recreate avoids RWO PVC dual-attach during rollouts.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+        portfolio: "true"
+    spec:
+      nodeSelector:
+        gpu-node: "true"
+      priorityClassName: portfolio-critical
+      securityContext:
+        # Documented exception vs Jellyfin: IPEX-LLM image runs as root and
+        # writes runtime config under /root and /etc. NetworkPolicy + lack of
+        # internet egress (post model-pull) are the compensating controls.
+        runAsUser: 0
+        runAsGroup: 0
+        fsGroup: 986
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ollama
+          image: intelanalytics/ipex-llm-inference-cpp-xpu:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          # IPEX-LLM image runs Ollama by default (entrypoint chains to ollama serve).
+          ports:
+            - name: http
+              containerPort: 11434
+              protocol: TCP
+          env:
+            - { name: TZ,                    value: America/New_York }
+            - { name: OLLAMA_HOST,           value: "0.0.0.0:11434" }
+            # Keep the most-recently-used model warm in iGPU memory for 10min;
+            # default 5min causes too-frequent reloads for chatty workloads.
+            - { name: OLLAMA_KEEP_ALIVE,     value: "10m" }
+            # Intel Level Zero sysman for GPU monitoring.
+            - { name: ZES_ENABLE_SYSMAN,     value: "1" }
+            # Persist compiled SYCL kernels across restarts (PVC-backed).
+            - { name: SYCL_CACHE_PERSISTENT, value: "1" }
+            - { name: SYCL_CACHE_DIR,        value: /root/.cache/sycl }
+          resources:
+            requests:
+              cpu: "2"
+              memory: 6Gi
+              gpu.intel.com/i915: "1"
+            limits:
+              # Iris Xe shares system RAM as VRAM via UMA. 12Gi cap leaves
+              # headroom on the 16GB node for Jellyfin + system.
+              memory: 12Gi
+              gpu.intel.com/i915: "1"
+          volumeMounts:
+            - { name: models,     mountPath: /root/.ollama/models }
+            - { name: sycl-cache, mountPath: /root/.cache }
+          livenessProbe:
+            tcpSocket: { port: 11434 }
+            periodSeconds: 30
+          readinessProbe:
+            httpGet: { path: /api/tags, port: 11434 }
+            periodSeconds: 10
+          startupProbe:
+            # 5min budget for image init + SYCL warmup on first pod start.
+            tcpSocket: { port: 11434 }
+            periodSeconds: 5
+            failureThreshold: 60
+      volumes:
+        - { name: models,     persistentVolumeClaim: { claimName: ollama-models } }
+        - { name: sycl-cache, persistentVolumeClaim: { claimName: ollama-sycl-cache } }

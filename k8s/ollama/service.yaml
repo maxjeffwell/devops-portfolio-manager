@@ -1,0 +1,19 @@
+# ClusterIP only — consumed by spaced-repetition (intervalai) and
+# shared-ai-gateway via http://ollama.default.svc.cluster.local:11434
+# (replaces http://llama-cpu-service:8080 from the prior llama.cpp deployment).
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: default
+  labels:
+    app: ollama
+spec:
+  type: ClusterIP
+  selector:
+    app: ollama
+  ports:
+    - name: http
+      port: 11434
+      targetPort: 11434
+      protocol: TCP

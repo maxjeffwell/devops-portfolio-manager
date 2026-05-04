@@ -1,0 +1,21 @@
+# Mirrors the existing allow-ai-internal pattern that protected llama-cpu:
+# ingress-only (any pod in default ns can hit 11434), no egress restriction
+# (matches fleet convention; egress lockdown isn't applied to other workloads
+# in this cluster — would be inconsistent to do here only).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ai-ollama
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: ollama
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+      ports:
+        - port: 11434
+          protocol: TCP

@@ -1,0 +1,17 @@
+# Ollama model store. Thin-provisioned on debian-marmoset's openebs-vg.
+# Initial workload: llama3.2:3b (~2GB) replacing the llama-cpu deployment.
+# 30Gi declared gives headroom to pull additional models without resizing.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models
+  namespace: default
+  labels:
+    app: ollama
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+  storageClassName: openebs-lvmpv

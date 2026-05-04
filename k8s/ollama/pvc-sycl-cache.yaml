@@ -1,0 +1,17 @@
+# SYCL_CACHE_PERSISTENT=1 puts compiled SYCL kernels here.
+# Survives pod restarts → first-token latency stays low (vs 30s SYCL warmup
+# on every cold start when the cache is missing).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-sycl-cache
+  namespace: default
+  labels:
+    app: ollama
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: openebs-lvmpv
