@@ -67,7 +67,8 @@ pdb:
   enabled: false
   maxUnavailable: 1
 
-nodeSelector: {}
+nodeSelector:
+  gpu-node: "true"  # debian-marmoset; takes lunary off CP, colocates with litellm/Ollama AI stack
 tolerations: []
 affinity:
   nodeAffinity:
