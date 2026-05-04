@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ovms-allow-cluster
+  namespace: ovms
+spec:
+  podSelector:
+    matchLabels:
+      app: ovms-embeddings
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - { port: 8000, protocol: TCP }
+        - { port: 9000, protocol: TCP }
