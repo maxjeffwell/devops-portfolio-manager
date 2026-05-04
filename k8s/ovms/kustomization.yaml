@@ -4,6 +4,7 @@ namespace: ovms
 resources:
   - namespace.yaml
   - ovms-external-secret.yaml
+  - model-pvc.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml

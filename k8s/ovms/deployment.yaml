@@ -26,31 +26,32 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-      containers:
-        - name: ovms
-          image: openvino/model_server:2025.4-gpu
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ovms-models
+      # Hydrates /models from Garage S3 on first start; idempotent no-op
+      # afterwards. Uses aws-cli (boto3-based, doesn't have OVMS's SDK bug).
+      initContainers:
+        - name: model-loader
+          image: amazon/aws-cli:2.17.43
           imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-          args:
-            - "--model_path=s3://ovms-models/e5-large"
-            - "--model_name=e5-large"
-            - "--port=9000"
-            - "--rest_port=8000"
-            - "--target_device=GPU"
-            - "--log_level=DEBUG"
-          ports:
-            - { name: rest, containerPort: 8000, protocol: TCP }
-            - { name: grpc, containerPort: 9000, protocol: TCP }
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              if [ -f /models/e5-large/1/openvino_model.bin ]; then
+                echo "Model already present, skipping sync"
+                exit 0
+              fi
+              echo "Syncing model from s3://ovms-models/e5-large/ ..."
+              aws --endpoint-url=https://s3.el-jefe.me s3 sync \
+                s3://ovms-models/e5-large /models/e5-large
+              echo "Sync complete"
+              ls -la /models/e5-large/1/
           env:
-            # MUST match Garage's [s3_api] s3_region = "garage" (chart default).
-            # Garage v2 strictly enforces region in SigV4 signature scope;
-            # mismatch returns 400 "Authorization header malformed". OVMS's
-            # bundled aws-sdk-cpp misreports the 400 as "No response body".
             - { name: AWS_REGION, value: garage }
-            - { name: S3_ENDPOINT, value: s3.el-jefe.me }
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -61,6 +62,31 @@ spec:
                 secretKeyRef:
                   name: ovms-s3-credentials
                   key: AWS_SECRET_ACCESS_KEY
+          volumeMounts:
+            - { name: models, mountPath: /models }
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits:   { memory: 256Mi }
+      containers:
+        - name: ovms
+          image: openvino/model_server:2025.4-gpu
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          args:
+            - "--model_path=/models/e5-large"
+            - "--model_name=e5-large"
+            - "--port=9000"
+            - "--rest_port=8000"
+            - "--target_device=GPU"
+            - "--log_level=INFO"
+          ports:
+            - { name: rest, containerPort: 8000, protocol: TCP }
+            - { name: grpc, containerPort: 9000, protocol: TCP }
+          volumeMounts:
+            - { name: models, mountPath: /models, readOnly: true }
           resources:
             requests:
               cpu: "1"
