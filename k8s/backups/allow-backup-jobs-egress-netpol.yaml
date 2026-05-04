@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backup-jobs-egress
+  namespace: default
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - mongodb-backup
+      - mongodb-backup-educationelly
+      - mongodb-backup-educationelly-graphql
+      - postgresql-backup
+      - dns-zone-backup
+      - doppler-secrets-backup
+      - garage-offsite-sync
+      - mongodb-restore-test
+      - postgresql-restore-test
+      - dns-zone-restore-test
+      - doppler-secrets-restore-test
+  policyTypes: [Egress]
+  egress:
+  # Garage hostNetwork endpoints reached across the WG mesh.
+  # NetworkPolicy egress is evaluated AFTER kube-proxy DNAT, so the ClusterIP
+  # 10.43.207.237 gets rewritten to a host IP in 10.0.0.0/24 before this match.
+  - to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+    ports:
+    - {protocol: TCP, port: 3900}   # Garage S3 API
+    - {protocol: TCP, port: 3903}   # Garage admin
+    - {protocol: TCP, port: 3100}   # Loki on ASUSTOR (10.0.0.4) — for any future log-shipping backup
+  # Source DB: any CNPG cluster (cnpg-codetalk, cnpg-bookmarked, cnpg-auth, cnpg-lunary)
+  - to:
+    - podSelector:
+        matchExpressions:
+        - key: cnpg.io/cluster
+          operator: Exists
+    ports:
+    - {protocol: TCP, port: 5432}
+  # Source DB: MongoDB pods in default ns
+  - to:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - mongodb
+          - mongodb-educationelly
+          - mongodb-educationelly-graphql
+          - mongodb-intervalai
+    ports:
+    - {protocol: TCP, port: 27017}
+  # External egress (B2 / Cloudflare / Doppler APIs) is already covered
+  # by the existing cluster-wide `allow-https-external` policy in this ns.
+  # DNS lookups are covered by the existing `allow-dns` policy.

@@ -198,9 +198,9 @@ mongodb:
   backup:
     enabled: true
     schedule: "10 3 * * *"
-    b2Bucket: "velero"
+    b2Bucket: "app-dumps"
     b2Endpoint: "http://garage.monitoring.svc.cluster.local:3900"
-    b2SecretName: "garage-backup-credentials"
+    b2SecretName: "garage-velero-creds"
     retentionDays: 30
   # Connection Pool Configuration
   # These settings prevent connection exhaustion under load
