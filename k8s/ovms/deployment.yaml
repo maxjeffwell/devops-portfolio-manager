@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ovms
-          image: openvino/model_server:2024.4
+          image: openvino/model_server:2025.4-gpu
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -46,7 +46,7 @@ spec:
             - { name: grpc, containerPort: 9000, protocol: TCP }
           env:
             - { name: AWS_REGION, value: us-east-1 }
-            - { name: S3_ENDPOINT, value: https://s3.el-jefe.me }
+            - { name: S3_ENDPOINT, value: s3.el-jefe.me }
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
