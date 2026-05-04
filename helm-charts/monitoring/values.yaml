@@ -895,3 +895,39 @@ mimirMonolithic:
       outOfOrderTimeWindow: 5m
   serviceMonitor:
     enabled: true
+
+# SNMP Exporter - Scrapes SNMP targets (Synology NAS) via WireGuard mesh
+# Sidesteps Garage v2.2.0 /metrics deadlock on Synology; provides richer filesystem visibility
+snmpExporter:
+  enabled: true
+  image:
+    repository: prom/snmp-exporter
+    tag: v0.28.0
+  priorityClassName: monitoring
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+  # Community string used in all scrape targets; must match Synology /etc/snmp/snmpd.conf
+  auth:
+    name: k8smesh_v2
+    community: k8smesh
+
+# SNMP Synology - Scrape target + alerts for the Synology DS423 (boom_boom)
+snmpSynology:
+  enabled: true
+  target: "10.0.0.5"
+  host: boom_boom
+  module: hrstorage
+  scrapeInterval: 60s
+  scrapeTimeout: 30s
+  alerts:
+    enabled: true
+    mountpoint: /volume1
+    warningThreshold: 0.15
+    warningFor: 15m
+    criticalThreshold: 0.05
+    criticalFor: 5m
+    scrapeDownFor: 5m

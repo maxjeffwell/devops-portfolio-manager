@@ -1,0 +1,58 @@
+{{- if and .Values.snmpExporter.enabled .Values.snmpSynology.enabled .Values.snmpSynology.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: synology-volume-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: synology-volume
+      interval: 60s
+      rules:
+        - record: synology:volume1_avail_bytes
+          expr: |
+            (hrStorageSize{host="{{ .Values.snmpSynology.host }}",hrStorageDescr="{{ .Values.snmpSynology.alerts.mountpoint }}"}
+             - hrStorageUsed{host="{{ .Values.snmpSynology.host }}",hrStorageDescr="{{ .Values.snmpSynology.alerts.mountpoint }}"})
+            * on (hrStorageIndex, host) group_left
+            hrStorageAllocationUnits{host="{{ .Values.snmpSynology.host }}",hrStorageDescr="{{ .Values.snmpSynology.alerts.mountpoint }}"}
+        - record: synology:volume1_size_bytes
+          expr: |
+            hrStorageSize{host="{{ .Values.snmpSynology.host }}",hrStorageDescr="{{ .Values.snmpSynology.alerts.mountpoint }}"}
+            * on (hrStorageIndex, host) group_left
+            hrStorageAllocationUnits{host="{{ .Values.snmpSynology.host }}",hrStorageDescr="{{ .Values.snmpSynology.alerts.mountpoint }}"}
+        - record: synology:volume1_free_ratio
+          expr: |
+            synology:volume1_avail_bytes / synology:volume1_size_bytes
+        - alert: SynologyVolume1LowSpace
+          expr: synology:volume1_free_ratio < {{ .Values.snmpSynology.alerts.warningThreshold }}
+          for: {{ .Values.snmpSynology.alerts.warningFor }}
+          labels:
+            severity: warning
+            host: {{ .Values.snmpSynology.host }}
+          annotations:
+            summary: "Synology {{ .Values.snmpSynology.alerts.mountpoint }} below {{ .Values.snmpSynology.alerts.warningThreshold | mulf 100 }}% free"
+            description: |
+              {{ .Values.snmpSynology.alerts.mountpoint }} on {{ .Values.snmpSynology.host }} has {{ "{{" }} $value | humanizePercentage {{ "}}" }} free.
+              Shared by Garage, iSCSI LUNs, and backup shares — growth here affects Garage writes.
+        - alert: SynologyVolume1CriticallyLow
+          expr: synology:volume1_free_ratio < {{ .Values.snmpSynology.alerts.criticalThreshold }}
+          for: {{ .Values.snmpSynology.alerts.criticalFor }}
+          labels:
+            severity: critical
+            host: {{ .Values.snmpSynology.host }}
+          annotations:
+            summary: "Synology {{ .Values.snmpSynology.alerts.mountpoint }} below {{ .Values.snmpSynology.alerts.criticalThreshold | mulf 100 }}% free — IMMINENT"
+            description: |
+              {{ .Values.snmpSynology.alerts.mountpoint }} has {{ "{{" }} $value | humanizePercentage {{ "}}" }} free. Garage, iSCSI LUNs, and backups will fail.
+        - alert: SynologyScrapeDown
+          expr: up{job="snmp-synology"} == 0
+          for: {{ .Values.snmpSynology.alerts.scrapeDownFor }}
+          labels:
+            severity: warning
+            host: {{ .Values.snmpSynology.host }}
+          annotations:
+            summary: "Synology SNMP scrape failing"
+            description: Cannot reach {{ .Values.snmpSynology.target }}:161 from snmp-exporter for {{ .Values.snmpSynology.alerts.scrapeDownFor }}.
+{{- end }}

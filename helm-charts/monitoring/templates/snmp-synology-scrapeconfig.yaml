@@ -1,0 +1,31 @@
+{{- if and .Values.snmpExporter.enabled .Values.snmpSynology.enabled }}
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: snmp-synology
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  jobName: snmp-synology
+  metricsPath: /snmp
+  scheme: HTTP
+  scrapeInterval: {{ .Values.snmpSynology.scrapeInterval | default "60s" }}
+  scrapeTimeout: {{ .Values.snmpSynology.scrapeTimeout | default "30s" }}
+  params:
+    module: [{{ .Values.snmpSynology.module | default "hrstorage" }}]
+    auth: [{{ .Values.snmpExporter.auth.name }}]
+  staticConfigs:
+    - targets:
+        - {{ .Values.snmpSynology.target | quote }}
+      labels:
+        host: {{ .Values.snmpSynology.host | quote }}
+        role: nas
+  relabelings:
+    - sourceLabels: [__address__]
+      targetLabel: __param_target
+    - sourceLabels: [__param_target]
+      targetLabel: instance
+    - targetLabel: __address__
+      replacement: snmp-exporter.{{ .Release.Namespace }}.svc.cluster.local:9116
+{{- end }}
