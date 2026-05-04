@@ -199,7 +199,6 @@ spec:
                   key: zone-id
             - name: AWS_DEFAULT_REGION
               value: "garage"
-
             - name: B2_BUCKET
               value: "app-dumps"
             - name: B2_ENDPOINT
