@@ -40,7 +40,12 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
-          # IPEX-LLM image runs Ollama by default (entrypoint chains to ollama serve).
+          # IPEX-LLM image's default Cmd doesn't start ollama. The original Docker
+          # container ran `bash -c "cd /root && init-ollama && exec ./ollama serve"`;
+          # mirroring exactly. init-ollama creates the ./ollama wrapper symlink.
+          command: ["bash", "-c"]
+          args:
+            - "cd /root && init-ollama && exec ./ollama serve"
           ports:
             - name: http
               containerPort: 11434
