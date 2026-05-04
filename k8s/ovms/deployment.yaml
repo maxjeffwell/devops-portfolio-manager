@@ -26,6 +26,9 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+        # GID 992 = `render` group on debian-marmoset, owns /dev/dri/renderD128.
+        # Required for Iris Xe access via the Intel GPU device plugin.
+        supplementalGroups: [992]
       volumes:
         - name: models
           persistentVolumeClaim:
@@ -80,7 +83,9 @@ spec:
             - "--model_name=e5-large"
             - "--port=9000"
             - "--rest_port=8000"
-            - "--target_device=GPU"
+            # AUTO picks GPU when accessible, falls back to CPU otherwise.
+            # Avoids hard failure if GPU enumeration has a transient issue.
+            - "--target_device=AUTO"
             - "--log_level=INFO"
           ports:
             - { name: rest, containerPort: 8000, protocol: TCP }
