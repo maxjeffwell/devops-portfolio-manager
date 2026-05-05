@@ -13,6 +13,20 @@ migManager:
   enabled: false
 toolkit:
   enabled: true
+  # K3s containerd integration — without these env vars the toolkit installer
+  # tries default containerd paths (/run/containerd/containerd.sock,
+  # /etc/containerd/config.toml) which don't exist on K3s and the
+  # nvidia-container-toolkit-daemonset enters CrashLoopBackOff with
+  # "unable to dial: dial unix /runtime/sock-dir/containerd.sock"
+  env:
+    - name: CONTAINERD_CONFIG
+      value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+    - name: CONTAINERD_SOCKET
+      value: /run/k3s/containerd/containerd.sock
+    - name: CONTAINERD_RUNTIME_CLASS
+      value: nvidia
+    - name: CONTAINERD_SET_AS_DEFAULT
+      value: "true"
 devicePlugin:
   enabled: true
 dcgmExporter:
