@@ -22,12 +22,15 @@ spec:
       - doppler-secrets-restore-test
   policyTypes: [Egress]
   egress:
-  # Garage hostNetwork endpoints reached across the WG mesh.
-  # NetworkPolicy egress is evaluated AFTER kube-proxy DNAT, so the ClusterIP
-  # 10.43.207.237 gets rewritten to a host IP in 10.0.0.0/24 before this match.
+  # Garage hostNetwork endpoints. NetworkPolicy egress is evaluated AFTER kube-proxy DNAT,
+  # so the ClusterIP 10.43.207.237 gets rewritten to a node host IP. Since the Tailscale
+  # migration (2026-05-04), kubelet publishes endpoints as Tailscale IPs (100.64.0.0/10);
+  # WG CIDR (10.0.0.0/24) kept for fallback paths.
   - to:
     - ipBlock:
-        cidr: 10.0.0.0/24
+        cidr: 10.0.0.0/24      # WireGuard mesh (fallback)
+    - ipBlock:
+        cidr: 100.64.0.0/10    # Tailscale (current kubelet endpoint IPs post 2026-05-04 migration)
     ports:
     - {protocol: TCP, port: 3900}   # Garage S3 API
     - {protocol: TCP, port: 3903}   # Garage admin
