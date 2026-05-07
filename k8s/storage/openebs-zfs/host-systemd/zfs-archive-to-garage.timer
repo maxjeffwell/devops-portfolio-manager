@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly off-box archive of asustor-zfs to Garage (zfs-archive bucket)
+
+[Timer]
+# Fires after K8s snapshot run (03:00) and after syncoid replication (03:15).
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

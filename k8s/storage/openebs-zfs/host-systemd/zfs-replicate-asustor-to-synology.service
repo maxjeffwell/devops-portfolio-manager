@@ -1,0 +1,16 @@
+[Unit]
+Description=Replicate asustor-zfs to synology-zfs via syncoid
+Documentation=https://github.com/jimsalterjrs/sanoid
+After=iscsid.service zfs-import.target zfs-mount.service
+Requires=iscsid.service
+
+[Service]
+Type=oneshot
+# Sanity: bail early if either pool isn't currently imported (iSCSI session down, etc.).
+ExecStartPre=/usr/bin/zpool list asustor-zfs
+ExecStartPre=/usr/bin/zpool list synology-zfs
+# Wrapper handles the "empty source pool" case gracefully (exit 0 instead of syncoid's exit 2).
+# Once child datasets exist, the wrapper just execs syncoid with the right flags.
+ExecStart=/usr/local/bin/zfs-replicate-asustor-to-synology.sh
+StandardOutput=journal
+StandardError=journal

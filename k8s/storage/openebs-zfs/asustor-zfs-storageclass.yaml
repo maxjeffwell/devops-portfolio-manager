@@ -1,0 +1,26 @@
+# asustor-zfs StorageClass
+# openebs-zfs LocalPV-ZFS pool on debian-marmoset
+# Backing: 2-LUN stripe across ASUSTOR backup-k8s-2 + backup-k8s-3 (960 GiB)
+# Standalone manifest for reference/re-creation. Not under ArgoCD — kubectl-apply by hand.
+#
+# Supports both volumeMode: Filesystem (zfs dataset) and volumeMode: Block (zvol).
+# fstype=zfs is ignored for Block-mode PVCs.
+#
+# Restricted to debian-marmoset via allowedTopologies — the pool only exists there.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: asustor-zfs
+provisioner: zfs.csi.openebs.io
+parameters:
+  compression: lz4
+  fstype: zfs
+  poolname: asustor-zfs
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+allowedTopologies:
+- matchLabelExpressions:
+  - key: openebs.io/nodeid
+    values:
+    - debian-marmoset
