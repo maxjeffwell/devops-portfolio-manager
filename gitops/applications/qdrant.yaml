@@ -22,6 +22,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - ServerSideDiff=true       # compute diff via server-side so K8s-defaulted fields don't show as drift
     retry:
       limit: 5
       backoff:
