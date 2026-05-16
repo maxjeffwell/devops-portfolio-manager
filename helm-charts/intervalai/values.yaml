@@ -12,11 +12,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/spaced-repetition-capstone-server
-    tag: 20260308-200007-8a60fbf
+    tag: 20260516-232319-759f496
     pullPolicy: Always
   client:
     repository: maxjeffwell/spaced-repetition-capstone-client
-    tag: 20260308-200007-8a60fbf
+    tag: 20260516-232319-759f496
     pullPolicy: Always
 
 imagePullSecrets: []
