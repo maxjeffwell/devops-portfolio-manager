@@ -71,3 +71,4 @@ spec:
           requests:
             storage: 5Gi
         storageClassName: synology-iscsi
+        volumeMode: Filesystem  # k8s default; explicit so ArgoCD diff stays clean (PVC volumeMode is immutable)
