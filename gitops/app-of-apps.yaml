@@ -13,10 +13,8 @@
 # merge to main, or adjusting prune behavior). Everything below it is
 # fully GitOps-managed.
 #
-# NOTE on targetRevision: pointing at `feat/ovms-qdrant-embeddings` for now
-# because the qdrant + ovms Application manifests with ServerSideDiff fixes
-# live on this branch. Switch to `main` when feat → main is merged so the
-# app-of-apps tracks the trunk going forward.
+# Tracks main. Child Application CRDs in gitops/applications/ are the source
+# of truth; edit + commit + push and ArgoCD picks them up within ~3 min.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -28,7 +26,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
-    targetRevision: feat/ovms-qdrant-embeddings
+    targetRevision: main
     path: gitops/applications
     directory:
       recurse: false
