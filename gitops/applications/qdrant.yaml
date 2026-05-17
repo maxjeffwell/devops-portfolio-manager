@@ -37,6 +37,10 @@ spec:
         - /spec/template/spec/containers/0/terminationMessagePath
         - /spec/template/spec/containers/0/terminationMessagePolicy
         - /spec/template/spec/dnsPolicy
+        # K8s API server adds these envelope fields to volumeClaimTemplates entries
+        - /spec/volumeClaimTemplates/0/apiVersion
+        - /spec/volumeClaimTemplates/0/kind
+        - /spec/volumeClaimTemplates/0/status
   syncPolicy:
     automated:
       prune: true
