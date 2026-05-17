@@ -1,0 +1,15 @@
+# VolumeSnapshotClass for openebs-zfs CSI
+# Used by both monitoring's openebs-zfs pool (vmi2951245) and asustor-zfs pool (debian-marmoset).
+# One class works for all pools managed by zfs.csi.openebs.io.
+#
+# deletionPolicy: Delete — when a VolumeSnapshot CR is deleted, the underlying ZFS snapshot is also deleted.
+# This is what we want for K8s-driven retention: the snapshot CronJob can prune old snapshots
+# by deleting the CR, and the ZFS-side cleanup follows.
+#
+# Standalone manifest for reference/re-creation. Not under ArgoCD — kubectl-apply by hand.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: openebs-zfs-snapclass
+driver: zfs.csi.openebs.io
+deletionPolicy: Delete

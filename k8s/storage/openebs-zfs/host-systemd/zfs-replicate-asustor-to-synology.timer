@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly replication: asustor-zfs -> synology-zfs (15 min after K8s snapshot run)
+
+[Timer]
+# K8s asustor-zfs-snapshot CronJob fires at 03:00 UTC.
+# 15-minute buffer to allow VolumeSnapshot CRs to reach ReadyToUse=true before replication.
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

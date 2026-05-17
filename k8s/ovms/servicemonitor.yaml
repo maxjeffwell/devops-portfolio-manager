@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ovms-embeddings
+  namespace: ovms
+  labels:
+    portfolio: "true"
+spec:
+  selector:
+    matchLabels:
+      app: ovms-embeddings
+  endpoints:
+    - port: rest
+      path: /metrics
+      interval: 60s

@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qdrant
+  namespace: qdrant
+  labels:
+    portfolio: "true"
+spec:
+  selector:
+    matchLabels:
+      app: qdrant
+  endpoints:
+    - port: rest
+      path: /metrics
+      interval: 60s

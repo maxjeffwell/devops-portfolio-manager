@@ -1,0 +1,56 @@
+# Root "app-of-apps" — declarative source of truth for all other ArgoCD Applications.
+#
+# This Application watches gitops/applications/*.yaml and ensures every
+# Application CRD in there exists in the cluster (and any not in there is
+# pruned). Without this, child Application changes in git require a manual
+# `kubectl apply -f gitops/applications/<file>` per change.
+#
+# Bootstrap (one-time, after this file is committed to git):
+#   kubectl apply -f gitops/app-of-apps.yaml
+#
+# After bootstrap, the only thing that requires manual `kubectl apply` is
+# changes to THIS file (e.g., flipping targetRevision when feat branches
+# merge to main, or adjusting prune behavior). Everything below it is
+# fully GitOps-managed.
+#
+# NOTE on targetRevision: pointing at `feat/ovms-qdrant-embeddings` for now
+# because the qdrant + ovms Application manifests with ServerSideDiff fixes
+# live on this branch. Switch to `main` when feat → main is merged so the
+# app-of-apps tracks the trunk going forward.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app-of-apps
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: feat/ovms-qdrant-embeddings
+    path: gitops/applications
+    directory:
+      recurse: false
+      include: '*.yaml'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      # Prune ON: deleting an Application CRD file from gitops/applications/
+      # WILL delete the corresponding ArgoCD Application from the cluster.
+      # The Application's own finalizer then triggers cleanup of the workloads
+      # the Application managed. Be careful with file renames/deletions.
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - ServerSideApply=true
+      - ServerSideDiff=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

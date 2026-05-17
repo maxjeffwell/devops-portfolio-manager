@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ovms-models
+  namespace: ovms
+  labels:
+    app: ovms-embeddings
+    portfolio: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: openebs-lvmpv
+  resources:
+    requests:
+      storage: 2Gi

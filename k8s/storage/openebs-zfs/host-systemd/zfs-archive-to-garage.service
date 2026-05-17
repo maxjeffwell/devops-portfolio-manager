@@ -1,0 +1,16 @@
+[Unit]
+Description=Archive asustor-zfs snapshots to Garage S3 (off-box doomsday tier)
+Documentation=file:///etc/systemd/system/zfs-archive-to-garage.service
+After=zfs-replicate-asustor-to-synology.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Credentials live in /etc/zfs-archive/credentials, mode 600 root-owned.
+# File contains: AWS_ACCESS_KEY_ID=... and AWS_SECRET_ACCESS_KEY=... (one per line)
+EnvironmentFile=/etc/zfs-archive/credentials
+ExecStart=/usr/local/bin/zfs-archive-to-garage.sh
+StandardOutput=journal
+StandardError=journal
+# Don't hammer Garage if it's unreachable — fail and try again tomorrow
+TimeoutStartSec=2h

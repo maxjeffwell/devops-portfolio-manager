@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
     # Pinned to feature branch during rollout; flip to main after PR merge.
-    targetRevision: feat/jellyfin-ollama-debian-marmoset
+    targetRevision: main
     path: k8s/ollama
   destination:
     server: https://kubernetes.default.svc

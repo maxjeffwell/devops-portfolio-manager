@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ovms-embeddings
+  namespace: ovms
+  labels:
+    app: ovms-embeddings
+    portfolio: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ovms-embeddings
+  template:
+    metadata:
+      labels:
+        app: ovms-embeddings
+        portfolio: "true"
+    spec:
+      nodeSelector:
+        gpu-node: "true"
+      priorityClassName: portfolio-critical
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+        # GID 992 = `render` group on debian-marmoset, owns /dev/dri/renderD128.
+        # Required for Iris Xe access via the Intel GPU device plugin.
+        supplementalGroups: [992]
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ovms-models
+      # Hydrates /models from Garage S3 on first start; idempotent no-op
+      # afterwards. Uses aws-cli (boto3-based, doesn't have OVMS's SDK bug).
+      initContainers:
+        - name: model-loader
+          image: amazon/aws-cli:2.17.43
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              if [ -f /models/e5-large/1/openvino_model.bin ]; then
+                echo "Model already present, skipping sync"
+                exit 0
+              fi
+              echo "Syncing model from s3://ovms-models/e5-large/ ..."
+              aws --endpoint-url=https://s3.el-jefe.me s3 sync \
+                s3://ovms-models/e5-large /models/e5-large
+              echo "Sync complete"
+              ls -la /models/e5-large/1/
+          env:
+            - { name: AWS_REGION, value: garage }
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ovms-s3-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ovms-s3-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+          volumeMounts:
+            - { name: models, mountPath: /models }
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits:   { memory: 256Mi }
+      containers:
+        - name: ovms
+          image: openvino/model_server:2025.4-gpu
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          args:
+            - "--model_path=/models/e5-large"
+            - "--model_name=e5-large"
+            - "--port=9000"
+            - "--rest_port=8000"
+            # AUTO picks GPU when accessible, falls back to CPU otherwise.
+            # Avoids hard failure if GPU enumeration has a transient issue.
+            - "--target_device=AUTO"
+            - "--log_level=INFO"
+          ports:
+            - { name: rest, containerPort: 8000, protocol: TCP }
+            - { name: grpc, containerPort: 9000, protocol: TCP }
+          volumeMounts:
+            - { name: models, mountPath: /models, readOnly: true }
+          resources:
+            requests:
+              cpu: "1"
+              memory: 800Mi
+              gpu.intel.com/i915: "1"
+            limits:
+              memory: 1500Mi
+              gpu.intel.com/i915: "1"
+          livenessProbe:
+            httpGet: { path: /v2/health/live, port: 8000 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet: { path: /v2/health/ready, port: 8000 }
+            periodSeconds: 10
+          startupProbe:
+            httpGet: { path: /v2/health/ready, port: 8000 }
+            periodSeconds: 5
+            failureThreshold: 24

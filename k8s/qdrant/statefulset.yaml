@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  namespace: qdrant
+  labels:
+    app: qdrant
+    portfolio: "true"
+spec:
+  serviceName: qdrant
+  replicas: 1
+  # K8s defaults below pinned explicitly to match what the API server applies, so ArgoCD
+  # diff stays clean even if ServerSideDiff has edge cases for StatefulSets.
+  podManagementPolicy: OrderedReady
+  revisionHistoryLimit: 10
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+        portfolio: "true"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: vmi3115606
+      priorityClassName: portfolio-critical
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.12.4
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - { name: rest, containerPort: 6333, protocol: TCP }
+            - { name: grpc, containerPort: 6334, protocol: TCP }
+          env:
+            - { name: QDRANT__SERVICE__HTTP_PORT, value: "6333" }
+            - { name: QDRANT__SERVICE__GRPC_PORT, value: "6334" }
+            - { name: QDRANT__TELEMETRY_DISABLED, value: "true" }
+            # Snapshots default to /qdrant/snapshots (container root fs, owned
+            # by root, not writable by our UID 1000). Redirect into PVC.
+            - { name: QDRANT__STORAGE__SNAPSHOTS_PATH, value: /qdrant/storage/snapshots }
+          resources:
+            requests: { cpu: 500m, memory: 512Mi }
+            limits:   { memory: 1Gi }
+          volumeMounts:
+            - { name: storage, mountPath: /qdrant/storage }
+          livenessProbe:
+            httpGet: { path: /healthz, port: 6333 }
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet: { path: /readyz, port: 6333 }
+            periodSeconds: 10
+          startupProbe:
+            httpGet: { path: /readyz, port: 6333 }
+            periodSeconds: 5
+            failureThreshold: 24
+  volumeClaimTemplates:
+    - metadata:
+        name: storage
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: synology-iscsi
+        volumeMode: Filesystem  # k8s default; explicit so ArgoCD diff stays clean (PVC volumeMode is immutable)

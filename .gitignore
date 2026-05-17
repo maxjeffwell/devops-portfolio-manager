@@ -60,6 +60,9 @@ tmp/
 temp/
 *.tmp
 
+# Local workflow markers (manual touch-files used to trigger external pipelines)
+/B2
+
 # Docker
 *.log
 docker-compose.override.yml

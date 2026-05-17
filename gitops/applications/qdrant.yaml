@@ -1,0 +1,54 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: qdrant
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: feat/ovms-qdrant-embeddings
+    path: k8s/qdrant
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: qdrant
+  # Probe fields that K8s API server fills in as defaults — git omits them, ArgoCD's
+  # client-side diff flags them. ServerSideDiff is supposed to normalize this but has
+  # edge cases for StatefulSet probes. Ignoring the specific JSON pointers eliminates
+  # the false-positive drift without losing real drift detection on other fields.
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: qdrant
+      jsonPointers:
+        - /spec/template/spec/containers/0/livenessProbe/failureThreshold
+        - /spec/template/spec/containers/0/livenessProbe/successThreshold
+        - /spec/template/spec/containers/0/livenessProbe/timeoutSeconds
+        - /spec/template/spec/containers/0/livenessProbe/httpGet/scheme
+        - /spec/template/spec/containers/0/readinessProbe/failureThreshold
+        - /spec/template/spec/containers/0/readinessProbe/successThreshold
+        - /spec/template/spec/containers/0/readinessProbe/timeoutSeconds
+        - /spec/template/spec/containers/0/readinessProbe/httpGet/scheme
+        - /spec/template/spec/containers/0/startupProbe/successThreshold
+        - /spec/template/spec/containers/0/startupProbe/timeoutSeconds
+        - /spec/template/spec/containers/0/startupProbe/httpGet/scheme
+        - /spec/template/spec/containers/0/terminationMessagePath
+        - /spec/template/spec/containers/0/terminationMessagePolicy
+        - /spec/template/spec/dnsPolicy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - ServerSideDiff=true       # compute diff via server-side so K8s-defaulted fields don't show as drift
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

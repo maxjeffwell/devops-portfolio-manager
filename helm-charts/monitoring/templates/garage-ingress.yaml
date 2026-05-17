@@ -24,8 +24,23 @@ spec:
                 name: garage
                 port:
                   number: 3900
+{{- if .Values.garage.ingress.virtualHostedStyle }}
+    - host: "*.{{ .Values.garage.ingress.host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: garage
+                port:
+                  number: 3900
+{{- end }}
   tls:
     - hosts:
         - {{ .Values.garage.ingress.host }}
+{{- if .Values.garage.ingress.virtualHostedStyle }}
+        - "*.{{ .Values.garage.ingress.host }}"
+{{- end }}
       secretName: garage-s3-tls
 {{- end }}

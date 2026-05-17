@@ -1,0 +1,126 @@
+# Daily VolumeSnapshot CronJob for all PVCs on the asustor-zfs StorageClass.
+# Snapshots are taken by openebs-zfs CSI (zfs.csi.openebs.io) — fast COW, in-pool.
+# Naming follows the existing CNPG convention: <pvc>-daily-YYYYMMDDhhmmss.
+#
+# Retention pruning is intentionally left as a TODO inside the script —
+# operational philosophy choice owned by the user (how many to keep, by what policy).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: asustor-zfs-snapshotter
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: asustor-zfs-snapshotter
+rules:
+- apiGroups: [""]
+  resources: [persistentvolumeclaims]
+  verbs: [get, list]
+- apiGroups: [snapshot.storage.k8s.io]
+  resources: [volumesnapshots]
+  verbs: [get, list, create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: asustor-zfs-snapshotter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: asustor-zfs-snapshotter
+subjects:
+- kind: ServiceAccount
+  name: asustor-zfs-snapshotter
+  namespace: default
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: asustor-zfs-snapshot
+  namespace: default
+  labels:
+    app: asustor-zfs-snapshot
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: asustor-zfs-snapshot
+        spec:
+          serviceAccountName: asustor-zfs-snapshotter
+          restartPolicy: OnFailure
+          containers:
+          - name: snapshotter
+            image: alpine/k8s:1.34.1
+            imagePullPolicy: IfNotPresent
+            resources:
+              requests: { cpu: 10m, memory: 32Mi }
+              limits: { memory: 128Mi }
+            command: [/bin/sh, -c]
+            args:
+            - |
+              set -eu
+
+              TIMESTAMP=$(date +%Y%m%d%H%M%S)
+              echo "[$(date)] === asustor-zfs snapshot run ${TIMESTAMP} ==="
+
+              # Find every Bound PVC on the asustor-zfs StorageClass
+              kubectl get pvc --all-namespaces -o json \
+                | jq -r '.items[] | select(.spec.storageClassName == "asustor-zfs" and .status.phase == "Bound") | "\(.metadata.namespace) \(.metadata.name)"' \
+                | while read -r NS PVC; do
+                    SNAP_NAME="${PVC}-daily-${TIMESTAMP}"
+                    echo "[$(date)] creating ${NS}/${SNAP_NAME} from PVC ${PVC}"
+                    kubectl apply -f - <<EOF
+              apiVersion: snapshot.storage.k8s.io/v1
+              kind: VolumeSnapshot
+              metadata:
+                name: ${SNAP_NAME}
+                namespace: ${NS}
+                labels:
+                  backup.el-jefe.me/source-pvc: "${PVC}"
+                  backup.el-jefe.me/cadence: daily
+                  backup.el-jefe.me/managed-by: asustor-zfs-snapshot
+              spec:
+                volumeSnapshotClassName: openebs-zfs-snapclass
+                source:
+                  persistentVolumeClaimName: ${PVC}
+              EOF
+                  done
+
+              echo "[$(date)] === Snapshot creation complete ==="
+
+              # ------------------------------------------------------------
+              # RETENTION: keep last RETAIN VolumeSnapshots per source PVC
+              # ------------------------------------------------------------
+              # Per-PVC retention (each PVC's snapshot history is independent).
+              # `deletionPolicy: Delete` on the VSC cascades the K8s deletion to
+              # destroy the underlying ZFS snapshot via openebs-zfs CSI.
+              RETAIN=14
+              echo "[$(date)] === pruning to last ${RETAIN} per source PVC ==="
+              kubectl get volumesnapshot -A \
+                -l backup.el-jefe.me/managed-by=asustor-zfs-snapshot \
+                -o json \
+                | jq -r --argjson retain "$RETAIN" '
+                    .items
+                    | group_by(.metadata.namespace + "/" + .metadata.labels."backup.el-jefe.me/source-pvc")
+                    | .[]
+                    | sort_by(.metadata.creationTimestamp)
+                    | .[0:(-$retain)]
+                    | .[]?
+                    | "\(.metadata.namespace) \(.metadata.name)"
+                  ' \
+                | while read -r OLD_NS OLD_NAME; do
+                    echo "[$(date)] pruning ${OLD_NS}/${OLD_NAME}"
+                    kubectl delete volumesnapshot -n "$OLD_NS" "$OLD_NAME" --wait=false || true
+                  done
+
+              echo "[$(date)] === Run complete ==="

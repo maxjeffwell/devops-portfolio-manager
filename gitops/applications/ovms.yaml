@@ -1,21 +1,26 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: pop-dashboard
+  name: ovms
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
-    targetRevision: main
-    path: k8s/deployments
-    directory:
-      include: 'pop-portfolio-dashboard-deployment.yaml'
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: feat/ovms-qdrant-embeddings
+    path: k8s/ovms
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: ovms
+  ignoreDifferences:
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
   syncPolicy:
     automated:
       prune: true
@@ -23,6 +28,7 @@ spec:
       allowEmpty: false
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
     retry:
       limit: 5
       backoff:
