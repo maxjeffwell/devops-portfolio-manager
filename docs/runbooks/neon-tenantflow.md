@@ -180,38 +180,98 @@ The backend pod's ServiceAccount needs permission to read/write the
 `tenantflow-neon-tenant-map` ConfigMap in the `neon` namespace
 (verbs: get, create, update).
 
+## Compute pod provisioning (implemented, gotchas catalogued)
+
+`k8sService.provisionNeonCompute()` creates the four-resource bundle
+per branch:
+
+| Resource | Name | Purpose |
+|---|---|---|
+| Secret | `<computeName>-creds` | 24-byte random plaintext password |
+| ConfigMap | `<computeName>-spec` | spec.json with tenant_id, timeline_id, safekeeper list, pageserver connstring, MD5 password hash, PG settings |
+| Deployment | `<computeName>` | 1 replica, image `perconalab/neon:pg14-1.0.0`, `runAsUser: 0` |
+| Service | `<computeName>` | ClusterIP, port 55432 |
+
+`computeName` convention: `compute-<tenantNamespace>`. So tenant
+namespace `tenant-foo` gets compute pod `compute-tenant-foo` exposing
+`compute-tenant-foo.neon.svc.cluster.local:55432`.
+
+**Gotchas baked into the implementation** (all discovered during the
+2026-05-17 smoketest; if any of these break in the future, the issue
+is probably here):
+
+1. **Hash format** — `encrypted_password` in spec.json must be
+   `MD5(password + username)`, NOT `MD5(password)` as the addon
+   README example suggests. The addon's example is broken; using
+   it directly produces an unconnectable role.
+
+2. **Binary paths** — `compute_ctl` lives at
+   `/opt/neondatabase-neon/target/release/compute_ctl`, NOT
+   `/usr/local/bin/compute_ctl`. Postgres binary is at
+   `/opt/neondatabase-neon/pg_install/v14/bin/postgres`. The README
+   uses the wrong paths.
+
+3. **Unix socket** — set `unix_socket_directories=''` in spec.json
+   settings. Without this, Postgres fails to open
+   `/tmp/.s.PGSQL.55432.lock` even though `/tmp` is 1777 — possibly
+   an image-specific issue. Skipping unix sockets is fine because
+   clients always connect via the K8s Service (TCP).
+
+4. **runAsUser: 0** — required so the wrapper script can chown
+   `/data` to `postgres:postgres`. `compute_ctl` then drops to
+   the postgres user via `su -` internally for the actual Postgres
+   process.
+
+5. **Per-branch passwords** — random 24-byte hex, stored as plain
+   text in the per-branch Secret. The compute reads the MD5-hashed
+   form from spec.json. Cross-tenant connections fail because each
+   tenant has its own password.
+
+### Compute lifecycle calls
+
+In `k8sService.js` near the `createTenantBranch` call site:
+```js
+const branchInfo = await neonService.createTenantBranch(namespace);
+const compute = await this.provisionNeonCompute({
+  tenantId: branchInfo.tenantId,
+  timelineId: branchInfo.timelineId,
+  computeName: `compute-${namespace}`,
+});
+// compute.connectionString is now a usable Postgres URL
+```
+
+In `tenantController.js` during tenant delete:
+```js
+await k8sService.tearDownNeonCompute({ computeName: `compute-${tenantName}` });
+await neonService.deleteTenantBranch(tenantName);
+// Order matters: delete compute first (compute_ctl needs the timeline);
+// then delete the timeline; then the mapping ConfigMap entry.
+```
+
 ## Open gaps (a.k.a. TODO list)
 
-1. **Compute pod provisioning** — `branchInfo.connectionString` is null
-   until tenantflow provisions a per-branch compute pod. This is the
-   biggest gap. Shape: a Deployment + ConfigMap (templated spec.json) +
-   Service per branch, image `perconalab/neon:pg14-1.0.0`, env vars
-   `TENANT=<tenantId>` and `TIMELINE=<timelineId>`, exposes port 55432.
-   See `k8sService.js` near the `createTenantBranch` call site for the
-   TODO marker and intended interface (`provisionNeonCompute()`).
-
-2. **HA for pageserver** — currently 1 replica. Pageserver isn't itself
+1. **HA for pageserver** — currently 1 replica. Pageserver isn't itself
    HA-shaped (it's a single-writer for layer files), but it is the
    biggest SPOF in the system. Either accept this (data is recoverable
    from the PV) or migrate to a layered-blob pattern with S3 backing.
 
-3. **HA for the broker** — 1 replica. Discovery only; safekeepers and
+2. **HA for the broker** — 1 replica. Discovery only; safekeepers and
    compute will retry, so a brief broker outage isn't fatal, but worth
    bumping to 2+ once the rest is stable.
 
-4. **Safekeeper full spread** — 2 of 3 still on debian-marmoset. See
+3. **Safekeeper full spread** — 2 of 3 still on debian-marmoset. See
    migration steps above.
 
-5. **Mayastor pool expansion** — pageserver PV is 25 GiB inside a 30 GiB
+4. **Mayastor pool expansion** — pageserver PV is 25 GiB inside a 30 GiB
    pool on debian-marmoset. Plenty for early use; we'll need to grow
    the `openebs-vg/mayastor-pool` LV before the pageserver runs out.
 
-6. **Backups** — Velero excludes the `neon` namespace by default. Once
+5. **Backups** — Velero excludes the `neon` namespace by default. Once
    real data lives here, decide on a backup policy (likely: snapshot
    the pageserver PV via the Mayastor CSI snapshot path, or set up
    layer-file replication to Garage S3).
 
-7. **Authentication** — pageserver HTTP API has no auth in this deploy.
+6. **Authentication** — pageserver HTTP API has no auth in this deploy.
    It's only reachable via in-cluster DNS, so namespace-scoped
    NetworkPolicy enforcement is the security layer. Add a NetworkPolicy
    limiting ingress to the `neon` namespace to specific source pods
