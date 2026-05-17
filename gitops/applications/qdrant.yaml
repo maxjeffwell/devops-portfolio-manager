@@ -14,6 +14,29 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: qdrant
+  # Probe fields that K8s API server fills in as defaults — git omits them, ArgoCD's
+  # client-side diff flags them. ServerSideDiff is supposed to normalize this but has
+  # edge cases for StatefulSet probes. Ignoring the specific JSON pointers eliminates
+  # the false-positive drift without losing real drift detection on other fields.
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: qdrant
+      jsonPointers:
+        - /spec/template/spec/containers/0/livenessProbe/failureThreshold
+        - /spec/template/spec/containers/0/livenessProbe/successThreshold
+        - /spec/template/spec/containers/0/livenessProbe/timeoutSeconds
+        - /spec/template/spec/containers/0/livenessProbe/httpGet/scheme
+        - /spec/template/spec/containers/0/readinessProbe/failureThreshold
+        - /spec/template/spec/containers/0/readinessProbe/successThreshold
+        - /spec/template/spec/containers/0/readinessProbe/timeoutSeconds
+        - /spec/template/spec/containers/0/readinessProbe/httpGet/scheme
+        - /spec/template/spec/containers/0/startupProbe/successThreshold
+        - /spec/template/spec/containers/0/startupProbe/timeoutSeconds
+        - /spec/template/spec/containers/0/startupProbe/httpGet/scheme
+        - /spec/template/spec/containers/0/terminationMessagePath
+        - /spec/template/spec/containers/0/terminationMessagePolicy
+        - /spec/template/spec/dnsPolicy
   syncPolicy:
     automated:
       prune: true
