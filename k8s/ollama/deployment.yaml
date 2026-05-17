@@ -7,7 +7,9 @@ metadata:
     app: ollama
     portfolio: "true"
 spec:
-  replicas: 1
+  # 0 while intel-gpu-plugin is unstable; portfolio-critical priority preempts
+  # when GPU Allocatable=0. Set to 1 after the device plugin is stable.
+  replicas: 0
   strategy:
     # Recreate avoids RWO PVC dual-attach during rollouts.
     type: Recreate
@@ -64,7 +66,11 @@ spec:
           resources:
             requests:
               cpu: "2"
-              memory: 6Gi
+              # Idle ollama uses ~33Mi RSS; reserve for daemon overhead only,
+              # let it burst to the limit during inference. Sizing request to
+              # peak (6Gi) starved the node's request budget and blocked
+              # cluster-nfs nfs-server and percona-mongodb from scheduling.
+              memory: 1Gi
               gpu.intel.com/i915: "1"
             limits:
               # Iris Xe shares system RAM as VRAM via UMA. 12Gi cap leaves

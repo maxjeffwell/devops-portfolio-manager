@@ -18,7 +18,10 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: true
+      # selfHeal disabled so manual kubectl interventions on the Deployment
+      # (e.g., during incident triage) aren't fought by ArgoCD. Git is still
+      # the source of truth on commit, just not on drift.
+      selfHeal: false
       allowEmpty: false
     syncOptions:
       - ServerSideApply=true
