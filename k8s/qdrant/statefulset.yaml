@@ -9,6 +9,13 @@ metadata:
 spec:
   serviceName: qdrant
   replicas: 1
+  # K8s defaults below pinned explicitly to match what the API server applies, so ArgoCD
+  # diff stays clean even if ServerSideDiff has edge cases for StatefulSets.
+  podManagementPolicy: OrderedReady
+  revisionHistoryLimit: 10
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
   selector:
     matchLabels:
       app: qdrant
