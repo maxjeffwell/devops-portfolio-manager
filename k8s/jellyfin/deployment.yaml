@@ -56,7 +56,10 @@ spec:
           resources:
             requests:
               cpu: "1"
-              memory: 2Gi
+              # Idle/playback uses ~320Mi; 1Gi reserves baseline + transcode
+              # buffer headroom. Burst to limit during heavy transcoding is
+              # still permitted.
+              memory: 1Gi
               gpu.intel.com/i915: "1"
             limits:
               memory: 6Gi
