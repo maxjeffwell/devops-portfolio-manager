@@ -30,7 +30,7 @@ spec:
         portfolio: "true"
     spec:
       nodeSelector:
-        kubernetes.io/hostname: vmi3115606
+        kubernetes.io/hostname: debian-marmoset
       priorityClassName: portfolio-critical
       restartPolicy: Always
       schedulerName: default-scheduler
@@ -84,5 +84,5 @@ spec:
         resources:
           requests:
             storage: 5Gi
-        storageClassName: synology-iscsi
+        storageClassName: democratic-synology-iscsi-mp
         volumeMode: Filesystem  # k8s default; explicit so ArgoCD diff stays clean (PVC volumeMode is immutable)
