@@ -93,6 +93,11 @@ env:
       value: "https://lunary.el-jefe.me"
     - name: SKIP_EMAIL_VERIFY
       value: "true"
+    # Force IPv4-first DNS lookup. Node 18+ defaults to verbatim, causing the
+    # `postgres` lib to attempt IPv6 first on cluster DNS, which times out.
+    # See memory: feedback_nodejs_postgres_ipv4first
+    - name: NODE_OPTIONS
+      value: "--dns-result-order=ipv4first"
     - name: JWT_SECRET
       valueFrom:
         secretKeyRef:

@@ -1,0 +1,102 @@
+# democratic-csi values for Synology multipath iSCSI (synology-iscsi-mp).
+# Helm release: `democratic-csi-mp` in `democratic-csi` ns.
+#
+# Install with the DSM API password injected via --set (do NOT commit the
+# password to this public repo). Retrieve current password from the running
+# Helm release if needed: `helm -n democratic-csi get values democratic-csi-mp`.
+#
+#   helm repo add democratic-csi https://democratic-csi.github.io/charts/
+#   helm upgrade --install democratic-csi-mp democratic-csi/democratic-csi \
+#     --version 0.15.1 -n democratic-csi --create-namespace \
+#     -f synology-iscsi-mp-values.yaml \
+#     --set driver.config.httpConnection.password='<DSM_API_PASSWORD>'
+#
+# See also:
+#   memory: democratic-csi-pilot-2026-05-17 (install context)
+#   memory: democratic-csi-consumers-pinned-2026-05-21 (why node DS is hostname-pinned)
+#   memory: democratic-csi-blkid-strategy-2026-05-24 (why extraEnv has FILESYSTEM_TYPE_DETECTION_STRATEGY)
+
+controller:
+  externalAttacher:
+    enabled: true
+  externalProvisioner:
+    enabled: true
+  externalResizer:
+    enabled: true
+  externalSnapshotter:
+    enabled: true
+
+csiDriver:
+  name: org.democratic-csi.synology-iscsi-mp
+
+driver:
+  config:
+    driver: synology-iscsi
+    httpConnection:
+      allowInsecure: true
+      host: 10.0.0.5
+      # Inject at install time via `--set driver.config.httpConnection.password=...`
+      # to keep the DSM API password out of this public repo.
+      password: REPLACE_AT_INSTALL_TIME
+      port: 5000
+      protocol: http
+      serialize: true
+      session: democratic-csi-mp
+      username: k8s-csi
+    iscsi:
+      baseiqn: iqn.2000-01.com.synology:democratic-mp.
+      interface: default
+      lunSnapshotTemplate:
+        is_app_consistent: true
+        is_locked: true
+      lunTemplate:
+        type: BLUN
+      namePrefix: ""
+      nameSuffix: ""
+      targetPortal: 10.0.0.5:3260
+      targetPortals:
+        # NOTE: .109 stays in the portal list even though the underlying
+        # RTL8156 USB NIC is unreliable (see memory: rtl8156-unreliable-for-iscsi).
+        # The user has explicitly elected to keep it for multipath; iSCSI
+        # replacement_timeout=5 on debian-marmoset closes the I/O failover window.
+        - 192.168.50.109:3260
+        - 192.168.50.129:3260
+      targetTemplate:
+        auth_type: 0
+        max_sessions: 0
+    synology:
+      volume: /volume1
+
+node:
+  # Pilot scope: only debian-marmoset. If broadening, also update the
+  # consumer nodeSelector on every PVC consumer (cnpg-auth, cnpg-bookmarked,
+  # cnpg-codetalk, cnpg-lunary in portfolio-orchestration-platform/k8s/databases/).
+  nodeSelector:
+    kubernetes.io/hostname: debian-marmoset
+  tolerations: []
+  driver:
+    extraEnv:
+      # Closes a race in v0.15.1 where NodeStageVolume's lsblk FSTYPE detection
+      # returns empty on freshly-assembled multipath dm devices (udev hadn't
+      # populated block info yet), the driver concludes "FS missing", runs
+      # `mkfs.btrfs` without -f, which refuses to format because the FS sig
+      # IS actually present. With strategy=blkid, the driver reads superblocks
+      # directly (no udev dependency). See src/utils/filesystem.js:508.
+      - name: FILESYSTEM_TYPE_DETECTION_STRATEGY
+        value: blkid
+
+storageClasses:
+  - allowVolumeExpansion: true
+    defaultClass: false
+    mountOptions: []
+    name: democratic-synology-iscsi-mp
+    parameters:
+      fsType: btrfs
+    reclaimPolicy: Retain
+    secrets:
+      controller-expand-secret: null
+      controller-publish-secret: null
+      node-publish-secret: null
+      node-stage-secret: null
+      provisioner-secret: null
+    volumeBindingMode: Immediate
