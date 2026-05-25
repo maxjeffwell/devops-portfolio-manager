@@ -23,5 +23,5 @@ spec:
     - hard
     - intr
   nfs:
-    server: 10.0.0.4
+    server: 192.168.50.149
     path: /volume1/Movies

@@ -1,4 +1,4 @@
-# Egress allowlist: PG (cnpg-jellyfin in default), NFS (ASUSTOR 10.0.0.4),
+# Egress allowlist: PG (cnpg-jellyfin in default), NFS (ASUSTOR 192.168.50.149),
 # DNS, internet HTTPS for TMDB/plugin updates.
 # Ingress: Traefik (kube-system) → 8096, Prometheus (monitoring) → 8096.
 apiVersion: networking.k8s.io/v1
@@ -60,7 +60,7 @@ spec:
     # NFS to ASUSTOR (NFSv3: portmapper + nfsd + lockd/statd ranges)
     - to:
         - ipBlock:
-            cidr: 10.0.0.4/32
+            cidr: 192.168.50.149/32
       ports:
         - { port: 2049,  protocol: TCP }
         - { port: 111,   protocol: TCP }
