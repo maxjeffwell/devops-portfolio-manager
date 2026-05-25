@@ -1,0 +1,31 @@
+# Mayastor (openebs/openebs umbrella chart) — Helm values override
+# Chart: openebs/openebs (https://openebs.github.io/openebs)
+# Release name: mayastor (in namespace openebs)
+#
+# Apply with:
+#   helm upgrade --install mayastor openebs/openebs \
+#     --namespace openebs --create-namespace \
+#     -f helm-charts/mayastor/values.yaml
+#
+# Only pinning the localpv-provisioner Deployment (io-engine is a DaemonSet
+# and must stay one-per-data-plane-node; we don't pin those).
+#
+# localpv-provisioner does leader-election → frequent API writes → was
+# chronically restarting on vmi3115606 due to Tailscale-to-control-plane
+# micro-blips. Pinned to vmi2951245 (the API server node) 2026-05-25.
+
+mayastor:
+  localpv:
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
+    tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: PreferNoSchedule
+
+# NOTE: exact subkey may vary by openebs umbrella chart version. If a
+# helm upgrade results in the nodeSelector not propagating, check the
+# rendered manifest with:
+#   helm template mayastor openebs/openebs -f values.yaml | grep -B 5 -A 5 nodeSelector
+# and adjust the YAML path accordingly (some chart versions use
+# `mayastor.localpvProvisioner.nodeSelector` or `localpv-provisioner.nodeSelector`).

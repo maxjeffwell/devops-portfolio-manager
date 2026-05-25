@@ -1,0 +1,21 @@
+# CloudNativePG operator (cnpg) — Helm values override
+# Chart: cnpg/cloudnative-pg (https://cloudnative-pg.github.io/charts/)
+# Release name: cnpg (in namespace cnpg-system)
+#
+# Apply with:
+#   helm upgrade --install cnpg cnpg/cloudnative-pg \
+#     --namespace cnpg-system --create-namespace \
+#     -f helm-charts/cnpg/values.yaml
+#
+# Pinned to vmi2951245 (control-plane) for reliable API access. vmi3115606
+# has chronic Tailscale-to-control-plane micro-blips causing ~hourly pod
+# restarts; the operator does leader-election (frequent API writes) so it
+# was an unlucky-victim of that issue. Pinned 2026-05-25.
+
+nodeSelector:
+  kubernetes.io/hostname: vmi2951245
+
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: PreferNoSchedule

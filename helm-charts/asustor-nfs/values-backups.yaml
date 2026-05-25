@@ -36,8 +36,12 @@ resources:
   limits:
     memory: 128Mi
 
+# Pinned to vmi2951245 (control-plane) for reliable API access. vmi3115606
+# has chronic Tailscale-to-control-plane micro-blips causing ~hourly pod
+# restarts; this Deployment does leader-election (frequent API writes) so it
+# was an unlucky-victim of that issue. Moved 2026-05-25.
 nodeSelector:
-  kubernetes.io/hostname: vmi3115606
+  kubernetes.io/hostname: vmi2951245
 
 rbac:
   create: true
@@ -49,4 +53,7 @@ leaderElection:
   enabled: true
 
 labels: {}
-tolerations: []
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: PreferNoSchedule

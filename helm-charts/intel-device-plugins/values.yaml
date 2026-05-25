@@ -1,0 +1,33 @@
+# Intel Device Plugins operator — Helm values override
+# Chart: intel/intel-device-plugins-operator (https://intel.github.io/helm-charts/)
+# Release name: intel-device-plugins-operator (in namespace kube-system)
+#
+# Apply with:
+#   helm upgrade --install intel-device-plugins-operator \
+#     intel/intel-device-plugins-operator \
+#     --namespace kube-system \
+#     -f helm-charts/intel-device-plugins/values.yaml
+#
+# Note: this pins the CONTROLLER-MANAGER deployment only. The actual GPU
+# device plugin (intel-gpu-plugin-gpudeviceplugin-*) is a per-node thing
+# managed via the GpuDevicePlugin CR; it runs on debian-marmoset where
+# the Iris Xe is. That one is healthy and not pinned by this.
+#
+# The controller-manager does leader-election → frequent API writes → was
+# chronically restarting on vmi3115606 (141 restarts/19d) due to
+# Tailscale-to-control-plane micro-blips. Pinned to vmi2951245 (the API
+# server node) 2026-05-25. Stratified pattern matches cnpg + nfs-subdir-*.
+
+manager:
+  nodeSelector:
+    kubernetes.io/hostname: vmi2951245
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: PreferNoSchedule
+
+# NOTE: exact subkey depends on Intel chart version. Common variants:
+#   manager.nodeSelector  (most recent)
+#   controllerManager.nodeSelector
+#   nodeSelector  (top-level if chart is simple)
+# If patch doesn't propagate, render with `helm template` and adjust.
