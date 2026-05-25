@@ -11,6 +11,7 @@ resources:
   - pvc-cache.yaml
   - middleware-ratelimit.yaml
   - networkpolicy.yaml
+  - configmap-encoding.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml

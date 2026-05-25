@@ -30,6 +30,33 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        # Recover encoding.xml if it's missing or corrupt.
+        # 2026-05-24 — covers the failure mode where Jellyfin fails to deserialize
+        # encoding.xml at startup ("error in XML document (1, 1)") and falls back
+        # to defaults (HardwareAccelerationType=none), silently disabling HW accel.
+        # Only writes when file is missing or invalid; user UI edits are preserved.
+        - name: ensure-encoding-config
+          image: busybox:1.36
+          command: ["sh", "-c"]
+          args:
+            - |
+              TARGET=/config/config/encoding.xml
+              mkdir -p /config/config
+              if [ ! -s "$TARGET" ] || ! grep -q '</EncodingOptions>' "$TARGET" 2>/dev/null; then
+                echo "Restoring encoding.xml from ConfigMap (missing or corrupt)"
+                cp /default/encoding.xml "$TARGET"
+              else
+                echo "encoding.xml is present and well-formed; leaving alone"
+              fi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            - { name: encoding-defaults, mountPath: /default, readOnly: true }
       containers:
         - name: jellyfin
           image: jellyfin/jellyfin:10.10.7
@@ -97,3 +124,6 @@ spec:
             sizeLimit: 6Gi
         - { name: tmp, emptyDir: { sizeLimit: 256Mi } }
         - { name: run, emptyDir: { sizeLimit: 64Mi } }
+        - name: encoding-defaults
+          configMap:
+            name: jellyfin-encoding-defaults
