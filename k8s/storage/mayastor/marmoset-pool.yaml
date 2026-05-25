@@ -1,0 +1,31 @@
+# marmoset-pool — Mayastor DiskPool on marmoset (GPU node)
+#
+# Backing: AIO-backed image file at /var/local/mayastor/io-engine/marmoset-pool.img.
+# Lives on marmoset's root filesystem (/dev/nvme0n1p6, 384 GB total, ~232 GB
+# free at time of provisioning). File size = 60 GiB (sparse-grown via truncate).
+#
+# File-backed pool chosen over LVM-backed because marmoset's NVMe is shared
+# with the root filesystem and other workloads; no clean partition slice
+# was available for an exclusive Mayastor LV. AIO has ~10-20% performance
+# overhead vs raw block but is acceptable for current workload (single
+# 25 GiB neon-pageserver volume).
+#
+# Pool was expanded from 30 GiB to 60 GiB on 2026-05-25 via:
+#   1. truncate -s 60G /var/local/mayastor/io-engine/marmoset-pool.img
+#   2. Delete DiskPool CR + recreate (USED was 0, safe to destroy)
+#
+# Block size MUST be 512 to match debian-marmoset-pool (LVM device has
+# 512-byte logical blocks). Without the explicit ?blk_size=512 param, AIO
+# defaults to a different size and nexus creation fails with
+# "Children of nexus have mixed block sizes".
+#
+# Standalone manifest for reference/re-creation. Not under ArgoCD.
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: marmoset-pool
+  namespace: openebs
+spec:
+  node: marmoset
+  disks:
+  - aio:///var/local/mayastor/io-engine/marmoset-pool.img?blk_size=512

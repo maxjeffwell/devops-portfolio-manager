@@ -1,0 +1,31 @@
+# mayastor-2 StorageClass
+# OpenEBS Mayastor (NVMe-oF/TCP) with synchronous 2-way replication between
+# debian-marmoset and marmoset. Survives single-node failure.
+#
+# Backing pools (see sibling DiskPool manifests):
+#   - debian-marmoset-pool (LVM-backed at /dev/openebs-vg/mayastor-pool, ~60 GiB)
+#   - marmoset-pool        (AIO file at /var/local/mayastor/io-engine/marmoset-pool.img, ~60 GiB)
+#
+# Effective replicated capacity = smaller pool's free space.
+# Block sizes must match across both pools (currently 512 — debian-marmoset's
+# LV is 512-byte logical; marmoset's pool URI explicitly sets ?blk_size=512).
+#
+# Standalone manifest for reference/re-creation. Not under ArgoCD —
+# kubectl-apply by hand. Companion to k8s/storage/openebs-zfs/ pattern.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-2
+  annotations:
+    description: |
+      Mayastor 2-replica — replicates synchronously between marmoset and
+      debian-marmoset via NVMe-oF/TCP on port 4420.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: "30"
+  protocol: nvmf
+  repl: "2"
+  thin: "false"
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true

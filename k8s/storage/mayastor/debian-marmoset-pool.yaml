@@ -1,0 +1,27 @@
+# debian-marmoset-pool — Mayastor DiskPool on debian-marmoset
+#
+# Backing: LVM logical volume openebs-vg/mayastor-pool (~60 GiB).
+# The vg-ssd VG sits on NVMe partition (nvme0n1p4+p5) per the host's
+# debian-marmoset LVM setup; this pool is exposed via Mayastor's
+# vdisk_blockio bdev for direct block access (no AIO file overhead).
+#
+# 60 GiB capacity = full LV size. Pool was expanded from 30 GiB to 60 GiB
+# on 2026-05-25 via destroy+recreate (Mayastor v2.10 has no pool-grow API).
+# The marmoset-replica of the 2-replica neon-pageserver volume preserved
+# data during the destroy/recreate window.
+#
+# Block size: 512-byte (inherited from underlying NVMe logical block size,
+# see /sys/block/dm-*/queue/logical_block_size). Mayastor nexus requires
+# matching block sizes across replicas; marmoset-pool is explicitly set
+# to ?blk_size=512 to match.
+#
+# Standalone manifest for reference/re-creation. Not under ArgoCD.
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: debian-marmoset-pool
+  namespace: openebs
+spec:
+  node: debian-marmoset
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-zAAhZxDR46Ox9k6VEhCcaAJG4OZp6GmTfeMwc8jAKH0rDERHamPkypP7I12Ua6Np
