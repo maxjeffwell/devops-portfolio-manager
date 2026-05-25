@@ -49,6 +49,15 @@ spec:
               else
                 echo "encoding.xml is present and well-formed; leaving alone"
               fi
+              # One-shot in-place migration (idempotent): the prior default
+              # <TranscodingTempPath>/cache/transcodes</TranscodingTempPath> filled
+              # the 10Gi cache PVC under load (errno -28). Reroute to the dedicated
+              # /transcodes emptyDir so the cache PVC is preserved for fonts, images,
+              # and attachments only.
+              if grep -q '<TranscodingTempPath>/cache/transcodes</TranscodingTempPath>' "$TARGET" 2>/dev/null; then
+                echo "Migrating TranscodingTempPath: /cache/transcodes -> /transcodes"
+                sed -i 's|<TranscodingTempPath>/cache/transcodes</TranscodingTempPath>|<TranscodingTempPath>/transcodes</TranscodingTempPath>|' "$TARGET"
+              fi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -75,7 +84,9 @@ spec:
             - { name: PUID, value: "1000" }
             - { name: PGID, value: "1000" }
             - { name: JELLYFIN_PublishedServerUrl,                value: https://jellyfin-k8s.el-jefe.me }
-            - { name: JELLYFIN_FFmpeg__transcoding_temp_path,     value: /transcodes }
+            # NOTE: do not add JELLYFIN_FFmpeg__transcoding_temp_path — Jellyfin reads
+            # EncodingOptions directly from encoding.xml and ignores env-var overrides
+            # for that section. Set TranscodingTempPath in the ConfigMap instead.
             # Jellyfin uses default SQLite backend (jellyfin.db in /config).
             # PG attempt was abandoned in Phase 5 — JELLYFIN_DATABASE_* env vars
             # weren't honored (Jellyfin uses .NET-style JELLYFIN__... binding) AND
@@ -118,10 +129,13 @@ spec:
         - { name: media-movies,  persistentVolumeClaim: { claimName: jellyfin-media-movies } }
         - { name: media-tvshows, persistentVolumeClaim: { claimName: jellyfin-media-tvshows } }
         - name: transcodes
-          # tmpfs in RAM — zero NVMe wear from transcode segments. 6Gi cap.
+          # Disk-backed emptyDir on the node's kubelet dir. Was tmpfs (medium: Memory)
+          # until 2026-05-24 — a RAM-backed mount counts against the pod's 6Gi memory
+          # limit, so multi-GB HLS buffers were squeezing jellyfin toward OOM. Disk
+          # path is fast enough for HLS segment IO, doesn't compete with jellyfin's
+          # heap, and still auto-clears on pod restart (emptyDir lifecycle).
           emptyDir:
-            medium: Memory
-            sizeLimit: 6Gi
+            sizeLimit: 12Gi
         - { name: tmp, emptyDir: { sizeLimit: 256Mi } }
         - { name: run, emptyDir: { sizeLimit: 64Mi } }
         - name: encoding-defaults
