@@ -22,7 +22,11 @@ spec:
         kubectl.kubernetes.io/restartedAt: "2024-12-09T00:35:00Z"
     spec:
       nodeSelector:
-        kubernetes.io/hostname: vmi3115606
+        kubernetes.io/hostname: vmi2951245
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: PreferNoSchedule
       containers:
       - name: dashboard
         # Use versioned tags for reproducible deployments
