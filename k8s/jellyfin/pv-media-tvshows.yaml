@@ -22,7 +22,7 @@ spec:
     - vers=3
     - nolock
     - hard
-    - intr
+    - nconnect=4
   nfs:
     server: 192.168.50.149
     path: /volume1/TV Shows
