@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: node-problem-detector
+  labels:
+    name: node-problem-detector
+    app.kubernetes.io/managed-by: argocd
+    infrastructure: "true"
