@@ -1,0 +1,116 @@
+# node-problem-detector values override
+# Chart: deliveryhero/node-problem-detector 2.3.14 (app v0.8.19)
+#
+# Pins to 3 nodes (debian-marmoset, vmi2951245, vmi3115606); marmoset excluded
+# per design spec. Custom monitors are mounted inline via the chart's
+# settings.custom_monitor_definitions support — no separate ConfigMap needed.
+
+image:
+  tag: v0.8.19
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 50Mi
+  limits:
+    cpu: 200m
+    memory: 100Mi
+
+# Default chart tolerations tolerate ALL NoSchedule taints (would land on
+# marmoset's nvidia.com/gpu:NoSchedule). Reset to empty so the nodeAffinity
+# hostname-NotIn below is the sole gate.
+tolerations: []
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: NotIn
+              values:
+                - marmoset
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    # We ship our own ServiceMonitor with the correct release label.
+    enabled: false
+  prometheusRule:
+    # We ship our own PrometheusRule with homelab-tuned alerts.
+    enabled: false
+
+settings:
+  log_monitors:
+    # Built-in monitors shipped in the NPD image
+    - /config/kernel-monitor.json
+    - /config/docker-monitor.json
+    # Custom monitors mounted by the chart from custom_monitor_definitions below
+    - /custom-config/homelab-kmsg-monitor.json
+    - /custom-config/homelab-systemd-monitor.json
+
+  custom_monitor_definitions:
+    # ===========================================================
+    # Kernel/dmesg monitor — multipath failure + thin-pool OOSpace
+    # ===========================================================
+    homelab-kmsg-monitor.json: |
+      {
+        "plugin": "kmsg",
+        "logPath": "/dev/kmsg",
+        "lookback": "5m",
+        "bufferSize": 10,
+        "source": "homelab-kmsg-monitor",
+        "metricsReporting": true,
+        "conditions": [
+          {
+            "type": "ThinPoolOutOfSpace",
+            "reason": "ThinPoolHealthy",
+            "message": "Thin pool has data space available"
+          }
+        ],
+        "rules": [
+          {
+            "type": "temporary",
+            "reason": "MultipathPathFailed",
+            "pattern": "multipathd.*: .*(remaining active paths: 0|mark as failed|marking as failed)"
+          },
+          {
+            "type": "permanent",
+            "condition": "ThinPoolOutOfSpace",
+            "reason": "ThinPoolOutOfSpace",
+            "pattern": "device-mapper: thin: .*out of data space"
+          }
+        ]
+      }
+
+    # ===========================================================
+    # Systemd/journal monitor — CSI iSCSI mount failures + tailscaled abnormal exit
+    # ===========================================================
+    # Note: kept the IscsiCsiMountFailure pattern broad enough to catch both
+    # democratic-csi and synology-csi flavors, but specific enough that it
+    # won't trip on every CSI hiccup — DeadlineExceeded is the durable signal.
+    homelab-systemd-monitor.json: |
+      {
+        "plugin": "journald",
+        "pluginConfig": {
+          "source": "kubelet"
+        },
+        "logPath": "/var/log/journal",
+        "lookback": "5m",
+        "bufferSize": 10,
+        "source": "homelab-systemd-monitor",
+        "metricsReporting": true,
+        "conditions": [],
+        "rules": [
+          {
+            "type": "temporary",
+            "reason": "IscsiCsiMountFailure",
+            "pattern": "csi/(org\\.democratic-csi|csi\\.san\\.synology\\.com).*?(DeadlineExceeded|MountVolume\\.MountDevice failed)"
+          },
+          {
+            "type": "temporary",
+            "reason": "TailscaledAbnormalExit",
+            "pattern": "tailscaled\\.service: (Failed with result|Main process exited, code=killed|Main process exited, code=dumped)"
+          }
+        ]
+      }

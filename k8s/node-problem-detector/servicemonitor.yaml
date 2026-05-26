@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-problem-detector
+  namespace: node-problem-detector
+  labels:
+    app.kubernetes.io/name: node-problem-detector
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: node-problem-detector
+  endpoints:
+    - port: exporter
+      interval: 30s
+      scrapeTimeout: 10s
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - node-problem-detector
