@@ -1,0 +1,98 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: node-problem-detector-alerts
+  namespace: node-problem-detector
+  labels:
+    app.kubernetes.io/name: node-problem-detector
+    release: prometheus
+spec:
+  groups:
+    - name: node-problem-detector.rules
+      rules:
+        # ===========================
+        # Upstream-default conditions
+        # ===========================
+        - alert: NodeKernelDeadlock
+          expr: problem_gauge{type="KernelDeadlock"} == 1
+          for: 0s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Kernel deadlock on {{ $labels.node }}"
+            description: "NPD reports KernelDeadlock=True on node {{ $labels.node }}. Hung tasks detected; node likely needs reboot."
+
+        - alert: NodeReadonlyFilesystem
+          expr: problem_gauge{type="ReadonlyFilesystem"} == 1
+          for: 0s
+          labels:
+            severity: critical
+          annotations:
+            summary: "Filesystem remounted read-only on {{ $labels.node }}"
+            description: "Likely EXT4 errors, iSCSI failure, or USB-storage instability. Prior pattern: iSCSI LUN corruption from USB-attached drives."
+
+        - alert: NodeFrequentUnregisterNetDevice
+          expr: rate(problem_counter{reason="UnregisterNetDevice"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Frequent netdev unregister on {{ $labels.node }}"
+            description: "Kernel `unregister_netdevice: waiting for X to become free` events. Indicates real netif churn (not benign veth lifecycle)."
+
+        - alert: NodeFrequentKubeletRestart
+          expr: rate(problem_counter{reason="FrequentKubeletRestart"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Frequent kubelet restarts on {{ $labels.node }}"
+            description: "kubelet has restarted multiple times in the recent window. Check systemd journal for the cause."
+
+        - alert: NodeFrequentContainerdRestart
+          expr: rate(problem_counter{reason="FrequentContainerdRestart"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Frequent containerd restarts on {{ $labels.node }}"
+            description: "containerd has restarted multiple times in the recent window. May indicate GPU-operator drop-in conflict or runtime instability."
+
+        # ===========================
+        # Homelab custom conditions
+        # ===========================
+        - alert: NodeIscsiCsiMountFailure
+          expr: increase(problem_counter{reason="IscsiCsiMountFailure"}[10m]) > 2
+          for: 0s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Repeated iSCSI CSI mount failures on {{ $labels.node }}"
+            description: "{{ $value }} CSI mount failures (DeadlineExceeded / MountDevice failed) in 10m on the democratic-csi or synology-csi driver. Check Synology/ASUSTOR portal health and iSCSI session state."
+
+        - alert: NodeMultipathPathFailed
+          expr: increase(problem_counter{reason="MultipathPathFailed"}[10m]) > 0
+          for: 0s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Multipath path failure on {{ $labels.node }}"
+            description: "multipathd reports failed path or zero remaining active paths. Verify with `multipath -ll` on the node."
+
+        - alert: NodeTailscaledAbnormalExit
+          expr: increase(problem_counter{reason="TailscaledAbnormalExit"}[30m]) > 1
+          for: 0s
+          labels:
+            severity: warning
+          annotations:
+            summary: "tailscaled abnormal exit on {{ $labels.node }}"
+            description: "systemd reports tailscaled.service exited abnormally (killed / dumped / Failed with result). Leading indicator for the flannel.1-vanish cascade — verify `ip link show flannel.1` on this node."
+
+        - alert: NodeThinPoolOutOfSpace
+          expr: problem_gauge{type="ThinPoolOutOfSpace"} == 1
+          for: 0s
+          labels:
+            severity: critical
+          annotations:
+            summary: "LVM thin pool out of data space on {{ $labels.node }}"
+            description: "Thin pool entered out-of-data-space mode. Extend the pool immediately or expect cascading I/O errors and EXT4 read-only remounts."
