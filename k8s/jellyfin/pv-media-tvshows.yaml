@@ -19,14 +19,13 @@ spec:
   storageClassName: ""
   mountOptions:
     - ro
-    - nfsvers=4.1
+    - vers=3
+    - nolock
     - hard
     - nconnect=4
-    - port=2050
   nfs:
-    # ganesha v6.1 on ASUSTOR (docker, port 2050). FSAL_VFS to /volume1/TV Shows
-    # exposed via pseudo path /TVShows (ganesha pseudo-fs strips the volume1
-    # prefix and spaces). eth1 (.133) — onboard 2.5GbE @ MTU 9000 (each PV gets
-    # its own NIC). Kernel nfsd removed from this path 2026-05-26.
+    # eth1 (.133) — onboard 2.5GbE @ MTU 9000. Movies stays on eth2 (.149) so the
+    # two PVs don't compete for one NIC. Both paths jumbo end-to-end with
+    # debian-marmoset. ASUSTOR un-bonded 2026-05-26.
     server: 192.168.50.133
-    path: /TVShows
+    path: /volume1/TV Shows

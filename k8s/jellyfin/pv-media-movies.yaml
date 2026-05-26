@@ -18,13 +18,10 @@ spec:
   storageClassName: ""
   mountOptions:
     - ro
-    - nfsvers=4.1
+    - vers=3
+    - nolock
     - hard
     - nconnect=4
-    - port=2050
   nfs:
-    # ganesha v6.1 on ASUSTOR (docker, port 2050). FSAL_VFS to /volume1/Movies
-    # exposed via pseudo path /Movies. Kernel nfsd was removed from this path
-    # to resolve the FSAL_VFS+kernel-export referral-attr conflict (2026-05-26).
     server: 192.168.50.149
-    path: /Movies
+    path: /volume1/Movies
