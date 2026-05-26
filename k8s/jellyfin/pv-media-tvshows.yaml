@@ -24,5 +24,8 @@ spec:
     - hard
     - nconnect=4
   nfs:
-    server: 192.168.50.149
+    # eth1 (.133) — onboard 2.5GbE @ MTU 9000. Movies stays on eth2 (.149) so the
+    # two PVs don't compete for one NIC. Both paths jumbo end-to-end with
+    # debian-marmoset. ASUSTOR un-bonded 2026-05-26.
+    server: 192.168.50.133
     path: /volume1/TV Shows
