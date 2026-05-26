@@ -449,6 +449,7 @@ kube-prometheus-stack:
         limits:
           cpu: 200m
           memory: 256Mi
+      # Config-reloader sidecar and init container resources (required by monitoring-quota)
       containers:
         - name: config-reloader
           resources:
@@ -457,6 +458,7 @@ kube-prometheus-stack:
               memory: 25Mi
             limits:
               memory: 50Mi
+      initContainers:
         - name: init-config-reloader
           resources:
             requests:
