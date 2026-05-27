@@ -12,62 +12,71 @@ spec:
     - name: goldpinger.connectivity
       interval: 30s
       rules:
+        # Label notes (verified 2026-05-27 against actual scraped metrics):
+        #   goldpinger_instance — source node name (e.g. "marmoset")
+        #   host_ip             — destination node IP (Tailscale 100.64.0.x)
+        # Earlier draft used `source_node`/`destination_node` which do NOT exist.
         - alert: GoldpingerPeerUnreachable
           expr: |
-            sum by (instance) (goldpinger_nodes_health_total{status="unhealthy"}) > 0
+            sum by (goldpinger_instance) (goldpinger_nodes_health_total{status="unhealthy"}) > 0
           for: 2m
           labels:
             severity: warning
             component: networking
           annotations:
-            summary: "Goldpinger reports unreachable peer from {{ $labels.instance }}"
+            summary: "Goldpinger reports unreachable peer from {{ $labels.goldpinger_instance }}"
             description: |
-              Pod {{ $labels.instance }} cannot reach one or more goldpinger
-              peers. Investigate flannel/CNI on this node and any WG mesh peer
-              connections. See runbook for the silent flannel.1 drop pattern.
+              Node {{ $labels.goldpinger_instance }} cannot reach one or more
+              goldpinger peers. Investigate flannel/CNI on this node and any
+              WG mesh peer connections.
             runbook_url: "https://github.com/maxjeffwell/devops-portfolio-manager/blob/main/docs/runbooks/flannel-watchdog.md"
 
         - alert: GoldpingerPeerUnreachableProlonged
           expr: |
-            sum by (instance) (goldpinger_nodes_health_total{status="unhealthy"}) > 0
+            sum by (goldpinger_instance) (goldpinger_nodes_health_total{status="unhealthy"}) > 0
           for: 10m
           labels:
             severity: critical
             component: networking
           annotations:
-            summary: "Goldpinger peer unreachable from {{ $labels.instance }} for >10m"
+            summary: "Goldpinger peer unreachable from {{ $labels.goldpinger_instance }} for >10m"
             description: |
-              Sustained pod-network connectivity loss from {{ $labels.instance }}.
+              Sustained pod-network connectivity loss from {{ $labels.goldpinger_instance }}.
               The flannel watchdog should have remediated by now — manual triage required.
 
+        # Threshold set at 750ms after baseline measurement 2026-05-27:
+        # cross-Tailscale p99 sits in 200-500ms range during steady state,
+        # spiking to 1-2s during pod startup. 750ms catches genuine WG flaps
+        # without paging on normal tail latency. Tighten after a week of
+        # baseline data if 750ms proves too loose.
         - alert: GoldpingerPeerSlow
           expr: |
             histogram_quantile(0.99,
-              sum by (le, source_node, destination_node) (
+              sum by (le, goldpinger_instance, host_ip) (
                 rate(goldpinger_peers_response_time_s_bucket[5m])
               )
-            ) > 0.1
-          for: 5m
+            ) > 0.75
+          for: 10m
           labels:
             severity: warning
             component: networking
           annotations:
-            summary: "Goldpinger p99 ping latency >100ms ({{ $labels.source_node }} -> {{ $labels.destination_node }})"
+            summary: "Goldpinger p99 ping latency >750ms ({{ $labels.goldpinger_instance }} -> {{ $labels.host_ip }})"
             description: |
-              The pod-network path from {{ $labels.source_node }} to
-              {{ $labels.destination_node }} has p99 latency above 100ms for 5m.
+              The pod-network path from {{ $labels.goldpinger_instance }} to
+              host {{ $labels.host_ip }} has p99 latency above 750ms for 10m.
               Check WG mesh, NIC saturation, and CPU pressure on either node.
 
         - alert: GoldpingerDNSFailure
           expr: |
-            sum by (instance) (rate(goldpinger_dns_resolution_failures_total[5m])) > 0
+            sum by (goldpinger_instance) (rate(goldpinger_dns_resolution_failures_total[5m])) > 0
           for: 2m
           labels:
             severity: warning
             component: networking
           annotations:
-            summary: "Goldpinger DNS resolution failures on {{ $labels.instance }}"
+            summary: "Goldpinger DNS resolution failures on {{ $labels.goldpinger_instance }}"
             description: |
-              CoreDNS resolution failing from {{ $labels.instance }}. This is
-              the exact failure mode seen 2026-05-25 when flannel.1 dropped on
-              vmi2951245 and starved its local CoreDNS replica.
+              CoreDNS resolution failing from {{ $labels.goldpinger_instance }}.
+              This is the exact failure mode seen 2026-05-25 when flannel.1
+              dropped on vmi2951245 and starved its local CoreDNS replica.
