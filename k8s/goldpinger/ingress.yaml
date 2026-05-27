@@ -1,0 +1,31 @@
+# Standard Ingress catches all traffic to goldpinger.el-jefe.me with the
+# CrowdSec bouncer middleware (cluster-wide IP reputation filtering).
+# cert-manager provisions goldpinger-tls automatically via the annotation.
+# Mirrors the convention used by jellyfin-k8s.el-jefe.me and prometheus.el-jefe.me.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: goldpinger
+  namespace: goldpinger
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - goldpinger.el-jefe.me
+      secretName: goldpinger-tls
+  rules:
+    - host: goldpinger.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: goldpinger
+                port:
+                  number: 80
