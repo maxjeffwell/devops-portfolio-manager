@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: goldpinger
+  namespace: goldpinger
+  labels:
+    app: goldpinger
+    app.kubernetes.io/name: goldpinger
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: goldpinger
+  namespaceSelector:
+    matchNames:
+      - goldpinger
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

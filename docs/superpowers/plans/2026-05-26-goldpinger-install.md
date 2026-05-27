@@ -353,7 +353,7 @@ metadata:
   labels:
     app: goldpinger
     app.kubernetes.io/name: goldpinger
-    release: kube-prometheus-stack
+    release: prometheus
 spec:
   selector:
     matchLabels:
@@ -400,7 +400,7 @@ metadata:
   labels:
     app: goldpinger
     app.kubernetes.io/name: goldpinger
-    release: kube-prometheus-stack
+    release: prometheus
 spec:
   groups:
     - name: goldpinger.connectivity
