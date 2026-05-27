@@ -124,7 +124,7 @@ spec:
             periodSeconds: 10
             failureThreshold: 30
       volumes:
-        - { name: config,        persistentVolumeClaim: { claimName: jellyfin-config } }
+        - { name: config,        persistentVolumeClaim: { claimName: jellyfin-config-mayastor } }
         - { name: cache,         persistentVolumeClaim: { claimName: jellyfin-cache } }
         - { name: media-movies,  persistentVolumeClaim: { claimName: jellyfin-media-movies } }
         - { name: media-tvshows, persistentVolumeClaim: { claimName: jellyfin-media-tvshows } }
