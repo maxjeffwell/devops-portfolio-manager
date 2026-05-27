@@ -20,7 +20,7 @@ Goldpinger runs a full N×N ping mesh between DaemonSet pods, exposes metrics + 
 
 - **Direct manifests over Helm** — Goldpinger is a single DaemonSet + Service + RBAC bundle. Wrapping it in an in-repo chart (the NPD pattern) adds files without enabling per-environment overrides we need. One ArgoCD Application pointing at `k8s/goldpinger/`.
 - **Image pin: `bloomberg/goldpinger:v3.11.2`** — Latest upstream release (2026-04-23). Renovate/dependabot not configured for this path yet; future bumps are manual.
-- **Tolerate marmoset's GPU `NoSchedule` taint** — Without this, marmoset is a blind spot. Marmoset hosts the only host-level tritonserver and 4× NVIDIA GPUs ([[marmoset-gpu-consumers-2026-05-25]]); we want visibility into its pod-network path.
+- **Tolerate marmoset's GPU `NoSchedule` taint** — Without this, marmoset is a blind spot. Marmoset hosts the only host-level tritonserver and 4× NVIDIA GPUs ([[marmoset-gpu-consumers-2026-05-25]]); we want visibility into its pod-network path. Actual taint key is `workload=gpu` (verified at execution time, see [[marmoset-gpu-taint-key]]), not `nvidia.com/gpu`.
 - **`hostNetwork: false`** — Goldpinger must use the pod network, since that's the network we're trying to monitor. (Using hostNetwork would defeat the purpose and miss flannel/CNI failures.)
 - **PrometheusRule alerts** — Wired to existing kube-prom stack. Three rules: unreachable peer, slow peer, DNS failure (see Section 4).
 - **Traefik ingress for UI** — `goldpinger.el-jefe.me` via the same pattern as `prometheus.el-jefe.me` / `jellyfin-k8s.el-jefe.me`: standard `networking.k8s.io/v1` Ingress, `letsencrypt-prod` cluster issuer, `kube-system-crowdsec-bouncer@kubernetescrd` middleware, TLS secret `goldpinger-tls`. Read-only UI, no destructive actions.
@@ -76,8 +76,8 @@ devops-portfolio-manager/
 - **Replicas:** 1 per node × 4 nodes = 4 pods
 - **Resources:** `requests: {cpu: 50m, memory: 32Mi}`, `limits: {cpu: 200m, memory: 128Mi}` (upstream defaults)
 - **Tolerations:**
-  - `node-role.kubernetes.io/control-plane:NoSchedule` — for control-plane nodes (vmi2951245, vmi3115606)
-  - `nvidia.com/gpu:NoSchedule` — for marmoset (per [[marmoset-gpu-consumers-2026-05-25]])
+  - `workload=gpu:NoSchedule` — for marmoset (see [[marmoset-gpu-taint-key]]); NOT `nvidia.com/gpu`
+  - `node-role.kubernetes.io/control-plane:NoSchedule` — forward-compat for vmi2951245 (currently only `PreferNoSchedule`, harmless no-op)
   - `node.kubernetes.io/not-ready:NoExecute` for 30s, `node.kubernetes.io/unreachable:NoExecute` for 30s — keep pod alive briefly during transient node issues so it can observe its own degradation
 - **Args:** `--ping-period 5s --check-timeout 1s --check-all-timeout 5s --pod-ip-override $(POD_IP)`
 - **Env:** `HOSTNAME`, `POD_IP` (downward API), `HOST` (`0.0.0.0`)

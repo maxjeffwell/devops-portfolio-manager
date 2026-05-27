@@ -179,12 +179,15 @@ spec:
       dnsPolicy: ClusterFirst
       priorityClassName: system-cluster-critical
       tolerations:
-        # Allow scheduling on control-plane nodes (vmi2951245, vmi3115606)
-        - key: node-role.kubernetes.io/control-plane
-          operator: Exists
+        # Allow scheduling on marmoset (taint: workload=gpu:NoSchedule).
+        # Taint key verified 2026-05-26; NOT nvidia.com/gpu.
+        - key: workload
+          operator: Equal
+          value: gpu
           effect: NoSchedule
-        # Allow scheduling on marmoset's GPU-tainted node
-        - key: nvidia.com/gpu
+        # Forward-compat: if vmi2951245's PreferNoSchedule is ever upgraded
+        # to NoSchedule, the DaemonSet still lands. Harmless no-op today.
+        - key: node-role.kubernetes.io/control-plane
           operator: Exists
           effect: NoSchedule
         # Keep the pod alive briefly when its own node goes unhealthy
