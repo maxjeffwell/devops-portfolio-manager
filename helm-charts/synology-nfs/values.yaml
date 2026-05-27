@@ -18,6 +18,7 @@ nfs:
     - noatime
     - hard
     - intr
+    - nconnect=4
   reclaimPolicy: Retain
 
 storageClass:
