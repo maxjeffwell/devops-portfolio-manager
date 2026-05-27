@@ -1,0 +1,40 @@
+# Ingress-only NetworkPolicy. Egress is intentionally UNRESTRICTED:
+# goldpinger's purpose is to ping every pod IP in the cluster plus resolve
+# DNS — restricting egress would defeat the tool.
+# Ingress is restricted to the namespaces that legitimately reach :8080:
+#   - monitoring (Prometheus scrape)
+#   - kube-system (Traefik ingress controller)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: goldpinger
+  namespace: goldpinger
+  labels:
+    app: goldpinger
+    app.kubernetes.io/name: goldpinger
+spec:
+  podSelector:
+    matchLabels:
+      app: goldpinger
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Allow pod-to-pod within the goldpinger namespace itself so peers can
+    # ping each other (relevant if goldpinger ever runs >1 pod per node).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: goldpinger
+      ports:
+        - port: 8080
+          protocol: TCP
