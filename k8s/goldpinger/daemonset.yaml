@@ -52,7 +52,7 @@ spec:
         fsGroup: 2000
       containers:
         - name: goldpinger
-          image: docker.io/bloomberg/goldpinger:v3.11.2
+          image: docker.io/bloomberg/goldpinger:3.11.2
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
