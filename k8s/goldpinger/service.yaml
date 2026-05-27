@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: goldpinger
+  namespace: goldpinger
+  labels:
+    app: goldpinger
+    app.kubernetes.io/name: goldpinger
+spec:
+  type: ClusterIP
+  selector:
+    app: goldpinger
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
