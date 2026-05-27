@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: goldpinger
+  namespace: goldpinger
+  labels:
+    app: goldpinger
+    app.kubernetes.io/name: goldpinger
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: goldpinger
+  template:
+    metadata:
+      labels:
+        app: goldpinger
+        app.kubernetes.io/name: goldpinger
+    spec:
+      serviceAccountName: goldpinger
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      priorityClassName: system-cluster-critical
+      tolerations:
+        # Allow scheduling on marmoset (taint: workload=gpu:NoSchedule).
+        # Taint key verified 2026-05-26; NOT nvidia.com/gpu.
+        - key: workload
+          operator: Equal
+          value: gpu
+          effect: NoSchedule
+        # Forward-compat: if vmi2951245's PreferNoSchedule is ever upgraded
+        # to NoSchedule, the DaemonSet still lands. Harmless no-op today.
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        # Keep the pod alive briefly when its own node goes unhealthy
+        # so it can observe the degradation before being evicted.
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+        - name: goldpinger
+          image: docker.io/bloomberg/goldpinger:v3.11.2
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          # Only HOST/PORT/HOSTNAME/POD_IP are documented as env-driven in the
+          # upstream example. Other tunables (--refresh-interval, --ping-timeout,
+          # --check-timeout, --check-all-timeout, --label-selector) are CLI flags;
+          # defaults are sensible for a 4-node cluster. Add args: below if/when
+          # tuning is needed (e.g. "args: ['--refresh-interval', '60s']").
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: "8080"
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 40Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
