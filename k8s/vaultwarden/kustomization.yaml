@@ -13,4 +13,4 @@ resources:
   - service.yaml
   - ingress.yaml
   - networkpolicy.yaml
-  # - export-cronjob.yaml   # added in Task 13 (break-glass export to ASUSTOR NFS)
+  - export-cronjob.yaml
