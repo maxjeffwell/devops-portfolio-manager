@@ -5,3 +5,23 @@ kind: Kustomization
 # because ArgoCD repo-server blocks remote kustomize resources.
 resources:
   - manifest.yaml
+
+# Security: override upstream's --log-level=debug → info (debug can leak
+# credential paths / WAL detail into logs). Patch (not in-place edit) so it
+# survives re-vendoring the upstream manifest. See security review of b08d74b.
+patches:
+  - target:
+      kind: Deployment
+      name: barman-cloud
+      namespace: cnpg-system
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - operator
+          - --server-cert=/server/tls.crt
+          - --server-key=/server/tls.key
+          - --client-cert=/client/tls.crt
+          - --server-address=:9090
+          - --leader-elect
+          - --log-level=info
