@@ -16,4 +16,5 @@ resources:
   - service.yaml
   - ingress.yaml
   - ingressroute-auth.yaml
+  - ingressroute-metrics-block.yaml
   - servicemonitor.yaml
