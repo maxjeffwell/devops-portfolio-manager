@@ -7,6 +7,7 @@ metadata:
 spec:
   schedule: {{ .Values.veleroSchedules.daily.schedule | quote }}
   template:
+    csiSnapshotTimeout: {{ .Values.veleroSchedules.csiSnapshotTimeout | default "20m" }}
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
     ttl: {{ .Values.veleroSchedules.daily.ttl }}
@@ -19,6 +20,7 @@ metadata:
 spec:
   schedule: {{ .Values.veleroSchedules.weekly.schedule | quote }}
   template:
+    csiSnapshotTimeout: {{ .Values.veleroSchedules.csiSnapshotTimeout | default "20m" }}
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
     ttl: {{ .Values.veleroSchedules.weekly.ttl }}
@@ -31,6 +33,7 @@ metadata:
 spec:
   schedule: {{ .Values.veleroSchedules.weeklyLocal.schedule | quote }}
   template:
+    csiSnapshotTimeout: {{ .Values.veleroSchedules.csiSnapshotTimeout | default "20m" }}
     storageLocation: {{ .Values.veleroSchedules.weeklyLocal.storageLocation }}
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
