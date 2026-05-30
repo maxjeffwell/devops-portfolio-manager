@@ -1,0 +1,66 @@
+# Default-deny for the Vaultwarden app pod. (CNPG pods are governed separately
+# by the operator and are intentionally not selected here — restricting them
+# risks breaking replication / WAL archiving to B2.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  podSelector:
+    matchLabels:
+      app: vaultwarden
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Traefik (ingress) → app :80
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - port: 80
+          protocol: TCP
+    # Prometheus scrape (if enabled later)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 80
+          protocol: TCP
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Postgres → cnpg-vaultwarden
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: cnpg-vaultwarden
+      ports:
+        - port: 5432
+          protocol: TCP
+    # Outbound HTTPS for favicon icon fetching + HIBP password checks
+    # (mirrors the jellyfin egress-to-internet convention).
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP

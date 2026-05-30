@@ -1,0 +1,66 @@
+# Break-glass: weekly logical pg_dump of the vault DB to ASUSTOR NFS — an
+# off-cluster copy on a separate failure domain (different host/storage/stack)
+# from the CNPG→B2 PITR and Velero tracks. Pinned to debian-marmoset (reaches
+# both the CNPG DB and the ASUSTOR LAN). Not selected by the app NetworkPolicy
+# (different label), so its egress to PG + NFS is unrestricted.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vaultwarden-breakglass-export
+  namespace: vaultwarden
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  schedule: "0 4 * * 0"          # weekly, Sunday 04:00
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: vaultwarden-breakglass
+        spec:
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: debian-marmoset
+          containers:
+            - name: export
+              image: ghcr.io/cloudnative-pg/postgresql:17
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  umask 077                # dump files land 0600 (dir is 1777)
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  OUT="/nfs/vaultwarden-${TS}.dump"
+                  echo "pg_dump -> ${OUT}"
+                  pg_dump "$DATABASE_URL" -Fc -f "$OUT"
+                  ls -la "$OUT"
+                  # retention: keep ~8 weekly dumps (delete > 60 days old)
+                  find /nfs -name 'vaultwarden-*.dump' -mtime +60 -delete || true
+                  echo "current break-glass dumps:"; ls -1 /nfs/vaultwarden-*.dump | tail -10
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: cnpg-vaultwarden-app
+                      key: uri
+              volumeMounts:
+                - name: nfs
+                  mountPath: /nfs
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 250m
+                  memory: 256Mi
+          volumes:
+            - name: nfs
+              nfs:
+                server: 192.168.50.142
+                path: /mnt/backups/vaultwarden-breakglass

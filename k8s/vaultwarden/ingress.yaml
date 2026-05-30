@@ -1,0 +1,34 @@
+# vaultwarden.el-jefe.me is Cloudflare ORANGE-PROXIED (like argocd, not grey
+# like jellyfin). Therefore:
+#  - DNS-01 issuer (letsencrypt-prod-dns): HTTP-01 is unreliable through the
+#    proxy; DNS-01 validates via the zone regardless of proxy state.
+#  - Cloudflare SSL/TLS mode must be Full (strict) — origin has a real LE cert.
+#  - Traefik must trust Cloudflare forwarded headers so CrowdSec/Vaultwarden see
+#    the real client IP (verify forwardedHeaders.trustedIPs covers CF ranges).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - vaultwarden.el-jefe.me
+      secretName: vaultwarden-tls
+  rules:
+    - host: vaultwarden.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vaultwarden
+                port:
+                  number: 80

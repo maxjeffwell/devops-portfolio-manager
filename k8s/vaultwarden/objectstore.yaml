@@ -1,0 +1,23 @@
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: vaultwarden-b2
+  namespace: vaultwarden
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  retentionPolicy: "30d"
+  configuration:
+    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-vaultwarden"
+    endpointURL: "https://s3.us-east-005.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: vaultwarden-b2-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: vaultwarden-b2-creds
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
