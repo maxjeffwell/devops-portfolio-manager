@@ -64,3 +64,19 @@ spec:
       ports:
         - port: 443
           protocol: TCP
+    # Outbound SMTP submission — Vaultwarden sends mail (invites, etc.) via an
+    # external provider. Gmail = smtp.gmail.com:587 (STARTTLS) or :465 (implicit TLS).
+    # Without this the app's egress policy blocks the SMTP connection (Connection
+    # refused/blocked on test), even though 443 to the internet is allowed.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 587
+          protocol: TCP
+        - port: 465
+          protocol: TCP
