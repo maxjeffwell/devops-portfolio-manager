@@ -19,6 +19,11 @@ spec:
       labels:
         app: jellyfin
         portfolio: "true"
+      annotations:
+        # Opt OUT of kopia FS-backup for replaceable volumes (cluster default is
+        # defaultVolumesToFsBackup=true). media-* are 2Ti each; cache is regenerable.
+        # KEEP `config` (Mayastor) — irreplaceable library/watch-state metadata.
+        backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,cache
     spec:
       nodeSelector:
         gpu-node: "true"

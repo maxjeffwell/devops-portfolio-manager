@@ -2,6 +2,8 @@
 veleroSchedules:
   enabled: true
   namespace: velero
+  # Velero default is 10m; storage layer (Mayastor/synology/democratic-csi) needs longer.
+  csiSnapshotTimeout: "20m"
   excludedNamespaces:
     - gpu-operator
   daily:
