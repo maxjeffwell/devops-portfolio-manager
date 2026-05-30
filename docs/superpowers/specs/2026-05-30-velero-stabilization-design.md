@@ -55,7 +55,7 @@ Sequence: **WS-0 first** (so later edits target the right files), then independe
 - **Acceptance:** a backup run with zero `client rate limiter` skips; CSI `DeadlineExceeded` count drops materially.
 
 ### WS-3 — Data tier (keystone)
-- **3a Right-size FSB scope:** audit `backup.velero.io/backup-volumes` annotations. Confirm all DB/stateful volumes (mongo, neon, redis, backrest) are covered. **Remove the garage-backs-up-into-garage self-dependency** — strip the `data` FSB annotation from garage-0/garage-1 (garage *is* the backup store; backing its data into itself is circular and a likely contributor to the kopia load). Confirm large replaceable media (Jellyfin 2 Ti) stays excluded.
+- **3a Right-size FSB scope (CORRECTED — opt-OUT model):** This cluster runs `configuration.defaultVolumesToFsBackup: true`, so **every** pod volume is kopia-FS-backed-up unless it carries a `backup.velero.io/backup-volumes-excludes` annotation. Current excludes: backrest, redis, percona-mongodb, and **garage's `data` (monitoring)** — so the garage-into-garage case is *already* handled (no action needed; my earlier "self-dependency" reading was a grep that matched the `-excludes` annotation). The real overload: **Jellyfin's two 2 Ti media PVCs have NO exclude → kopia tries to back up terabytes of replaceable media to garage every run** (the 302 GB Canceled DataUpload). Action: add `backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,cache` to the Jellyfin pod template (keep `config` on Mayastor — irreplaceable watch-state/metadata), and audit other large replaceable PVCs (model caches: triton/llm/ollama) for exclusion. Net effect: kopia only ships irreplaceable data, so garage can actually keep up.
 - **3b Stabilize garage:** apply the documented garage runbook (restart the FAILED garage pod to restore write quorum; watch for ASUSTOR-node flaps). Re-run a backup and confirm DataUploads/PodVolumeBackups reach `Completed`.
 - **3c Offsite data (already designed):** once WS-1 makes the BSL `Available`, verify `weekly-offsite` FSB→B2 actually ships data for its allowlist; restore-test one DB from the B2 copy.
 - **Acceptance:** a daily backup with all FSB volumes `Completed`; one successful B2-sourced restore.
@@ -76,7 +76,7 @@ Sequence: **WS-0 first** (so later edits target the right files), then independe
 
 ## 6. Resolved Decisions (2026-05-30 review)
 - **Offsite BSL home:** lives in the `backups` ArgoCD app (with the offsite Schedule), not `velero-values.yaml`.
-- **garage-into-garage FSB:** removed — strip the `data` annotation from garage-0/garage-1.
+- **garage-into-garage FSB:** already excluded (no action) — intent "don't back up garage into garage" is satisfied by the existing `backup-volumes-excludes: data` on the garage StatefulSet. The actionable equivalent of "right-size scope" is excluding **Jellyfin media** (2 Ti × 2) + model caches, the true kopia/garage overload.
 - **Limiter opening values:** `--client-qps 100` / `--client-burst 200`.
 - **Offsite data mechanism:** existing `weekly-offsite` FSB allowlist (no `snapshotMoveData`).
 - **Data target:** keep garage, stabilize (no migration off it).
