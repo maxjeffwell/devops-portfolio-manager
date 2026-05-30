@@ -8,6 +8,9 @@ metadata:
     app: velero
     prometheus: kube-prometheus
     role: alert-rules
+    # REQUIRED: Prometheus operator ruleSelector is matchLabels{release: prometheus}.
+    # Without this label Prometheus silently never loads these rules → they can't fire.
+    release: prometheus
 spec:
   groups:
   - name: velero.rules
