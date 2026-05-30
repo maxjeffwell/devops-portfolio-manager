@@ -22,11 +22,13 @@ spec:
         - .spec.data[].remoteRef.conversionStrategy
         - .spec.data[].remoteRef.decodingStrategy
         - .spec.data[].remoteRef.metadataPolicy
-    # CNPG mutates its own Cluster spec (managed defaults, plugin status).
+    # CNPG operator (field manager "manager") injects many spec defaults; ignore
+    # everything it owns so ArgoCD only reconciles the fields we set in git.
+    # Narrow jsonPointers were whack-a-mole and left the Cluster permanently OutOfSync.
     - group: postgresql.cnpg.io
       kind: Cluster
-      jsonPointers:
-        - /spec/affinity/podAntiAffinityType
+      managedFieldsManagers:
+        - manager
   syncPolicy:
     automated:
       prune: true
