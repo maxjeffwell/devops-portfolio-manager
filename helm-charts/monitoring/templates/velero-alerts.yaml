@@ -67,4 +67,17 @@ spec:
         summary: "Velero restore failed"
         description: "A Velero restore operation failed. Check velero logs."
         priority: "8"
+
+    # Alert when CSI volume snapshots fail (the storage-layer DeadlineExceeded
+    # failures behind PartiallyFailed backups). Metric verified present in
+    # Prometheus (velero_csi_snapshot_failure_total) once the ServiceMonitor scrapes.
+    - alert: VeleroCSISnapshotFailing
+      expr: increase(velero_csi_snapshot_failure_total[6h]) > 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Velero CSI volume snapshots are failing"
+        description: "CSI snapshots are failing (DeadlineExceeded / driver errors) — volume data may not be captured. Check `velero backup logs` and the CSI driver."
+        priority: "6"
 {{- end }}
