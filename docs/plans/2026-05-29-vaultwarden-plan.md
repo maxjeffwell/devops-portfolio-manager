@@ -619,7 +619,9 @@ git commit -m "Add Vaultwarden PVC, Deployment (pinned to vmi2951245), and Servi
 **Files:**
 - Create: `k8s/vaultwarden/ingress.yaml`, `k8s/vaultwarden/networkpolicy.yaml`
 
-- [ ] **Step 1: Write the Ingress (mirrors jellyfin: crowdsec + letsencrypt-prod)**
+- [ ] **Step 1: Write the Ingress (crowdsec + DNS-01 issuer; host will be Cloudflare orange-proxied)**
+
+> Cloudflare decision: `vaultwarden.el-jefe.me` is **orange-proxied** (like `argocd`, not grey like `jellyfin`). Use the **DNS-01** issuer `letsencrypt-prod-dns` (HTTP-01 is flaky through the proxy). No origin IP-allowlist (shared origin also serves grey-cloud Jellyfin). Cloudflare SSL mode must be **Full (strict)**.
 
 `k8s/vaultwarden/ingress.yaml`:
 ```yaml
@@ -629,7 +631,7 @@ metadata:
   name: vaultwarden
   namespace: vaultwarden
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls: "true"
@@ -714,12 +716,17 @@ kubectl -n vaultwarden get certificate vaultwarden-tls -w   # until READY=True (
 ```
 Expected: `vaultwarden-tls` becomes `Ready=True` within a few minutes.
 
-- [ ] **Step 4: Verify external reachability**
+- [ ] **Step 4: Create the Cloudflare DNS record (orange-proxied) + verify reachability**
 
-Run: `curl -sI https://vaultwarden.el-jefe.me/alive`
-Expected: HTTP 200, valid Let's Encrypt cert. (DNS for `vaultwarden.el-jefe.me` must point at the ingress — add the record if missing, mirroring other `*.el-jefe.me` hosts.)
+In Cloudflare, add `vaultwarden.el-jefe.me` pointing at the same origin as the other proxied hosts, **proxy status ON (orange)**, and confirm the zone SSL/TLS mode is **Full (strict)**. Then:
+Run: `nslookup vaultwarden.el-jefe.me` → expect **Cloudflare IPs** (104.21.x / 172.67.x), not the raw origin.
+Run: `curl -sI https://vaultwarden.el-jefe.me/alive` → HTTP 200, valid cert.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Verify Traefik trusts Cloudflare forwarded headers (CrowdSec correctness)**
+
+Run: `kubectl -n kube-system get deploy traefik -o yaml | grep -A3 -iE "forwardedheaders|trustedips"` (or check the Traefik static config / IngressRoute). Confirm Cloudflare's published ranges are in `forwardedHeaders.trustedIPs` so the origin reads the real client IP from `CF-Connecting-IP`/`X-Forwarded-For`. If absent, add Cloudflare's ranges — otherwise the CrowdSec bouncer would be filtering Cloudflare's own IPs instead of attackers. (Cloudflare ranges: https://www.cloudflare.com/ips/)
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add k8s/vaultwarden/ingress.yaml k8s/vaultwarden/networkpolicy.yaml
