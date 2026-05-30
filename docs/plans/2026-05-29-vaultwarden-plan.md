@@ -337,12 +337,21 @@ spec:
   instances: 2
   imageName: ghcr.io/cloudnative-pg/postgresql:17
   primaryUpdateStrategy: unsupervised
+  # NOTE (execution) — final storage decision after three dead-ends:
+  #  1. democratic-synology-iscsi-mp: CSI node plugin only on debian-marmoset.
+  #  2. openebs-zfs: ZFS POOL only on vmi2951245 (driver on 3 nodes, pool on 1).
+  #  3. vmi2951245 has NO outbound route to Backblaze B2 (TCP connect times out),
+  #     so anything needing B2 (WAL archive, Velero offsite) must NOT run there.
+  # Resolution: single instance pinned to debian-marmoset (reaches B2, has
+  # node-agent) on mayastor-2 (NVMe-oF/TCP, replica=2 → data replicated to
+  # marmoset for storage-level redundancy under WAL PITR→B2).
+  instances: 1
   storage:
-    storageClass: democratic-synology-iscsi-mp
+    storageClass: mayastor-2
     size: 5Gi
   affinity:
-    enablePodAntiAffinity: true
-    topologyKey: kubernetes.io/hostname
+    nodeSelector:
+      kubernetes.io/hostname: debian-marmoset
   bootstrap:
     initdb:
       database: vaultwarden

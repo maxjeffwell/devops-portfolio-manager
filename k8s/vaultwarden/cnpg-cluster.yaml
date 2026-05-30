@@ -1,0 +1,33 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cnpg-vaultwarden
+  namespace: vaultwarden
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  # Single Postgres instance pinned to debian-marmoset because:
+  #  - vmi2951245 has NO outbound connectivity to Backblaze B2 (TCP connect
+  #    times out), so WAL archiving must run from debian-marmoset, which reaches
+  #    B2 fine; and the openebs-zfs pool only exists on vmi2951245 anyway.
+  # Storage = mayastor-2 (NVMe-oF/TCP, replica=2 across debian-marmoset↔marmoset):
+  # the single instance's data is replicated at the storage layer, so it survives
+  # a debian-marmoset disk/node loss — storage-level redundancy under WAL PITR→B2.
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+  primaryUpdateStrategy: unsupervised
+  storage:
+    storageClass: mayastor-2
+    size: 5Gi
+  affinity:
+    nodeSelector:
+      kubernetes.io/hostname: debian-marmoset
+  bootstrap:
+    initdb:
+      database: vaultwarden
+      owner: vaultwarden
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: vaultwarden-b2
