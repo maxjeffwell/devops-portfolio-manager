@@ -1,0 +1,21 @@
+# Backblaze B2 offsite BackupStorageLocation.
+# Owned by the `backups` ArgoCD app (adopts the previously hand-applied resource
+# via server-side apply). The `prefix: velero` scopes Velero to velero/* so the
+# co-resident cnpg-vaultwarden/ top-level dir no longer fails BSL validation.
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: backblaze
+  namespace: velero
+spec:
+  provider: aws
+  objectStorage:
+    bucket: k3s-velero-eljefe-backups
+    prefix: velero
+  credential:
+    name: cloud-credentials
+    key: cloud
+  config:
+    region: us-east-005
+    s3ForcePathStyle: "true"
+    s3Url: https://s3.us-east-005.backblazeb2.com
