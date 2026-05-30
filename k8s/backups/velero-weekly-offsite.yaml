@@ -1,0 +1,33 @@
+# Velero weekly off-site backup → Backblaze B2 (direct).
+#
+# Reconciled from live drift (2026-05-30): this Schedule existed only in the
+# cluster, not in git. Unlike the other three schedules (in the monitoring Helm
+# chart, using an excludedNamespaces denylist), weekly-offsite uses an
+# includedNamespaces ALLOWLIST and ships kopia FSB data straight to B2 — the
+# rclone garage-offsite-sync job deliberately skips kopia/restic for that reason.
+# Managed here by the `backups` ArgoCD app (adopts the existing resource via
+# server-side apply; not added to the Helm chart, which would choke on a
+# pre-existing resource it didn't create).
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: weekly-offsite
+  namespace: velero
+spec:
+  schedule: "0 4 * * 0"
+  skipImmediately: false
+  useOwnerReferencesInBackup: false
+  template:
+    storageLocation: backblaze
+    defaultVolumesToFsBackup: true
+    ttl: 720h
+    includedNamespaces:
+      - default
+      - lunary
+      - percona-mongodb
+      - monitoring
+      - kube-system
+      - argocd
+      - microservices
+      - vertex-platform
+      - vaultwarden
