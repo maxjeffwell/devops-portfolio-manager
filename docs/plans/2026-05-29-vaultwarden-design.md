@@ -178,3 +178,31 @@ export job produces a non-empty dump.
 - Organizations/collections policy beyond defaults.
 - SMTP provider selection (wired but optional).
 - Migrating or re-architecting the other CNPG clusters.
+
+## Execution outcome (2026-05-30) — deviations from the spec above
+
+The build hit three storage/connectivity constraints that reshaped the topology.
+Final as-deployed state:
+
+- **Node:** app + DB both on **debian-marmoset**, NOT vmi2951245. vmi2951245 has **no
+  outbound route to Backblaze B2** (TCP connect times out), which would break WAL
+  archiving and Velero offsite of `/data`. debian-marmoset reaches B2 and runs the
+  Velero node-agent.
+- **DB instances:** **1**, not 2. No StorageClass offered true multi-node capacity:
+  `democratic-synology-iscsi-mp` node-plugin is on one node; the `openebs-zfs` *pool*
+  exists on only one node. Multi-node HA wasn't achievable.
+- **DB storage:** **`mayastor-2`** (NVMe-oF/TCP, replica=2 across debian-marmoset↔
+  marmoset), NOT iSCSI. The single instance's data is replicated at the storage layer,
+  giving storage-level redundancy under the WAL-PITR→B2 + Velero tracks.
+- **WAL/PITR:** Barman Cloud Plugin v0.12.0 → B2 — **working as specced** (verified:
+  base + WAL, `LastBackupSucceeded=True`). Plugin `--log-level` patched debug→info.
+- **Migration:** SQLite upgraded to 1.36.0 first (booted throwaway Vaultwarden against a
+  copy), then `pgloader` data-only → CNPG. 2 users / 2340 ciphers / 36 folders, 0 errors.
+  `rsa_key.pem` carried over. Verified via prelogin through the public URL.
+- **ASUSTOR:** already dormant (no running container; DB untouched since Dec 27) — the
+  break-glass copy is in place without an explicit stop.
+- **Exposure:** `vaultwarden.el-jefe.me` Cloudflare orange-proxied, **DNS-01** issuer
+  (`letsencrypt-prod-dns`), Full(strict). Traefik already trusts CF ranges → CrowdSec
+  sees real client IPs. Self-signups verified blocked (400/401); `/admin` token verified.
+- **`weekly-offsite` Velero schedule** is drift (not in git); `vaultwarden` was added via
+  live patch — reconcile into git separately.
