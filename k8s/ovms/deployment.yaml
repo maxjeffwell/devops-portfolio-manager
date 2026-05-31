@@ -115,5 +115,7 @@ spec:
             periodSeconds: 10
           startupProbe:
             httpGet: { path: /v2/health/ready, port: 8000 }
-            periodSeconds: 5
-            failureThreshold: 24
+            periodSeconds: 10
+            # fp16 e5-large GPU compile/load can take minutes; allow ~10 min
+            # so the kubelet doesn't SIGKILL mid-compile (caused a restart loop).
+            failureThreshold: 60
