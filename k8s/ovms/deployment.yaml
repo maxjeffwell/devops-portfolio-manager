@@ -98,10 +98,12 @@ spec:
           resources:
             requests:
               cpu: "1"
-              memory: 800Mi
+              memory: 1500Mi
               gpu.intel.com/i915: "1"
             limits:
-              memory: 1500Mi
+              # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
+              # limit OOMKilled the pod repeatedly (exit 137) on model load.
+              memory: 3Gi
               gpu.intel.com/i915: "1"
           livenessProbe:
             httpGet: { path: /v2/health/live, port: 8000 }
