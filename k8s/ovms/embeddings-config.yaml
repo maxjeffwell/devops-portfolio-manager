@@ -34,7 +34,7 @@ data:
           models_path: "/models/e5-large/1",
           plugin_config: '{"NUM_STREAMS": "1"}',
           normalize_embeddings: true,
-          pooling: MEAN,
+          pooling: CLS,
           target_device: "AUTO"
         }
       }
