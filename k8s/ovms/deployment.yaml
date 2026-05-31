@@ -33,6 +33,9 @@ spec:
         - name: models
           persistentVolumeClaim:
             claimName: ovms-models
+        - name: config
+          configMap:
+            name: ovms-embeddings-config
       # Hydrates /models from Garage S3 on first start; idempotent no-op
       # afterwards. Uses aws-cli (boto3-based, doesn't have OVMS's SDK bug).
       initContainers:
@@ -79,19 +82,19 @@ spec:
             capabilities:
               drop: ["ALL"]
           args:
-            - "--model_path=/models/e5-large"
-            - "--model_name=e5-large"
+            # Graph mode: serves the e5-large embeddings MediaPipe graph from
+            # the ovms-embeddings-config ConfigMap, exposing /v3/embeddings.
+            # target_device (AUTO) now lives in the graph's node_options.
+            - "--config_path=/config/config.json"
             - "--port=9000"
             - "--rest_port=8000"
-            # AUTO picks GPU when accessible, falls back to CPU otherwise.
-            # Avoids hard failure if GPU enumeration has a transient issue.
-            - "--target_device=AUTO"
             - "--log_level=INFO"
           ports:
             - { name: rest, containerPort: 8000, protocol: TCP }
             - { name: grpc, containerPort: 9000, protocol: TCP }
           volumeMounts:
             - { name: models, mountPath: /models, readOnly: true }
+            - { name: config, mountPath: /config, readOnly: true }
           resources:
             requests:
               cpu: "1"

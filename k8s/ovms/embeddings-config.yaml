@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ovms-embeddings-config
+  namespace: ovms
+  labels:
+    app: ovms-embeddings
+    portfolio: "true"
+data:
+  # OVMS config in graph mode: registers the e5-large embeddings MediaPipe
+  # graph. base_path points at /config (this ConfigMap mount) where graph.pbtxt
+  # lives; the model files stay on the read-only PVC, referenced by absolute
+  # models_path in the graph.
+  config.json: |
+    {
+      "mediapipe_config_list": [
+        { "name": "e5-large", "base_path": "/config" }
+      ],
+      "model_config_list": []
+    }
+  # OpenAI-compatible embeddings graph (OVMS 2025.4 EmbeddingsCalculatorOV).
+  # e5 requires MEAN pooling; embeddings are L2-normalized server-side.
+  graph.pbtxt: |
+    input_stream: "REQUEST_PAYLOAD:input"
+    output_stream: "RESPONSE_PAYLOAD:output"
+    node {
+      name: "EmbeddingsExecutor"
+      input_side_packet: "EMBEDDINGS_NODE_RESOURCES:embeddings_servable"
+      calculator: "EmbeddingsCalculatorOV"
+      input_stream: "REQUEST_PAYLOAD:input"
+      output_stream: "RESPONSE_PAYLOAD:output"
+      node_options: {
+        [type.googleapis.com / mediapipe.EmbeddingsCalculatorOVOptions]: {
+          models_path: "/models/e5-large/1",
+          plugin_config: '{"NUM_STREAMS": "1"}',
+          normalize_embeddings: true,
+          pooling: MEAN,
+          target_device: "AUTO"
+        }
+      }
+    }

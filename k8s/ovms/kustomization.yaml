@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - ovms-external-secret.yaml
   - model-pvc.yaml
+  - embeddings-config.yaml
   - deployment.yaml
   - service.yaml
   - networkpolicy.yaml
