@@ -12,7 +12,9 @@ strategy:
 image:
   server:
     repository: maxjeffwell/spaced-repetition-capstone-server
-    tag: 20260516-233102-4dc7f97
+    # Qdrant related-cards feature (PR #35 merged); GHCR-mirror push failed so
+    # the auto-bump didn't fire — pinned to the Docker Hub tag manually.
+    tag: master-95e05a4
     pullPolicy: Always
   client:
     repository: maxjeffwell/spaced-repetition-capstone-client
@@ -235,6 +237,15 @@ env:
     # Tier 4: TensorFlow.js (final fallback)
     - name: TFJS_BACKEND
       value: "auto"
+    # Vector search: Qdrant related-card recommendations + OVMS e5-large embeddings.
+    # Dark launch — flip VECTOR_SEARCH_ENABLED to "true" after the new image is
+    # confirmed healthy, then run scripts/backfill-embeddings.js.
+    - name: VECTOR_SEARCH_ENABLED
+      value: "false"
+    - name: QDRANT_URL
+      value: "http://qdrant.qdrant:6333"
+    - name: OVMS_EMBED_URL
+      value: "http://ovms-embeddings.ovms:8000"
   client:
     # Use empty string for relative URLs (nginx will proxy to backend via ingress)
     - name: REACT_APP_API_BASE_URL
