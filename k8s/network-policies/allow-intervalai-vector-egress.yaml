@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intervalai-vector-egress
+  namespace: default
+  annotations:
+    purpose: >-
+      Let intervalai-server reach the Qdrant vector index and the OVMS
+      embeddings server (related-card recommendations feature). Required
+      because default-deny-all blocks egress by default.
+spec:
+  podSelector:
+    matchLabels:
+      app: intervalai-server
+  policyTypes:
+    - Egress
+  egress:
+    # Qdrant REST API (vector index) in the `qdrant` namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: qdrant
+      ports:
+        - { port: 6333, protocol: TCP }
+    # OVMS embeddings (/v3/embeddings) in the `ovms` namespace
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ovms
+      ports:
+        - { port: 8000, protocol: TCP }
