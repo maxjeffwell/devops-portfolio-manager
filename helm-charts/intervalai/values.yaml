@@ -241,7 +241,7 @@ env:
     # Dark launch — flip VECTOR_SEARCH_ENABLED to "true" after the new image is
     # confirmed healthy, then run scripts/backfill-embeddings.js.
     - name: VECTOR_SEARCH_ENABLED
-      value: "false"
+      value: "true"
     - name: QDRANT_URL
       value: "http://qdrant.qdrant:6333"
     - name: OVMS_EMBED_URL
