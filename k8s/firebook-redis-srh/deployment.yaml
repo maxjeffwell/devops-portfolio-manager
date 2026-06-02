@@ -16,7 +16,8 @@ spec:
         app: firebook-redis-srh
     spec:
       securityContext:
-        runAsNonRoot: true
+        # SRH image runs as root and binds privileged port 80; runAsNonRoot
+        # would block it. Locked down via dropped caps + no privilege escalation.
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -27,6 +28,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]   # bind privileged port 80 with caps dropped
           env:
             - name: SRH_MODE
               value: "env"
