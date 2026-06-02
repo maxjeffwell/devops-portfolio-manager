@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: firebook-redis-srh-ingress
+  namespace: default
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # CrowdSec bouncer middleware intentionally omitted: Firebase Functions
+    # egress from dynamic Google IPs that CrowdSec could bounce. Auth is the
+    # SRH bearer token over HTTPS.
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: firebook-redis.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: firebook-redis-srh
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - firebook-redis.el-jefe.me
+      secretName: firebook-redis-srh-tls

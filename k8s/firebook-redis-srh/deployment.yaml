@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firebook-redis-srh
+  namespace: default
+  labels:
+    app: firebook-redis-srh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: firebook-redis-srh
+  template:
+    metadata:
+      labels:
+        app: firebook-redis-srh
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: srh
+          image: hiett/serverless-redis-http@sha256:5b0bb9239fce53abf87b2018a7a0deb9ec7bd900c5360738fe5fbeeb426f9150
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: SRH_MODE
+              value: "env"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: redis-password
+            # $(REDIS_PASSWORD) is expanded by Kubernetes from the env var above.
+            # DB index 1 isolates firebook from code-talk's DB 0 on the shared instance.
+            - name: SRH_CONNECTION_STRING
+              value: "redis://:$(REDIS_PASSWORD)@redis:6379/1"
+            - name: SRH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: firebook-redis-srh-secret
+                  key: SRH_TOKEN
+          ports:
+            - { name: http, containerPort: 80, protocol: TCP }
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits:   { memory: 128Mi }
+          readinessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 80 }
+            initialDelaySeconds: 10
+            periodSeconds: 30
