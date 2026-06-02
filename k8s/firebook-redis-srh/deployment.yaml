@@ -14,6 +14,9 @@ spec:
     metadata:
       labels:
         app: firebook-redis-srh
+        # Matches redis-allow-tenants netpol (podSelector portfolio=true) so SRH
+        # is permitted to connect to redis:6379 past the redis ingress policies.
+        portfolio: "true"
     spec:
       securityContext:
         # SRH image runs as root and binds privileged port 80; runAsNonRoot
