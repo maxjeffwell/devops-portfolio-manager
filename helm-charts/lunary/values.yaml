@@ -176,13 +176,20 @@ startupProbeBackend:
   timeoutSeconds: 5
   failureThreshold: 18
 
+# Liveness is a deadlock detector, not a slow-response detector. lunary-backend
+# is healthy and self-recovers, but during a transient ~30-45s DB-reconnect storm
+# (DB-backed requests pile up awaiting connect_timeout and starve the event loop)
+# /v1/health goes briefly unresponsive. At 5s/15s/3 the old probe fired after ~45s
+# and killed a recovering pod. Widened to ~2min tolerance so liveness only trips on
+# a genuine, sustained hang. Readiness stays strict (below) so the pod is still
+# pulled from the Service during the blip.
 livenessProbeBackend:
   httpGet:
     path: /v1/health
     port: 3333
-  periodSeconds: 15
-  timeoutSeconds: 5
-  failureThreshold: 3
+  periodSeconds: 20
+  timeoutSeconds: 10
+  failureThreshold: 6
 
 readinessProbeBackend:
   httpGet:
