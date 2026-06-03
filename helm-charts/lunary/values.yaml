@@ -81,6 +81,42 @@ affinity:
               values:
                 - vmi3115606
 
+# Gate startup on the database being reachable. lunary-backend runs its
+# materialized-view refresh synchronously at boot (index.ts:74) and calls
+# process.exit(1) on a connection timeout, so any blip in cnpg-lunary-rw
+# (single-instance CNPG, no failover target) crash-loops the pod. This init
+# waits for Postgres to accept connections instead. Bounded at ~3min so a
+# genuinely prolonged outage still surfaces as a restart rather than a
+# permanently-Init pod. NOTE: portfolio-common applies initContainers to BOTH
+# the backend and frontend Deployments; the frontend waiting on the DB is
+# acceptable (the UI is non-functional during a DB outage anyway).
+initContainers:
+  - name: wait-for-db
+    image: postgres:17-alpine
+    imagePullPolicy: IfNotPresent
+    command:
+      - sh
+      - -c
+      - |
+        echo "Waiting for cnpg-lunary-rw.default.svc.cluster.local:5432 ..."
+        i=0
+        until pg_isready -h cnpg-lunary-rw.default.svc.cluster.local -p 5432 -t 3 -q; do
+          i=$((i + 1))
+          if [ "$i" -ge 60 ]; then
+            echo "Database still unreachable after ~180s; failing init to surface the outage."
+            exit 1
+          fi
+          echo "  not ready (attempt $i/60), retrying in 3s"
+          sleep 3
+        done
+        echo "Database is accepting connections."
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 32Mi
+
 env:
   backend:
     - name: NODE_ENV
