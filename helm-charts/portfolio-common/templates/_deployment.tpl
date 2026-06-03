@@ -48,6 +48,13 @@ spec:
       {{- if $.Values.terminationGracePeriodSeconds }}
       terminationGracePeriodSeconds: {{ $.Values.terminationGracePeriodSeconds }}
       {{- end }}
+      {{- if $.Values.dnsPolicy }}
+      dnsPolicy: {{ $.Values.dnsPolicy }}
+      {{- end }}
+      {{- if $.Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml $.Values.dnsConfig | nindent 8 }}
+      {{- end }}
       {{- if $.Values.initContainers }}
       initContainers:
         {{- toYaml $.Values.initContainers | nindent 8 }}
