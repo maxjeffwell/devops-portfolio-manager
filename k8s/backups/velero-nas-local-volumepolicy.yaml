@@ -1,0 +1,24 @@
+# Velero volume resource-policy for the nas-local coarse backup tier.
+# Skips large/replaceable/circular volumes so .109 carries data worth protecting,
+# not NAS-to-NAS echo. First-match-wins.
+#   - nfs:            jellyfin-media-movies/tvshows (2Ti each, NFS-backed by the ASUSTOR)
+#   - csi-s3:         triton-models-pvc (50Gi, re-stageable from S3) — currently out of
+#                     scope, kept as a defensive/inert rule.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nas-local-volume-policy
+  namespace: velero
+data:
+  policy.yaml: |
+    version: v1
+    volumePolicies:
+    - conditions:
+        nfs: {}
+      action:
+        type: skip
+    - conditions:
+        storageClass:
+        - csi-s3
+      action:
+        type: skip

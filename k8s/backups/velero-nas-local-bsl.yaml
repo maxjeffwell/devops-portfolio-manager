@@ -1,0 +1,26 @@
+# On-prem Garage backup-ingest BackupStorageLocation.
+# S3 endpoint is the Synology USB NIC eth2/.109 (Garage node c2194d82, zone nas2),
+# giving on-prem (debian-marmoset) backups a dedicated 2.5GbE ingress path instead of
+# round-tripping to the cloud Garage pods via the in-cluster ClusterIP. Reuses the
+# existing velero-local bucket (prefix nas-local/) and velero-garage-credentials.
+# Does NOT touch the Synology Garage rpc_public_addr (stays 10.0.0.5:3901).
+# Owned by the `backups` ArgoCD app.
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: nas-local
+  namespace: velero
+spec:
+  provider: aws
+  default: false
+  accessMode: ReadWrite
+  objectStorage:
+    bucket: velero-local
+    prefix: nas-local
+  credential:
+    name: velero-garage-credentials
+    key: cloud
+  config:
+    region: garage
+    s3ForcePathStyle: "true"
+    s3Url: http://192.168.50.109:3900
