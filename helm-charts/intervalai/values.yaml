@@ -14,11 +14,11 @@ image:
     repository: maxjeffwell/spaced-repetition-capstone-server
     # Qdrant related-cards feature (PR #35 merged); GHCR-mirror push failed so
     # the auto-bump didn't fire — pinned to the Docker Hub tag manually.
-    tag: master-95e05a4
+    tag: 20260603-051927-6889b42
     pullPolicy: Always
   client:
     repository: maxjeffwell/spaced-repetition-capstone-client
-    tag: 20260516-233102-4dc7f97
+    tag: 20260603-051927-6889b42
     pullPolicy: Always
 
 imagePullSecrets: []
