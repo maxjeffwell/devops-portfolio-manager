@@ -1,0 +1,31 @@
+# Daily on-prem coarse-DR backup → nas-local BSL (Garage S3 on Synology .109).
+# Scope: ONLY fully-debian-marmoset-resident namespaces (residency-gated in plan Task 1;
+# scope narrowed in Task 2 after the gate found 6 mixed namespaces with cloud-resident
+# pods that cannot reach .109). Volume opt-outs via nas-local-volume-policy (NFS media)
+# + jellyfin pod annotation (cache). Databases (cnpg/mongodb in the excluded mixed
+# namespaces) stay covered by the existing logical backup jobs.
+# Starts paused; enabled in plan Task 9 after a manual verification backup passes.
+# Owned by the `backups` ArgoCD app.
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: daily-backup-nas-local
+  namespace: velero
+spec:
+  schedule: "30 2 * * *"
+  paused: true
+  skipImmediately: true
+  useOwnerReferencesInBackup: false
+  template:
+    storageLocation: nas-local
+    defaultVolumesToFsBackup: true
+    ttl: 720h
+    resourcePolicy:
+      refType: configmap
+      name: nas-local-volume-policy
+    includedNamespaces:
+      - qdrant
+      - vaultwarden
+      - vertex-platform
+      - jellyfin
+      - cluster-nfs
