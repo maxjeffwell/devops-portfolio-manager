@@ -7,7 +7,7 @@ replicaCount: 1
 strategyType: Recreate
 
 nfs:
-  server: 192.168.50.142
+  server: 192.168.50.133
   path: /mnt/backups
   mountOptions:
     - nfsvers=4.1
