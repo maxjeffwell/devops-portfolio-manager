@@ -21,7 +21,7 @@ spec:
     defaultVolumesToFsBackup: true
     ttl: 720h
     resourcePolicy:
-      refType: configmap
+      kind: configmap
       name: nas-local-volume-policy
     includedNamespaces:
       - qdrant
