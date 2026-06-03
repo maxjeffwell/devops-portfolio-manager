@@ -1,0 +1,15 @@
+#!/bin/sh
+# ASUSTOR ADM boot hook. Deploy target: /usr/local/etc/init.d/S64usb-nic-keepawake (root, 0755).
+# Runs before S65docker-ce so the USB NIC is power-pinned and stable before Garage binds
+# rpc_bind_addr to 192.168.50.149. Waits up to 20s for eth2 to enumerate first.
+start() {
+    i=0
+    while [ ! -e /sys/class/net/eth2/device ] && [ "$i" -lt 20 ]; do sleep 1; i=$((i+1)); done
+    [ -x /usr/local/sbin/usb-nic-keepawake.sh ] && /usr/local/sbin/usb-nic-keepawake.sh
+}
+case "$1" in
+    start|"") start ;;
+    stop) : ;;
+    *) echo "usage: $0 {start|stop}" ;;
+esac
+exit 0
