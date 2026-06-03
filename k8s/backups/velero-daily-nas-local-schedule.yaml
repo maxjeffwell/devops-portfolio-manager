@@ -16,7 +16,10 @@ metadata:
 spec:
   schedule: "30 5 * * *"
   paused: false
-  skipImmediately: true
+  # Velero owns this field: it consumes `true` (suppress catch-up on enable) then
+  # resets to `false`. Declaring `false` matches the settled value so ArgoCD selfHeal
+  # doesn't fight Velero in a perpetual OutOfSync loop.
+  skipImmediately: false
   useOwnerReferencesInBackup: false
   template:
     storageLocation: nas-local
