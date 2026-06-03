@@ -134,6 +134,14 @@ Edit this file's Task 6 `includedNamespaces` block to reflect the Step 1 decisio
 
 Expected: Task 6's namespace list is now final and matches the residency gate (Task 1 Step 4).
 
+> **RESOLVED 2026-06-02 (controller):** Task 1's residency gate revealed 6 of the 11 originally-considered namespaces are *mixed* (have cloud-resident stateful pods that cannot reach `.109`). User chose **clean on-node namespaces only**. Decisions:
+> - **`neon` — EXCLUDE** (mixed: `safekeeper-2`/`neon-cluster-*` on cloud VPS; also has its own WAL-replication durability).
+> - **`nfs-provisioners` — EXCLUDE** (mixed: provisioner pods on `vmi2951245`).
+> - **`cluster-nfs` — INCLUDE.** `nfs-backing` is a **250Gi iSCSI volume** (`iscsi-local` SC, ASUSTOR LUN) mounted by the `nfs-server` pod on debian-marmoset; it is the aggregate backing store for all `cluster-nfs`-provisioned PVCs. Fully on-node (PVB succeeds), not circular (iSCSI source → Garage), not duplicative in this tier (those PVCs aren't otherwise in scope), and the largest item — giving `.109` a substantial steady workload. Crash-consistent/coarse copy, acceptable for a secondary tier.
+> - **Also dropped** (never in the narrowed scope): `default`, `microservices`, `percona-mongodb`, `monitoring`. Their databases remain covered by the existing logical backup jobs (`postgresql-backup`, `mongodb-backup-*`). This makes the spec's `ovms`/`openebs` namespace-drops and the `alertmanager-db` straggler **moot** (those namespaces aren't included). The `csi-s3` skip rule in Task 4 becomes inert-but-harmless (its only target, `triton-models` in `default`, is out of scope).
+>
+> **FINAL SCOPE:** `qdrant`, `vaultwarden`, `vertex-platform`, `jellyfin`, `cluster-nfs`.
+
 ---
 
 ## Task 3: Create the `nas-local` BackupStorageLocation manifest
@@ -297,19 +305,21 @@ Expected: commit succeeds.
 
 ## Task 6: Create the `daily-backup-nas-local` Schedule (initially paused)
 
-Broad on-prem scope, FS-backup on, resource-policy referenced, paused until the manual verification backup (Task 8) passes.
+Clean on-node scope only (Task 2 resolution), FS-backup on, resource-policy referenced, paused until the manual verification backup (Task 8) passes.
 
 **Files:**
 - Create: `k8s/backups/velero-daily-nas-local-schedule.yaml`
 
 - [ ] **Step 1: Write the Schedule manifest** `[agent]`
 
-Create `k8s/backups/velero-daily-nas-local-schedule.yaml` (namespace list reflects Task 2's decision; `ovms` + `openebs` deliberately omitted — sole-tenant excluded volumes):
+Create `k8s/backups/velero-daily-nas-local-schedule.yaml` (namespace list is the FINAL scope from Task 2 — only fully-debian-marmoset-resident namespaces, so every PVB succeeds; mixed namespaces with cloud-resident pods are deliberately excluded):
 ```yaml
 # Daily on-prem coarse-DR backup → nas-local BSL (Garage S3 on Synology .109).
-# Scope: debian-marmoset-resident stateful namespaces (residency-gated in plan Task 1).
-# Volume opt-outs via nas-local-volume-policy (NFS media, csi-s3 models) + jellyfin
-# pod annotation (cache). ovms/openebs omitted (sole-tenant replaceable/control-plane).
+# Scope: ONLY fully-debian-marmoset-resident namespaces (residency-gated in plan Task 1;
+# scope narrowed in Task 2 after the gate found 6 mixed namespaces with cloud-resident
+# pods that cannot reach .109). Volume opt-outs via nas-local-volume-policy (NFS media)
+# + jellyfin pod annotation (cache). Databases (cnpg/mongodb in the excluded mixed
+# namespaces) stay covered by the existing logical backup jobs.
 # Starts paused; enabled in plan Task 9 after a manual verification backup passes.
 # Owned by the `backups` ArgoCD app.
 apiVersion: velero.io/v1
@@ -330,15 +340,11 @@ spec:
       refType: configmap
       name: nas-local-volume-policy
     includedNamespaces:
-      - default
-      - microservices
-      - percona-mongodb
       - qdrant
       - vaultwarden
-      - monitoring
       - vertex-platform
       - jellyfin
-      # neon / cluster-nfs / nfs-provisioners: include ONLY per Task 2 decision
+      - cluster-nfs
 ```
 
 - [ ] **Step 2: Validate YAML locally** `[agent]`
