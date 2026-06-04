@@ -48,7 +48,6 @@ spec:
     - match: Host(`podrick.el-jefe.me`) && PathPrefix(`/devops-api`)
       kind: Rule
       middlewares:
-        - name: crowdsec-bouncer
         - name: strip-devops-api-prefix
       services:
         - name: devops-portfolio-api
