@@ -14,6 +14,12 @@ spec:
     - match: Host(`jellyfin-k8s.el-jefe.me`) && (PathPrefix(`/Users/AuthenticateByName`) || PathPrefix(`/Users/Public`))
       kind: Rule
       middlewares:
+        # Local jellyfin-ns Middleware (see crowdsec-bouncer-middleware.yaml).
+        # A cross-namespace ref to kube-system is rejected by Traefik, so the
+        # bouncer is duplicated into this namespace to keep CrowdSec protection
+        # on the login paths. Bouncer is fail-open (stream mode), so a LAPI
+        # outage degrades gracefully rather than blocking sign-in.
+        - name: crowdsec-bouncer
         - name: jellyfin-ratelimit
       services:
         - name: jellyfin
