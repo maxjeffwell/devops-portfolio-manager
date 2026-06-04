@@ -1,0 +1,16 @@
+{{- if .Values.crowdsec.lapi.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: crowdsec-lapi-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-lapi
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.crowdsec.lapi.storage.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.crowdsec.lapi.storage.size }}
+{{- end }}
