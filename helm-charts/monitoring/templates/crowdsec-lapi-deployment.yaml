@@ -1,0 +1,72 @@
+{{- if .Values.crowdsec.lapi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crowdsec-lapi
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-lapi
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: crowdsec-lapi
+  template:
+    metadata:
+      labels:
+        app: crowdsec-lapi
+    spec:
+      containers:
+        - name: crowdsec
+          image: "{{ .Values.crowdsec.lapi.image.repository }}:{{ .Values.crowdsec.lapi.image.tag }}"
+          ports:
+            - name: api
+              containerPort: 8080
+            - name: metrics
+              containerPort: 6060
+          env:
+            - name: DISABLE_AGENT
+              value: "true"
+            - name: AGENT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: crowdsec-log-processor-credentials
+                  key: username
+            - name: AGENT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: crowdsec-log-processor-credentials
+                  key: password
+            - name: BOUNCER_KEY_traefik
+              valueFrom:
+                secretKeyRef:
+                  name: crowdsec-bouncer-lapi-key
+                  key: lapi-key
+            - name: COLLECTIONS
+              value: "{{ .Values.crowdsec.lapi.collections }}"
+            - name: CROWDSEC_BYPASS_DB_VOLUME_CHECK
+              value: "true"
+          volumeMounts:
+            - name: lapi-data
+              mountPath: /var/lib/crowdsec/data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.crowdsec.lapi.resources | nindent 12 }}
+      volumes:
+        - name: lapi-data
+          persistentVolumeClaim:
+            claimName: crowdsec-lapi-data
+{{- end }}
