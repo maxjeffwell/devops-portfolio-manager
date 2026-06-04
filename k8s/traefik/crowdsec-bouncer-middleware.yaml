@@ -8,7 +8,8 @@ spec:
     crowdsec-bouncer:
       enabled: true
       crowdsecLapiScheme: http
-      crowdsecLapiHost: "10.0.0.4:8080"
+      # In-cluster LAPI (migrated off ASUSTOR 10.0.0.4:8080 over WireGuard, 2026-06-04)
+      crowdsecLapiHost: "crowdsec-lapi.monitoring.svc.cluster.local:8080"
       crowdsecLapiKeyFile: "/etc/crowdsec/lapi-key"
       updateIntervalSeconds: 15
       defaultDecisionSeconds: 300
