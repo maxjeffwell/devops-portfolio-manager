@@ -862,7 +862,7 @@ crowdsec:
   # In-cluster LAPI (replaces ASUSTOR 10.0.0.4:8080). See
   # docs/superpowers/specs/2026-06-03-crowdsec-lapi-in-cluster-migration-design.md
   lapi:
-    enabled: false            # flipped to true in a later task after manifests validate
+    enabled: true
     image:
       repository: crowdsecurity/crowdsec
       tag: "v1.7.6"
