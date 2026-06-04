@@ -1,0 +1,36 @@
+# On-cluster Garage backup BackupStorageLocation (primary local target).
+# S3 endpoint is the in-cluster Garage ClusterIP. Shares the velero-local bucket
+# with the nas-local BSL (k8s/backups/velero-nas-local-bsl.yaml), which writes under
+# prefix nas-local/. This BSL therefore MUST also carry a prefix (local/) — without
+# one it owns the bucket root and Velero's validation rejects nas-local/ as an
+# "invalid top-level directory", flipping this BSL to Unavailable and failing every
+# Kopia maintenance job. See the Velero rule: two BSLs may share a bucket only if
+# both are prefixed.
+#
+# History note: pre-2026-06-04 this BSL had NO prefix and its data (backups/, kopia/)
+# lived at the velero-local bucket root. Adding prefix: local repoints Velero at
+# velero-local/local/ — the prior root-level local backups (last clean weekly was
+# mid-May; the local path had been failing for weeks) are intentionally orphaned in
+# the bucket, not migrated. This was a deliberate choice to fix the BSL quickly.
+#
+# This object was previously hand-applied with `kubectl apply` and was untracked by
+# Helm or ArgoCD; this manifest brings it under the `backups` ArgoCD app.
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: local
+  namespace: velero
+spec:
+  provider: aws
+  default: false
+  accessMode: ReadWrite
+  objectStorage:
+    bucket: velero-local
+    prefix: local
+  credential:
+    name: velero-garage-credentials
+    key: cloud
+  config:
+    region: garage
+    s3ForcePathStyle: "true"
+    s3Url: http://garage.monitoring.svc.cluster.local:3900
