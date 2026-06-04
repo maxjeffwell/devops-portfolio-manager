@@ -481,40 +481,62 @@ git commit -m "feat(crowdsec): alert when in-cluster LAPI is down (fail-open is 
 
 ---
 
-## Task 8: Decommission the ASUSTOR LAPI
+## Task 8: Retire the ASUSTOR LAPI — convert to AGENT-ONLY (do NOT just stop it)
+
+> **CORRECTION (2026-06-04, caught by commit security review):** the original "stop the
+> container" step was WRONG. The ASUSTOR `crowdsec` ran as **LAPI + agent** (no
+> `DISABLE_AGENT`); its `crowdsec/acquis.yaml` parses NAS-local sources the migration
+> never replaced. Stopping it = detection-coverage regression. Investigation found the
+> `file: /var/log/crowdsec-syslog/*.log` source is **dead** (no writer, not mounted) —
+> the only LIVE source is the **Loki `{job="syslog", source="router"}`** (Alloy UDP:1514
+> → local Loki :3100). So the real goal: kill the NAS *LAPI role* while keeping the NAS
+> *agent* parsing router syslog and pushing decisions to the in-cluster LAPI.
+>
+> **Chosen approach (user, 2026-06-04): agent-only on the ASUSTOR, pushing to the
+> in-cluster LAPI over a TLS Ingress** (`crowdsec-lapi.el-jefe.me`, cert-manager,
+> DNS-only/grey-cloud at Cloudflare). LAPI Ingress committed in `helm-charts/monitoring/`
+> (`crowdsec.lapi.ingress.*`, no bouncer middleware). Agent-push is failure-tolerant
+> (queues/retries; never fail-closes the bouncer), so this does NOT reintroduce the
+> original outage mode.
 
 **Files:**
-- Modify: `asustor-observability-stack/docker-compose.yml` (separate repo: `/home/maxjeffwell/GitHub_Projects/asustor-observability-stack`)
+- Modify: `asustor-observability-stack/docker-compose.yml` + `asustor-observability-stack/crowdsec/acquis.yaml` (separate repo)
 
-- [ ] **Step 1: Confirm nothing still points at `10.0.0.4:8080`**
+- [ ] **Step 1 (GATING): user adds Cloudflare DNS `crowdsec-lapi.el-jefe.me` A → 86.48.29.183, DNS-only (grey cloud).** Wait for it to resolve.
 
-Run: `grep -rn "10.0.0.4:8080" /home/maxjeffwell/GitHub_Projects/devops-portfolio-manager 2>/dev/null`
-Expected: no results (all repointed). Also:
-Run: `kubectl get middleware -A -o yaml | grep -c "10.0.0.4:8080"`
-Expected: `0`.
+- [ ] **Step 2: Deploy the LAPI Ingress + confirm the cert issues**
 
-- [ ] **Step 2: Stop the ASUSTOR crowdsec container**
+`helm upgrade prometheus ./helm-charts/monitoring -n monitoring`
+`kubectl get ingress -n monitoring crowdsec-lapi` → exists.
+`kubectl get certificate -n monitoring crowdsec-lapi-tls -w` → `Ready=True`.
+`curl -sS -m 15 -o /dev/null -w "%{http_code}\n" https://crowdsec-lapi.el-jefe.me/health` → reachable (404/200 is fine; TLS valid is the point).
 
-Run (interactive, needs ASUSTOR sudo): `! ssh maxjeffwell@192.168.50.142 'sudo docker stop crowdsec'`
-Expected: `crowdsec` stopped. (Leave the container present, not removed, for quick rollback.)
+- [ ] **Step 3: Register a dedicated machine for the NAS agent on the in-cluster LAPI**
 
-- [ ] **Step 3: Comment out / remove the crowdsec service in compose**
+`kubectl exec -n monitoring deploy/crowdsec-lapi -- cscli machines add asustor-syslog --password '<STRONG_PW>'`
+(`cscli machines list` shows it validated.) Record creds for the ASUSTOR `local_api_credentials.yaml`.
 
-In `asustor-observability-stack/docker-compose.yml`, comment out the `crowdsec:` service block (lines ~61-76) with a note pointing to this migration. Do not delete the volumes yet (rollback).
+- [ ] **Step 4: Convert the ASUSTOR crowdsec to agent-only (interactive — ASUSTOR sudo)**
 
-- [ ] **Step 4: Verify enforcement still works without the NAS LAPI**
+In `asustor-observability-stack/docker-compose.yml` `crowdsec:` service, add env:
+`DISABLE_LOCAL_API: "true"`, `LOCAL_API_URL: "https://crowdsec-lapi.el-jefe.me"`,
+`AGENT_USERNAME: asustor-syslog`, `AGENT_PASSWORD: <STRONG_PW>` (or mount a
+`local_api_credentials.yaml`). In `crowdsec/acquis.yaml`, DROP the dead
+`file:/var/log/crowdsec-syslog/*.log` block; KEEP the Loki `{source=router}` block.
+Then: `! ssh -t maxjeffwell@192.168.50.142 'cd <stack> && sudo docker compose up -d crowdsec'`.
 
-Run: `curl -sS -m 15 -o /dev/null -w "HTTP %{http_code}\n" https://vaultwarden.el-jefe.me/api/config`
-Expected: `HTTP 200`.
-Run: `kubectl exec -n monitoring deploy/crowdsec-lapi -- cscli decisions list -a | head`
-Expected: decisions present (served entirely in-cluster).
+- [ ] **Step 5: Verify coverage preserved + LAPI role gone**
 
-- [ ] **Step 5: Commit (asustor-observability-stack repo)**
+`kubectl exec -n monitoring deploy/crowdsec-lapi -- cscli machines list` → `asustor-syslog` heartbeating.
+`! ssh maxjeffwell@192.168.50.142 'sudo docker logs crowdsec --tail=40'` → parsing router syslog, pushing to remote LAPI, no `:8080` local API listener.
+`curl https://vaultwarden.el-jefe.me/api/config` → 200 (bouncer unaffected).
+
+- [ ] **Step 6: Commit (asustor-observability-stack repo)**
 
 ```bash
 cd /home/maxjeffwell/GitHub_Projects/asustor-observability-stack
-git add docker-compose.yml
-git commit -m "chore(crowdsec): decommission ASUSTOR LAPI (migrated in-cluster)"
+git add docker-compose.yml crowdsec/acquis.yaml
+git commit -m "feat(crowdsec): convert NAS to agent-only, push to in-cluster LAPI (retire NAS LAPI)"
 ```
 
 ---
