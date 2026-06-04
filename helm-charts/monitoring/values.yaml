@@ -847,6 +847,7 @@ networkQuality:
 crowdsec:
   logProcessor:
     enabled: true
+    localApiUrl: "http://crowdsec-lapi.monitoring.svc.cluster.local:8080"
     image:
       repository: crowdsecurity/crowdsec
       tag: "v1.7.6"
@@ -858,6 +859,23 @@ crowdsec:
         memory: 256Mi
     serviceMonitor:
       enabled: true
+  # In-cluster LAPI (replaces ASUSTOR 10.0.0.4:8080). See
+  # docs/superpowers/specs/2026-06-03-crowdsec-lapi-in-cluster-migration-design.md
+  lapi:
+    enabled: false            # flipped to true in a later task after manifests validate
+    image:
+      repository: crowdsecurity/crowdsec
+      tag: "v1.7.6"
+    collections: "crowdsecurity/traefik crowdsecurity/linux"
+    storage:
+      storageClassName: mayastor-single-replica
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
 
 # Mimir Distributed - DISABLED (replaced by monolithic deployment below)
 mimir-distributed:
