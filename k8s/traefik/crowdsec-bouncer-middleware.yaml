@@ -12,7 +12,13 @@ spec:
       crowdsecLapiKeyFile: "/etc/crowdsec/lapi-key"
       updateIntervalSeconds: 15
       defaultDecisionSeconds: 300
-      crowdsecMode: live
+      # stream mode: bouncer serves bans from a locally-cached blocklist refreshed
+      # every updateIntervalSeconds, so the LAPI is OFF the per-request path.
+      # updateMaxFailure: -1 => never block when the LAPI is unreachable (fail-open).
+      # This prevents a hung CrowdSec LAPI (e.g. ASUSTOR 10.0.0.4 flap) from
+      # 403'ing every protected route (vaultwarden sign-in outage, 2026-06-03).
+      crowdsecMode: stream
+      updateMaxFailure: -1
       forwardedHeadersTrustedIPs:
         - 173.245.48.0/20
         - 103.21.244.0/22

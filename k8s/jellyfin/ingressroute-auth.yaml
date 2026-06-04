@@ -14,8 +14,6 @@ spec:
     - match: Host(`jellyfin-k8s.el-jefe.me`) && (PathPrefix(`/Users/AuthenticateByName`) || PathPrefix(`/Users/Public`))
       kind: Rule
       middlewares:
-        - name: crowdsec-bouncer
-          namespace: kube-system
         - name: jellyfin-ratelimit
       services:
         - name: jellyfin
