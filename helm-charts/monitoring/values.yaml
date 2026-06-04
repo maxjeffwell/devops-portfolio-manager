@@ -867,6 +867,16 @@ crowdsec:
       repository: crowdsecurity/crowdsec
       tag: "v1.7.6"
     collections: "crowdsecurity/traefik crowdsecurity/linux"
+    # Expose the LAPI for the OFF-CLUSTER ASUSTOR agent (agent-only; it pushes
+    # router-syslog decisions IN). TLS via cert-manager; deliberately NO crowdsec
+    # bouncer middleware (a LAPI must not gate itself) — access control is the
+    # LAPI's machine-JWT auth. Keep DNS-only (grey cloud) at Cloudflare so the
+    # /v1/decisions long-poll stream isn't buffered.
+    ingress:
+      enabled: true
+      host: crowdsec-lapi.el-jefe.me
+      clusterIssuer: letsencrypt-prod
+      tlsSecretName: crowdsec-lapi-tls
     storage:
       storageClassName: mayastor-single-replica
       size: 1Gi

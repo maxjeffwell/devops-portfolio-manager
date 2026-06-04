@@ -1,0 +1,36 @@
+{{- if and .Values.crowdsec.lapi.enabled .Values.crowdsec.lapi.ingress.enabled }}
+# Exposes the in-cluster CrowdSec LAPI to the OFF-CLUSTER ASUSTOR agent so it can
+# push router-syslog decisions in (agent-only on the NAS; the NAS LAPI is retired).
+# Mirrors the goldpinger.el-jefe.me convention (Ingress + cert-manager + websecure),
+# but WITHOUT kube-system-crowdsec-bouncer: a LAPI must not be gated behind its own
+# bouncer. Access control is the LAPI's machine-JWT auth. Keep the Cloudflare record
+# DNS-only (grey cloud) so the /v1/decisions long-poll stream is not buffered.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: crowdsec-lapi
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-lapi
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.crowdsec.lapi.ingress.clusterIssuer }}
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - {{ .Values.crowdsec.lapi.ingress.host }}
+      secretName: {{ .Values.crowdsec.lapi.ingress.tlsSecretName }}
+  rules:
+    - host: {{ .Values.crowdsec.lapi.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: crowdsec-lapi
+                port:
+                  number: 8080
+{{- end }}
