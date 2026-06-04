@@ -5,7 +5,12 @@ metadata:
   labels:
     app: mongodb-backup
 spec:
-  suspend: true
+  # Re-enabled 2026-06-04: the vertex-platform app tier is scaled down but its
+  # MongoDB still runs and holds data, and mongodb-restore-test verifies this DB.
+  # Leaving the backup suspended left the DB unprotected AND made the restore test
+  # fail 2/5 every run (no backup to restore). Verified the backup job produces a
+  # valid archive in app-dumps before unsuspending.
+  suspend: false
   schedule: "20 3 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
