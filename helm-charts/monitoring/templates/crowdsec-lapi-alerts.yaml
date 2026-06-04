@@ -1,0 +1,25 @@
+{{- if .Values.crowdsec.lapi.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: crowdsec-lapi-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus        # matches kube-prometheus-stack ruleSelector (matchLabels.release)
+    app.kubernetes.io/part-of: kube-prometheus-stack
+spec:
+  groups:
+    - name: crowdsec-lapi
+      rules:
+        - alert: CrowdsecLapiDown
+          expr: kube_deployment_status_replicas_available{namespace="{{ .Release.Namespace }}",deployment="crowdsec-lapi"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "CrowdSec LAPI is down"
+            description: >-
+              crowdsec-lapi has 0 available replicas for >5m. The Traefik bouncer
+              is fail-open (updateMaxFailure: -1), so ingress enforcement is
+              SILENTLY OFF until this recovers — no 403s will signal the outage.
+{{- end }}

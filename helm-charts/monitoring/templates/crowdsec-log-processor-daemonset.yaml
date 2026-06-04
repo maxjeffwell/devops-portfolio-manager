@@ -46,7 +46,7 @@ spec:
               name: crowdsec-log-processor-credentials
               key: password
         - name: LOCAL_API_URL
-          value: "http://10.0.0.4:8080"
+          value: "{{ .Values.crowdsec.logProcessor.localApiUrl }}"
         - name: COLLECTIONS
           value: "crowdsecurity/traefik"
         - name: DISABLE_ONLINE_API
