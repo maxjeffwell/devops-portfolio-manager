@@ -29,23 +29,18 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: backup
-            image: influxdb:2.7-alpine
+            # Prebuilt image with influx + aws CLIs baked in (no runtime apk).
+            # Built from docker/influxdb-backup/Dockerfile.
+            image: maxjeffwell/influxdb-backup:2.7
             imagePullPolicy: IfNotPresent
             command:
             - /bin/sh
             - -c
             - |
               set -e
-              # Install aws-cli from the Alpine package repo, with retry + lock
-              # cleanup for restartPolicy races. Fail fast if it never installs
-              # rather than proceeding (or hanging) without a working client.
-              for i in 1 2 3; do
-                rm -f /lib/apk/db/lock 2>/dev/null
-                apk add --no-cache aws-cli > /dev/null 2>&1 && break
-                echo "apk add attempt $i failed, retrying..."
-                sleep 2
-              done
-              command -v aws > /dev/null || { echo "ERROR: aws-cli not installed"; exit 1; }
+              # influx + aws CLIs are baked into the image at build time
+              # (docker/influxdb-backup/Dockerfile) — no runtime dependency
+              # install, so a CDN/network blip can never hang the job.
 
               BACKUP_DATE=$(date +%Y%m%d-%H%M%S)
               BACKUP_DIR=/tmp/backup-$BACKUP_DATE
