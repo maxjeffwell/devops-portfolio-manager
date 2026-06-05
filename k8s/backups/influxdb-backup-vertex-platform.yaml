@@ -1,0 +1,108 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: influxdb-backup
+  namespace: vertex-platform
+  labels:
+    app: influxdb-backup
+spec:
+  schedule: "0 4 * * *"
+  # Forbid prevents a hung run from spawning a daily pileup of overlapping pods.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      # Auto-reap finished jobs so they don't accumulate in the namespace.
+      ttlSecondsAfterFinished: 3600
+      # A normal backup completes in well under 2 min. 30 min is generous headroom;
+      # if a run hangs (e.g. apk/network stall) it self-terminates instead of
+      # living for weeks as a zombie.
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: influxdb-backup
+            portfolio: "true"
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: influxdb:2.7-alpine
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              # Install aws-cli from the Alpine package repo, with retry + lock
+              # cleanup for restartPolicy races. Fail fast if it never installs
+              # rather than proceeding (or hanging) without a working client.
+              for i in 1 2 3; do
+                rm -f /lib/apk/db/lock 2>/dev/null
+                apk add --no-cache aws-cli > /dev/null 2>&1 && break
+                echo "apk add attempt $i failed, retrying..."
+                sleep 2
+              done
+              command -v aws > /dev/null || { echo "ERROR: aws-cli not installed"; exit 1; }
+
+              BACKUP_DATE=$(date +%Y%m%d-%H%M%S)
+              BACKUP_DIR=/tmp/backup-$BACKUP_DATE
+              ARCHIVE=/tmp/influxdb-vertex-$BACKUP_DATE.tar.gz
+
+              echo "[$(date)] Starting InfluxDB backup..."
+              influx backup "$BACKUP_DIR" \
+                --host http://influxdb.vertex-platform.svc.cluster.local:8086 \
+                -t "$INFLUX_TOKEN"
+
+              echo "[$(date)] Creating archive..."
+              tar czf "$ARCHIVE" -C "$BACKUP_DIR" .
+
+              FILESIZE=$(stat -c%s "$ARCHIVE" 2>/dev/null || stat -f%z "$ARCHIVE")
+              echo "[$(date)] Archive size: $FILESIZE bytes"
+
+              echo "[$(date)] Uploading to Garage S3..."
+              aws s3 cp "$ARCHIVE" "s3://influxdb-backups/vertex-platform/$BACKUP_DATE.tar.gz" \
+                --endpoint-url "$B2_ENDPOINT"
+
+              echo "[$(date)] Backup complete: $BACKUP_DATE ($FILESIZE bytes)"
+
+              # Retention: delete vertex-platform backups older than 30 days.
+              CUTOFF_DATE=$(date -d "-30 days" +%Y%m%d 2>/dev/null || date -v-30d +%Y%m%d)
+              aws s3 ls "s3://influxdb-backups/vertex-platform/" --endpoint-url "$B2_ENDPOINT" | while read -r line; do
+                FILE_NAME=$(echo "$line" | awk '{print $NF}')
+                FILE_DATE=$(echo "$FILE_NAME" | grep -oE '[0-9]{8}' | head -1)
+                if [ -n "$FILE_DATE" ] && [ "$FILE_DATE" -lt "$CUTOFF_DATE" ] 2>/dev/null; then
+                  echo "Deleting old backup: $FILE_NAME"
+                  aws s3 rm "s3://influxdb-backups/vertex-platform/${FILE_NAME}" --endpoint-url "$B2_ENDPOINT"
+                fi
+              done
+
+              echo "[$(date)] InfluxDB backup job done!"
+            env:
+            - name: INFLUX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-backup-credentials
+                  key: INFLUX_TOKEN
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-backup-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-backup-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_DEFAULT_REGION
+              value: "garage"
+            - name: B2_ENDPOINT
+              value: "http://garage.monitoring.svc.cluster.local:3900"
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
