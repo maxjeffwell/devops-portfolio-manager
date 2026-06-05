@@ -69,7 +69,9 @@ spec:
               echo "[$(date)] Backup complete: $BACKUP_DATE ($FILESIZE bytes)"
 
               # Retention: delete vertex-platform backups older than 30 days.
-              CUTOFF_DATE=$(date -d "-30 days" +%Y%m%d 2>/dev/null || date -v-30d +%Y%m%d)
+              # Epoch arithmetic — BusyBox 'date' (this alpine image) has no GNU
+              # '-d "-30 days"'. 2592000 = 30 days in seconds.
+              CUTOFF_DATE=$(date -d "@$(( $(date +%s) - 2592000 ))" +%Y%m%d)
               aws s3 ls "s3://influxdb-backups/vertex-platform/" --endpoint-url "$B2_ENDPOINT" | while read -r line; do
                 FILE_NAME=$(echo "$line" | awk '{print $NF}')
                 FILE_DATE=$(echo "$FILE_NAME" | grep -oE '[0-9]{8}' | head -1)
