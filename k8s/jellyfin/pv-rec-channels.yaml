@@ -1,0 +1,30 @@
+# Static NFS PV for ASUSTOR /volume1/channels-data (READ-ONLY) — Channels DVR's
+# own recordings, cross-mounted so the k8s Jellyfin can BROWSE them. Channels owns
+# this folder; k8s only reads. Three layers of read-only: export `ro` +
+# ReadOnlyMany + mount `ro`. nconnect=8 matches the other .133 mounts (per-server,
+# so it must match or be ignored). Export persisted via the ASUSTOR
+# S60nfs-recordings boot script (ad-hoc exportfs; an ADM `exportfs -ra` drops it
+# until boot/cron — see runbook).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-rec-channels
+  labels:
+    app: jellyfin
+    media: recordings-channels
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.133
+    path: /volume1/channels-data

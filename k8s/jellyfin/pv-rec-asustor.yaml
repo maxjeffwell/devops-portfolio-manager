@@ -1,0 +1,29 @@
+# Static NFS PV for ASUSTOR /share/Media/Jellyfin-Recordings (READ-ONLY) — the
+# ASUSTOR Jellyfin's own DVR recordings (vol1), cross-mounted so the k8s Jellyfin
+# can BROWSE them. The ASUSTOR JF owns this folder; k8s only reads. Three layers
+# of read-only: export `ro` + ReadOnlyMany + mount `ro`. nconnect=8 matches the
+# other .133 mounts. Export persisted via the ASUSTOR S60nfs-recordings boot
+# script (ad-hoc exportfs; ADM `exportfs -ra` drops it until boot/cron).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-rec-asustor
+  labels:
+    app: jellyfin
+    media: recordings-asustor
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.133
+    path: /share/Media/Jellyfin-Recordings

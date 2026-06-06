@@ -9,6 +9,10 @@ resources:
   - pvc-media-tvshows.yaml
   - pv-recordings.yaml
   - pvc-recordings.yaml
+  - pv-rec-channels.yaml
+  - pvc-rec-channels.yaml
+  - pv-rec-asustor.yaml
+  - pvc-rec-asustor.yaml
   - pvc-config.yaml
   - pvc-cache.yaml
   - middleware-ratelimit.yaml
