@@ -7,6 +7,8 @@ resources:
   - pv-media-tvshows.yaml
   - pvc-media-movies.yaml
   - pvc-media-tvshows.yaml
+  - pv-recordings.yaml
+  - pvc-recordings.yaml
   - pvc-config.yaml
   - pvc-cache.yaml
   - middleware-ratelimit.yaml

@@ -23,7 +23,7 @@ spec:
         # Opt OUT of kopia FS-backup for replaceable volumes (cluster default is
         # defaultVolumesToFsBackup=true). media-* are 2Ti each; cache is regenerable.
         # KEEP `config` (Mayastor) — irreplaceable library/watch-state metadata.
-        backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,cache
+        backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,cache,recordings
     spec:
       nodeSelector:
         gpu-node: "true"
@@ -113,6 +113,8 @@ spec:
             - { name: transcodes,    mountPath: /transcodes }
             - { name: media-movies,  mountPath: /media/movies,  readOnly: true }
             - { name: media-tvshows, mountPath: /media/tvshows, readOnly: true }
+            # Writable DVR target: ASUSTOR /volume2/Recordings over NFS (rw).
+            - { name: recordings,    mountPath: /recordings }
             - { name: tmp,           mountPath: /tmp }
             - { name: run,           mountPath: /var/run }
           livenessProbe:
@@ -133,6 +135,7 @@ spec:
         - { name: cache,         persistentVolumeClaim: { claimName: jellyfin-cache } }
         - { name: media-movies,  persistentVolumeClaim: { claimName: jellyfin-media-movies } }
         - { name: media-tvshows, persistentVolumeClaim: { claimName: jellyfin-media-tvshows } }
+        - { name: recordings,    persistentVolumeClaim: { claimName: jellyfin-recordings } }
         - name: transcodes
           # Disk-backed emptyDir on the node's kubelet dir. Was tmpfs (medium: Memory)
           # until 2026-05-24 — a RAM-backed mount counts against the pod's 6Gi memory
