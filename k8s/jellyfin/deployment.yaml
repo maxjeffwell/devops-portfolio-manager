@@ -25,6 +25,18 @@ spec:
         # KEEP `config` (Mayastor) — irreplaceable library/watch-state metadata.
         backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,cache,recordings,rec-channels,rec-asustor
     spec:
+      # 2026-06-06 — Mitigate the cluster-wide glibc DNS conntrack race that
+      # stalls getaddrinfo for 1–2.7s when one of the parallel A+AAAA UDP
+      # replies is dropped. Measured here: lookups ranged 337–2682ms, which
+      # surfaced as /health probe timeouts (no restart) and live-TV playback
+      # freezes/buffering. use-vc forces DNS over TCP (both queries on one
+      # ordered stream → no silently-lost reply); single-request-reopen is the
+      # fallback if TCP isn't honored; ndots:1 trims wasted search-domain tries.
+      dnsConfig:
+        options:
+          - { name: ndots, value: "1" }
+          - { name: single-request-reopen }
+          - { name: use-vc }
       nodeSelector:
         gpu-node: "true"
       priorityClassName: portfolio-critical
