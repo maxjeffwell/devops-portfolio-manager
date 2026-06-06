@@ -22,7 +22,7 @@ spec:
     - vers=3
     - nolock
     - hard
-    - nconnect=4
+    - nconnect=8
   nfs:
     # eth1 (.133) — onboard 2.5GbE @ MTU 9000. Movies stays on eth2 (.149) so the
     # two PVs don't compete for one NIC. Both paths jumbo end-to-end with
