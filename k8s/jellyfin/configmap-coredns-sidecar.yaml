@@ -1,0 +1,33 @@
+# Per-pod DNS cache for the Jellyfin pod. Jellyfin resolves against this
+# sidecar on 127.0.0.1:53 instead of the kube-dns ClusterIP directly.
+#
+# Why: the kube-dns ClusterIP load-balances queries across all CoreDNS
+# replicas, two of which run on cloud nodes reached over the lossy WireGuard
+# WAN tunnel (measured up to 2.7s per lookup, vs 0.00s for the same-node
+# replica). Those stalls surfaced as live-TV playback freezes and /health
+# probe timeouts. Caching here means each hostname crosses the WAN at most
+# once per TTL; prefetch keeps hot names warm so repeat lookups never block.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jellyfin-coredns-sidecar
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+data:
+  Corefile: |
+    .:53 {
+        errors
+        ready :8181
+        # Cache positive answers up to 300s, negatives 30s, and refresh
+        # entries that get queried in the last few seconds of their TTL so
+        # popular names are served warm without a blocking upstream miss.
+        cache 300 {
+            denial 9984 30
+            prefetch 3
+        }
+        # Forward everything to the kube-dns ClusterIP. On a cache miss this
+        # still traverses the cluster, but misses are rare once warm.
+        forward . 10.43.0.10
+        reload 10s
+    }

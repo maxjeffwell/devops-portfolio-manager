@@ -25,18 +25,27 @@ spec:
         # KEEP `config` (Mayastor) — irreplaceable library/watch-state metadata.
         backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,cache,recordings,rec-channels,rec-asustor
     spec:
-      # 2026-06-06 — Mitigate the cluster-wide glibc DNS conntrack race that
-      # stalls getaddrinfo for 1–2.7s when one of the parallel A+AAAA UDP
-      # replies is dropped. Measured here: lookups ranged 337–2682ms, which
-      # surfaced as /health probe timeouts (no restart) and live-TV playback
-      # freezes/buffering. use-vc forces DNS over TCP (both queries on one
-      # ordered stream → no silently-lost reply); single-request-reopen is the
-      # fallback if TCP isn't honored; ndots:1 trims wasted search-domain tries.
+      # 2026-06-06 — Resolve DNS against a per-pod CoreDNS cache sidecar
+      # (127.0.0.1:53, see initContainers/dns-cache) instead of the kube-dns
+      # ClusterIP. The ClusterIP load-balances lookups across CoreDNS replicas
+      # on cloud nodes reached over the lossy WireGuard WAN (measured up to
+      # 2.7s/lookup vs 0.00s same-node), which stalled request threads → live-TV
+      # freezes and /health probe timeouts. dnsPolicy None makes 127.0.0.1 the
+      # sole resolver; the sidecar caches + forwards to kube-dns so each name
+      # crosses the WAN at most once per TTL.
+      # (An earlier use-vc dnsConfig attempt did NOT help — the latency is the
+      # WAN path to 2/3 of the CoreDNS replicas, not the client A+AAAA race.)
+      dnsPolicy: None
       dnsConfig:
+        nameservers:
+          - 127.0.0.1
+        searches:
+          - jellyfin.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+          - tailnet.el-jefe.me
         options:
           - { name: ndots, value: "1" }
-          - { name: single-request-reopen }
-          - { name: use-vc }
       nodeSelector:
         gpu-node: "true"
       priorityClassName: portfolio-critical
@@ -48,6 +57,42 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       initContainers:
+        # Native sidecar (restartPolicy: Always): per-pod DNS cache on
+        # 127.0.0.1:53. As a native sidecar it starts and passes its
+        # startupProbe BEFORE the encoding init container and the main
+        # container run, so Jellyfin never starts without a resolver.
+        # Forwards to kube-dns and caches — see configmap-coredns-sidecar.yaml.
+        - name: dns-cache
+          image: rancher/mirrored-coredns-coredns:1.13.1
+          imagePullPolicy: IfNotPresent
+          restartPolicy: Always
+          args: ["-conf", "/etc/coredns/Corefile"]
+          ports:
+            - { name: dns-udp, containerPort: 53, protocol: UDP }
+            - { name: dns-tcp, containerPort: 53, protocol: TCP }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              # CoreDNS binds privileged :53 as non-root; grant only that.
+              drop: ["ALL"]
+              add: ["NET_BIND_SERVICE"]
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          startupProbe:
+            # Gate Jellyfin's start on the resolver being ready.
+            httpGet: { path: /ready, port: 8181 }
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet: { path: /ready, port: 8181 }
+            periodSeconds: 10
+          volumeMounts:
+            - { name: coredns-config, mountPath: /etc/coredns, readOnly: true }
         # Recover encoding.xml if it's missing or corrupt.
         # 2026-05-24 — covers the failure mode where Jellyfin fails to deserialize
         # encoding.xml at startup ("error in XML document (1, 1)") and falls back
@@ -166,3 +211,6 @@ spec:
         - name: encoding-defaults
           configMap:
             name: jellyfin-encoding-defaults
+        - name: coredns-config
+          configMap:
+            name: jellyfin-coredns-sidecar
