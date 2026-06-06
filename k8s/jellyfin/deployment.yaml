@@ -73,7 +73,7 @@ spec:
             - { name: encoding-defaults, mountPath: /default, readOnly: true }
       containers:
         - name: jellyfin
-          image: jellyfin/jellyfin:10.10.7
+          image: jellyfin/jellyfin:10.11.10
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
