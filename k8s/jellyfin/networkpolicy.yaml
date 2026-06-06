@@ -1,4 +1,5 @@
 # Egress allowlist: PG (cnpg-jellyfin in default), NFS (ASUSTOR 192.168.50.149),
+# Channels DVR (ASUSTOR 192.168.50.142:8089 — Live TV M3U/XMLTV tuner + HLS pulls),
 # DNS, internet HTTPS for TMDB/plugin updates.
 # Ingress: Traefik (kube-system) → 8096, Prometheus (monitoring) → 8096.
 apiVersion: networking.k8s.io/v1
@@ -70,6 +71,17 @@ spec:
         - { port: 32767, protocol: TCP }
         - { port: 32768, protocol: TCP }
         - { port: 32769, protocol: TCP }
+
+    # Channels DVR on ASUSTOR — Live TV source. 8089 carries the M3U playlist
+    # (/devices/ANY/channels.m3u), XMLTV guide (/devices/ANY/guide/xmltv), and
+    # the per-channel HLS stream pulls. http-by-IP, so no *.u.channelsdvr.net
+    # cert validation (that LE cert has no IP SAN).
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.142/32
+      ports:
+        - port: 8089
+          protocol: TCP
 
     # HTTPS to internet (TMDB metadata, plugin updates) — exclude RFC1918
     - to:
