@@ -33,8 +33,6 @@ spec:
       # freezes and /health probe timeouts. dnsPolicy None makes 127.0.0.1 the
       # sole resolver; the sidecar caches + forwards to kube-dns so each name
       # crosses the WAN at most once per TTL.
-      # (An earlier use-vc dnsConfig attempt did NOT help — the latency is the
-      # WAN path to 2/3 of the CoreDNS replicas, not the client A+AAAA race.)
       dnsPolicy: None
       dnsConfig:
         nameservers:
