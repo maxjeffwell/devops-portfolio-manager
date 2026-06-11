@@ -117,20 +117,15 @@ initContainers:
       limits:
         memory: 32Mi
 
-# Fix intermittent ~5s DNS stalls that were getting lunary-backend liveness-killed
-# every few minutes. lunary lives in ns `lunary` but its DB is in ns `default`, so it
-# resolves the cross-namespace name cnpg-lunary-rw.default.svc.cluster.local repeatedly.
-# With the default ndots:5 + parallel A+AAAA getaddrinfo and no nodelocaldns, ~1/30
-# lookups lose a UDP packet to the netfilter conntrack race and stall 5s (glibc
-# RES_TIMEOUT); these saturate libuv's threadpool during postgres reconnects and hang
-# /v1/health past the liveness timeout. Proven in-pod: A+AAAA = 1/30 stalls (max 5.2s),
-# A-only = 0/30. single-request-reopen serializes A then AAAA (kills the race); ndots:2
-# makes the 4-dot FQDN resolve absolute-first (fewer queries, skips the external
-# tailnet.el-jefe.me search suffix). NOTE: portfolio-common applies dnsConfig to both
-# the backend and frontend Deployments — harmless and equally beneficial to both.
+# DNS tuning for lunary pods. NodeLocal DNSCache (deployed cluster-wide) now handles
+# the glibc UDP conntrack race that previously caused ~1/30 lookups to stall 5s
+# (RES_TIMEOUT); single-request-reopen is therefore redundant and has been removed.
+# ndots:2 is retained: lunary resolves cross-namespace FQDNs like
+# cnpg-lunary-rw.default.svc.cluster.local (4 dots → absolute-first with ndots:2),
+# which also skips the tailnet.el-jefe.me search-suffix for those names.
+# NOTE: portfolio-common applies dnsConfig to both the backend and frontend Deployments.
 dnsConfig:
   options:
-    - name: single-request-reopen
     - name: ndots
       value: "2"
 
