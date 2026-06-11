@@ -7,7 +7,11 @@ metadata:
     app: jellyfin
     portfolio: "true"
 spec:
-  replicas: 1
+  # 2026-06-10 — Scaled to 0: decommissioned in favor of the ASUSTOR Jellyfin
+  # (192.168.50.142:28096). debian-marmoset (the only GPU/Mayastor node) has a
+  # recurring storage-triggered crash pattern (Mayastor NVMe-oF flap over the WAN) —
+  # a poor fit for a latency-sensitive media server. PVCs retained (reversible: set 1).
+  replicas: 0
   strategy:
     # Recreate avoids RWO PVC dual-attach during rollouts.
     type: Recreate
