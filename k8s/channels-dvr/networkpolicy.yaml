@@ -40,6 +40,17 @@ spec:
         - port: 8089
           protocol: TCP
 
+    # DNS replies from node-local-dns. Its NOTRACK rules strip conntrack from
+    # DNS flows, so replies never qualify for the stateful ESTABLISHED bypass
+    # and arrive here as "new" packets addressed to the pod's ephemeral source
+    # port — unpredictable, so no port restriction is possible. Without this
+    # rule, default-deny ingress silently breaks ALL name resolution.
+    - from:
+        - ipBlock:
+            cidr: 10.43.0.10/32
+        - ipBlock:
+            cidr: 169.254.20.10/32
+
   egress:
     # DNS — kube-dns pods (direct) and node-local-dns (NOTRACK intercept IPs)
     - to:
