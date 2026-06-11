@@ -18,7 +18,6 @@ resources:
   - middleware-ratelimit.yaml
   - networkpolicy.yaml
   - configmap-encoding.yaml
-  - configmap-coredns-sidecar.yaml
   - deployment.yaml
   - service.yaml
   - ingress.yaml
