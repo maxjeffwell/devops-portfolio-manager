@@ -536,7 +536,11 @@ minio:
   existingSecret: minio-credentials
   persistence:
     enabled: true
-    storageClass: local-path
+    # Migrated local-path → openebs-zfs 2026-06-11 (checksums + snapshots for the
+    # log object store). PVC pre-seeded + statically bound to the ZFS PV; this value
+    # keeps a future `helm upgrade` from reverting the class. Pinned to vmi2951245
+    # where the 99.5G openebs-zfs pool lives.
+    storageClass: openebs-zfs
     size: 20Gi
   nodeSelector:
     kubernetes.io/hostname: vmi2951245
