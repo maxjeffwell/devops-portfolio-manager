@@ -32,5 +32,5 @@ spec:
       - qdrant
       - vaultwarden
       - vertex-platform
-      - jellyfin
+      # jellyfin removed 2026-06-11 — decommissioned to ASUSTOR (scaled to 0), no pod to fs-backup.
       - cluster-nfs
