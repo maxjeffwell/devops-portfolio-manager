@@ -1,0 +1,30 @@
+# Static NFS PV for ASUSTOR /volume1/channels-data (READ-ONLY) — the PRIMARY
+# Channels DVR's data dir (Database/, TV/, Images/...). The k8s standby reads
+# it for two purposes: importing the primary's recordings library, and the
+# nightly db-sync CronJob copying Database/backup-* snapshots. The primary
+# owns this folder; k8s only reads. Three layers of read-only: export `ro` +
+# ReadOnlyMany + mount `ro`. Export persisted via the ASUSTOR
+# S60nfs-recordings boot script (ad-hoc exportfs; an ADM `exportfs -ra` drops
+# it until boot/cron — see runbook).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: channels-dvr-primary-data
+  labels:
+    app: channels-dvr
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.133
+    path: /volume1/channels-data

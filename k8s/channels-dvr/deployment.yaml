@@ -1,0 +1,83 @@
+# Channels DVR WARM STANDBY for the primary on the ASUSTOR (192.168.50.142:8089).
+# Pinned to debian-marmoset: TVE (Spectrum) authenticates against the home
+# egress IP, so this can never run on the cloud nodes.
+#
+# hostNetwork so LAN clients reach it directly at 192.168.50.152:8089
+# (tailnet: 100.64.0.12:8089) — Channels clients expect a plain ip:port on the
+# network, and NodePort remapping confuses them. NetworkPolicies don't apply
+# to hostNetwork pods, which is why this namespace ships none.
+#
+# Standby discipline: same sources configured, recording passes DISABLED.
+# Both servers share the same Spectrum TVE ~3-stream cap (enforced at the
+# provider by egress IP, not per server). On primary failure: restore the
+# newest /channels-dvr/primary-db-backups snapshot via the UI, enable passes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: channels-dvr
+  namespace: channels-dvr
+  labels:
+    app: channels-dvr
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: channels-dvr
+  template:
+    metadata:
+      labels:
+        app: channels-dvr
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: debian-marmoset
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: channels-dvr
+          image: fancybits/channels-dvr:latest
+          env:
+            - name: TZ
+              value: America/New_York
+          ports:
+            - containerPort: 8089
+              name: http
+          volumeMounts:
+            - name: data
+              mountPath: /channels-dvr
+            - name: recordings
+              mountPath: /recordings
+            - name: primary
+              mountPath: /primary
+              readOnly: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+              gpu.intel.com/i915: "1"
+            limits:
+              memory: 4Gi
+              gpu.intel.com/i915: "1"
+          readinessProbe:
+            tcpSocket:
+              port: 8089
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8089
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: channels-dvr-data
+        - name: recordings
+          persistentVolumeClaim:
+            claimName: channels-dvr-recordings
+        - name: primary
+          persistentVolumeClaim:
+            claimName: channels-dvr-primary-data
+            readOnly: true

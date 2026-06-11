@@ -1,0 +1,81 @@
+# Nightly copy of the PRIMARY's Channels database backups (it writes
+# Database/backup-* around 03:08) onto the standby's local PVC, so a primary
+# failure can be recovered by restoring the newest snapshot in the standby UI
+# even if the ASUSTOR is fully down. Keeps the newest 7 locally.
+# BusyBox only — no runtime package installs (see influxdb-backup lesson),
+# no `date -d`, no `head -n -N`.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: channels-dvr-db-sync
+  namespace: channels-dvr
+  labels:
+    app: channels-dvr
+spec:
+  schedule: "30 4 * * *"
+  timeZone: America/New_York
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: channels-dvr-db-sync
+        spec:
+          restartPolicy: Never
+          # Must run where the RWO data LV lives.
+          nodeSelector:
+            kubernetes.io/hostname: debian-marmoset
+          containers:
+            - name: sync
+              image: busybox:1.36
+              command:
+                - sh
+                - -ec
+                - |
+                  SRC=/primary/Database
+                  DST=/channels-dvr/primary-db-backups
+                  mkdir -p "$DST"
+                  for b in $(ls "$SRC" | grep '^backup-' | sort | tail -7); do
+                    if [ ! -e "$DST/$b" ]; then
+                      cp -r "$SRC/$b" "$DST/.$b.tmp"
+                      mv "$DST/.$b.tmp" "$DST/$b"
+                      echo "synced $b"
+                    fi
+                  done
+                  total=$(ls "$DST" | grep -c '^backup-')
+                  prune=$((total - 7))
+                  if [ "$prune" -gt 0 ]; then
+                    ls "$DST" | grep '^backup-' | sort | sed -n "1,${prune}p" | \
+                    while read -r old; do
+                      rm -rf "$DST/$old"
+                      echo "pruned $old"
+                    done
+                  fi
+                  echo "local snapshots now:"
+                  ls "$DST"
+              volumeMounts:
+                - name: primary
+                  mountPath: /primary
+                  readOnly: true
+                - name: data
+                  mountPath: /channels-dvr
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+          volumes:
+            - name: primary
+              persistentVolumeClaim:
+                claimName: channels-dvr-primary-data
+                readOnly: true
+            - name: data
+              persistentVolumeClaim:
+                claimName: channels-dvr-data

@@ -1,0 +1,19 @@
+# DVR data dir (Database/, Images/, Logs/, Streaming/ live-TV buffers).
+# Quota'd thin LV — debian-marmoset's openebs-vg_thinpool is 40G at ~59% with
+# no VG headroom to autoextend, so keep this small; real usage is a few GB.
+# Recordings do NOT go here — /recordings (local-path, root NVMe) is added as
+# a second disk in the Channels UI.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: channels-dvr-data
+  namespace: channels-dvr
+  labels:
+    app: channels-dvr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: openebs-lvmpv
+  resources:
+    requests:
+      storage: 15Gi

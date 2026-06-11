@@ -1,0 +1,18 @@
+# Recording buffer on debian-marmoset's root NVMe (~219G free) via local-path.
+# local-path does NOT enforce the size below — it's nominal. The standby
+# records nothing until failover (passes stay disabled), so growth is
+# expected to be zero in steady state.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: channels-dvr-recordings
+  namespace: channels-dvr
+  labels:
+    app: channels-dvr
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 150Gi
