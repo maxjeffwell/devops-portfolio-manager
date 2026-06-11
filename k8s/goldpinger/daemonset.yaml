@@ -25,12 +25,11 @@ spec:
       dnsPolicy: ClusterFirst
       priorityClassName: system-cluster-critical
       tolerations:
-        # Allow scheduling on marmoset (taint: workload=gpu:NoSchedule).
-        # Taint key verified 2026-05-26; NOT nvidia.com/gpu.
-        - key: workload
-          operator: Equal
-          value: gpu
-          effect: NoSchedule
+        # marmoset (taint workload=gpu:NoSchedule) is deliberately EXCLUDED
+        # from the mesh: since 2026-06-11 it is GPU-only with no storage or
+        # data-path role, so its suspend/flap cycles would only fire
+        # GoldpingerPeerUnreachable noise. Re-add a workload=gpu toleration
+        # if real GPU workloads there ever need connectivity monitoring.
         # Forward-compat: if vmi2951245's PreferNoSchedule is ever upgraded
         # to NoSchedule, the DaemonSet still lands. Harmless no-op today.
         - key: node-role.kubernetes.io/control-plane
