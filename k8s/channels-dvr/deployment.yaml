@@ -2,10 +2,11 @@
 # Pinned to debian-marmoset: TVE (Spectrum) authenticates against the home
 # egress IP, so this can never run on the cloud nodes.
 #
-# hostNetwork so LAN clients reach it directly at 192.168.50.152:8089
-# (tailnet: 100.64.0.12:8089) — Channels clients expect a plain ip:port on the
-# network, and NodePort remapping confuses them. NetworkPolicies don't apply
-# to hostNetwork pods, which is why this namespace ships none.
+# Pod network + container hostPort 8089: LAN clients still reach it at
+# 192.168.50.152:8089 (tailnet: 100.64.0.12:8089) because portmap binds the
+# node port and DNATs to the pod — but unlike hostNetwork, traffic traverses
+# the pod veth so networkpolicy.yaml is actually enforced. Trade-off: no
+# bonjour/mDNS discovery; Channels clients add the server by ip:port manually.
 #
 # Standby discipline: same sources configured, recording passes DISABLED.
 # Both servers share the same Spectrum TVE ~3-stream cap (enforced at the
@@ -32,8 +33,6 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/hostname: debian-marmoset
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: channels-dvr
           image: fancybits/channels-dvr:latest
@@ -42,6 +41,7 @@ spec:
               value: America/New_York
           ports:
             - containerPort: 8089
+              hostPort: 8089
               name: http
           volumeMounts:
             - name: data

@@ -7,5 +7,6 @@ resources:
   - pvc-primary-data.yaml
   - pvc-data.yaml
   - pvc-recordings.yaml
+  - networkpolicy.yaml
   - deployment.yaml
   - cronjob-db-sync.yaml

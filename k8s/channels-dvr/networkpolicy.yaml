@@ -1,0 +1,81 @@
+# Default-deny both directions for the channels-dvr pod, then allowlist.
+#
+# Ingress: 8089 from LAN clients (192.168.50.0/24), tailnet (100.64.0.0/10),
+# and the pod CIDR (10.42.0.0/16 — REQUIRED: kubelet's tcpSocket probes source
+# from the node's cni0 address inside that range; dropping it kills probes).
+# LAN/tailnet traffic arrives via the container hostPort (portmap preserves
+# the client source IP, so ipBlock matching works).
+#
+# Egress: DNS + the primary Channels server + public HTTPS (Spectrum TVE auth
+# and HLS CDNs, getchannels.com guide/licensing — all 443). DNS includes
+# explicit ipBlocks for node-local-dns (169.254.20.10 link-local + 10.43.0.10
+# ClusterIP): NOTRACK interception means the dst IP is never DNAT'd to a
+# kube-dns pod IP, so a namespaceSelector rule alone can't match it.
+#
+# No NFS egress rules: the /primary mount (192.168.50.133) is performed by
+# kubelet in the HOST network namespace — that traffic never traverses the
+# pod veth, so pod policy cannot and need not allow it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: channels-dvr
+  namespace: channels-dvr
+spec:
+  podSelector:
+    matchLabels:
+      app: channels-dvr
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 192.168.50.0/24
+        - ipBlock:
+            cidr: 100.64.0.0/10
+        - ipBlock:
+            cidr: 10.42.0.0/16
+      ports:
+        - port: 8089
+          protocol: TCP
+
+  egress:
+    # DNS — kube-dns pods (direct) and node-local-dns (NOTRACK intercept IPs)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - ipBlock:
+            cidr: 169.254.20.10/32
+        - ipBlock:
+            cidr: 10.43.0.10/32
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+    # Primary Channels DVR on the ASUSTOR — guide/artwork/import pulls if the
+    # standby is ever pointed at the primary (http-by-IP, no cert concerns).
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.142/32
+      ports:
+        - port: 8089
+          protocol: TCP
+
+    # HTTPS to internet (Spectrum TVE auth + HLS CDNs, getchannels.com
+    # guide data and licensing) — exclude RFC1918. If a TVE provider login
+    # ever stalls, check whether it redirected through plain HTTP :80 before
+    # blaming credentials.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP
