@@ -31,15 +31,6 @@ spec:
           operator: "Exists"
         - effect: "NoSchedule"
           operator: "Exists"
-      # CANARY PIN — removed in Task 4 to roll fleet-wide.
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-              - matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values: ["vmi3115606"]
       containers:
         - name: node-cache
           image: registry.k8s.io/dns/k8s-dns-node-cache:1.26.0
