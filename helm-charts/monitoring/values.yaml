@@ -664,8 +664,13 @@ loki:
           endpoint: http://prometheus-minio.monitoring.svc.cluster.local:9000
           bucketnames: loki-ruler
           region: us-east-1
-          access_key_id: ${MINIO_ROOT_USER}
-          secret_access_key: ${MINIO_ROOT_PASSWORD}
+          # Must match the keys in the minio-credentials secret (envFrom +
+          # -config.expand-env=true). The secret exposes rootUser/rootPassword —
+          # NOT MINIO_ROOT_USER/PASSWORD. Wrong names expanded to empty strings,
+          # so the AWS SDK fell back to EC2 IMDS (169.254.169.254) and timed out
+          # ("no EC2 IMDS role found"). The chunk store above already uses these.
+          access_key_id: ${rootUser}
+          secret_access_key: ${rootPassword}
           insecure: true
           s3forcepathstyle: true
   singleBinary:
