@@ -8,6 +8,10 @@
 # the pod veth so networkpolicy.yaml is actually enforced. Trade-off: no
 # bonjour/mDNS discovery; Channels clients add the server by ip:port manually.
 #
+# Upstream docker docs use --net=host purely for Bonjour client discovery;
+# we trade that for an enforceable NetworkPolicy (see networkpolicy.yaml) —
+# clients add the server manually as 192.168.50.152:8089.
+#
 # Standby discipline: same sources configured, recording passes DISABLED.
 # Both servers share the same Spectrum TVE ~3-stream cap (enforced at the
 # provider by egress IP, not per server). On primary failure: restore the
@@ -35,7 +39,10 @@ spec:
         kubernetes.io/hostname: debian-marmoset
       containers:
         - name: channels-dvr
-          image: fancybits/channels-dvr:latest
+          # :tve, not :latest — the default image is Alpine WITHOUT Chrome;
+          # TV Everywhere login drives a headless Chrome server-side, so the
+          # Spectrum TVE source only works on the Debian-based tve variant.
+          image: fancybits/channels-dvr:tve
           env:
             - name: TZ
               value: America/New_York
@@ -47,7 +54,8 @@ spec:
             - name: data
               mountPath: /channels-dvr
             - name: recordings
-              mountPath: /recordings
+              # /shares/DVR is the path the image's setup UI offers by default
+              mountPath: /shares/DVR
             - name: primary
               mountPath: /primary
               readOnly: true
