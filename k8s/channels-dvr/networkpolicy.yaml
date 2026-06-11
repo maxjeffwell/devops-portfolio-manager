@@ -65,6 +65,20 @@ spec:
         - port: 8089
           protocol: TCP
 
+    # Tuner (HDHomeRun) on the LAN: HTTP control/discover.json (80),
+    # HTTP streaming (5004), unicast discovery (UDP 65001). Broadcast
+    # discovery can't leave the pod network — add the tuner in the UI by IP.
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.104/32
+      ports:
+        - port: 80
+          protocol: TCP
+        - port: 5004
+          protocol: TCP
+        - port: 65001
+          protocol: UDP
+
     # HTTPS to internet (Spectrum TVE auth + HLS CDNs, getchannels.com
     # guide data and licensing) — exclude RFC1918. If a TVE provider login
     # ever stalls, check whether it redirected through plain HTTP :80 before
