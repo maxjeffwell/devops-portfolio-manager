@@ -6,6 +6,9 @@ veleroSchedules:
   csiSnapshotTimeout: "20m"
   excludedNamespaces:
     - gpu-operator
+    # 2026-06-11 — jellyfin decommissioned to ASUSTOR (scaled to 0); its config PVC
+    # has no running pod for fs-backup, so it PartiallyFails every run. Exclude it.
+    - jellyfin
   daily:
     schedule: "0 2 * * *"
     ttl: 168h0m0s
