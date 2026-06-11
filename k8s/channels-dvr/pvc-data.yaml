@@ -1,8 +1,10 @@
 # DVR data dir (Database/, Images/, Logs/, Streaming/ live-TV buffers).
-# Quota'd thin LV — debian-marmoset's openebs-vg_thinpool is 40G at ~59% with
-# no VG headroom to autoextend, so keep this small; real usage is a few GB.
-# Recordings do NOT go here — /recordings (local-path, root NVMe) is added as
-# a second disk in the Channels UI.
+# local-path on debian-marmoset's root NVMe (~219G free). NOT openebs-lvmpv:
+# the node's openebs-vg has VFree=0 (the thinpool consumed the whole VG), so
+# lvm-localpv publishes CSIStorageCapacity=0 there and the scheduler rejects
+# any new lvmpv claim on this node. local-path enforces no quota — the size
+# below is nominal. Recordings do NOT go here — /recordings is a second
+# local-path PVC added as an extra disk in the Channels UI.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -13,7 +15,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: openebs-lvmpv
+  storageClassName: local-path
   resources:
     requests:
       storage: 15Gi
