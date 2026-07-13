@@ -1050,13 +1050,12 @@ metadata:
   namespace: cnpg-system
 spec:
   commonName: barman-cloud-client
-  duration: 2160h
-  isCA: false
+  duration: 2160h0m0s
   issuerRef:
     group: cert-manager.io
     kind: Issuer
     name: selfsigned-issuer
-  renewBefore: 360h
+  renewBefore: 360h0m0s
   secretName: barman-cloud-client-tls
   usages:
   - client auth
@@ -1070,13 +1069,12 @@ spec:
   commonName: barman-cloud
   dnsNames:
   - barman-cloud
-  duration: 2160h
-  isCA: false
+  duration: 2160h0m0s
   issuerRef:
     group: cert-manager.io
     kind: Issuer
     name: selfsigned-issuer
-  renewBefore: 360h
+  renewBefore: 360h0m0s
   secretName: barman-cloud-server-tls
   usages:
   - server auth
