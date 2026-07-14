@@ -9,12 +9,21 @@ resources:
 # Security: override upstream's --log-level=debug → info (debug can leak
 # credential paths / WAL detail into logs). Patch (not in-place edit) so it
 # survives re-vendoring the upstream manifest. See security review of b08d74b.
+#
+# Leader election disabled: single replica, and the control-plane node's slow
+# kine/sqlite datastore causes lease-renewal timeouts that crashloop the
+# operator (151 restarts observed 2026-07-11..14). Recreate strategy prevents
+# two instances overlapping during rollouts, which is what the lease guarded.
 patches:
   - target:
       kind: Deployment
       name: barman-cloud
       namespace: cnpg-system
     patch: |-
+      - op: replace
+        path: /spec/strategy
+        value:
+          type: Recreate
       - op: replace
         path: /spec/template/spec/containers/0/args
         value:
@@ -23,5 +32,4 @@ patches:
           - --server-key=/server/tls.key
           - --client-cert=/client/tls.crt
           - --server-address=:9090
-          - --leader-elect
           - --log-level=info
