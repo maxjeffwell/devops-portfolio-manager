@@ -65,24 +65,17 @@ spec:
         - port: 8089
           protocol: TCP
 
-    # Tablo legacy 2-tuner (OTA source, same device the ASUSTOR primary uses
-    # as Provider:tablo / SID_5087B8002A33). Channels drives the Tablo REST
-    # API on 8885 and pulls HLS over the HTTP ports; 80/443/8887/18080 are
-    # the ports the device exposes. Discovery rides Nuvyyo's cloud (public
-    # 443, already allowed), not LAN broadcast.
+    # HDHomeRun HDFX-2US (OTA source, device 10972A0F, shared with the
+    # ASUSTOR primary). Channels probes /discover.json and the lineup over
+    # HTTP :80 and pulls tuner streams over :5004. UDP broadcast discovery
+    # cannot cross the pod NAT, so the tuner is added in the UI by IP.
     - to:
         - ipBlock:
-            cidr: 192.168.50.104/32
+            cidr: 192.168.50.122/32
       ports:
         - port: 80
           protocol: TCP
-        - port: 443
-          protocol: TCP
-        - port: 8885
-          protocol: TCP
-        - port: 8887
-          protocol: TCP
-        - port: 18080
+        - port: 5004
           protocol: TCP
 
     # HTTPS to internet (Spectrum TVE auth + HLS CDNs, getchannels.com
