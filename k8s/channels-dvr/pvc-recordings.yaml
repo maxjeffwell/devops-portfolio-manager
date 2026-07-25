@@ -1,8 +1,7 @@
-# Recording buffer on debian-marmoset's root NVMe (~219G free) via local-path,
-# mounted at /shares/DVR (the image's default DVR disk path). local-path does
-# NOT enforce the size below — it's nominal. The standby records nothing until
-# failover (passes stay disabled), so growth is expected to be zero in steady
-# state.
+# Recordings (and the Channels DVR dir incl. its Database/) on the dedicated
+# 1TB USB drive — static local PV channels-dvr-recordings-usb, mounted in the
+# pod at /shares/DVR. Previously local-path on the root NVMe; contents were
+# rsynced across during the 2026-07-25 swap.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -13,7 +12,8 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-path
+  storageClassName: channels-usb
+  volumeName: channels-dvr-recordings-usb
   resources:
     requests:
-      storage: 150Gi
+      storage: 900Gi
