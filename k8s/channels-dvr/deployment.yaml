@@ -34,6 +34,12 @@ spec:
     metadata:
       labels:
         app: channels-dvr
+      annotations:
+        # primary is a 125GB ROX NFS mount of the ASUSTOR's live DVR data —
+        # not k8s state. A full kopia upload can't finish inside Velero's 4h
+        # fs-backup-timeout, and the nightly failure wedged node-agent
+        # data-path slots, starving every other backup on this node.
+        backup.velero.io/backup-volumes-excludes: primary
     spec:
       nodeSelector:
         kubernetes.io/hostname: debian-marmoset
