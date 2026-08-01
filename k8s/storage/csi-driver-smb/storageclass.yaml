@@ -1,8 +1,9 @@
 ---
 # Dynamic SMB provisioning against the ASUSTOR AS5402T.
 #
-# Each PVC becomes a subdirectory named for its PV under //<source>/k8s-smb.
-# The subdirectory behaviour is enabled by the presence of the
+# Each PVC becomes a subdirectory created directly under the share named by
+# `source` (i.e. under //asustor-smb.home.arpa/k8s-smb itself, not a further
+# k8s-smb nested inside it). The subdirectory behaviour is enabled by the presence of the
 # provisioner-secret parameters; without them the driver would mount the whole
 # share instead.
 #
@@ -20,6 +21,10 @@ parameters:
   csi.storage.k8s.io/provisioner-secret-namespace: kube-system
   csi.storage.k8s.io/node-stage-secret-name: smbcreds
   csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+  # reclaimPolicy: Retain means subdirectories are never reclaimed by the
+  # driver -- cleanup is manual on the NAS. Encode namespace and claim name so
+  # an orphaned directory can still be attributed after its PV object is gone.
+  subDir: ${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
 allowVolumeExpansion: true

@@ -10,6 +10,14 @@
 #                                               resolve asustor-smb.home.arpa
 #   feature.enableGetVolumeStats: true       -> already the default
 
+# Chart defaults this to true, which registers the CSIDriver with
+# volumeLifecycleModes ["Persistent","Ephemeral"]. Ephemeral inline volumes
+# would let any pod in any namespace mount an arbitrary SMB source with its
+# own secret, bypassing the StorageClass entirely. Only PVC-based use is
+# intended here.
+feature:
+  enableInlineVolume: false
+
 # This is a Linux-only cluster. The chart ships windows.enabled=true by
 # default, which creates a DaemonSet that can never schedule here.
 windows:

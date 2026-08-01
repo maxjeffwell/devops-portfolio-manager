@@ -11,8 +11,13 @@ ASUSTOR AS5402T. Three motivations, all of which the design must serve:
 1. **Dynamic RWX storage** — a StorageClass that provisions a subdirectory per PVC, comparable
    to the existing `cluster-nfs` subdir provisioner.
 2. **Interop** — the same share is reachable identically from pods and from Windows clients.
-3. **Redundancy for NFS** — an independent file protocol on an independent box, so an NFS-side
-   failure (Ganesha, rpcbind, provisioner leader election) does not take down file storage.
+3. **Redundancy for NFS** — an independent file protocol and software path (a CIFS kernel client
+   and the csi-driver-smb stack), so an NFS-side failure (Ganesha, rpcbind, subdir-provisioner
+   leader election) does not take down file storage. This is **not** hardware redundancy: SMB is
+   backed by the same ASUSTOR AS5402T as `cluster-nfs` (whose backing PV,
+   `asustor-iscsi-cluster-nfs`, targets the same box over iSCSI), and today both share the same
+   `.149`/`eth2` interface. An ASUSTOR reboot, or `eth2` dropping, takes down both. The genuinely
+   independent box — the Synology — was not chosen as the SMB backend; see the Decisions table.
 
 Static PVs pointing at pre-existing shares are explicitly out of scope.
 
@@ -58,7 +63,7 @@ iSCSI LUN store `.@iscsi`).
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Backing server | ASUSTOR AS5402T | Not a cluster node, so no loopback-SMB deadlock risk. Leaves Synology as iSCSI-only, which is what makes this genuine redundancy rather than concentrated risk. |
+| Backing server | ASUSTOR AS5402T | Not a cluster node, so no loopback-SMB deadlock risk. Leaves Synology as iSCSI-only. Note this is redundancy of protocol and software path only (CIFS/csi-driver-smb vs. NFS/Ganesha/rpcbind/subdir-provisioner election) — **not** of hardware: `cluster-nfs`'s backing PV `asustor-iscsi-cluster-nfs` already targets this same ASUSTOR over iSCSI at `192.168.50.149:3260`, the same NIC this StorageClass uses. The Synology is the genuinely independent box and was not chosen here. |
 | Address | `asustor-smb.home.arpa` → `192.168.50.149` (eth2, 5G), cluster-wide | Fastest path. LAN nodes reach it natively; VPS nodes via the Tailscale subnet router. Single StorageClass, no node affinity. Addressed by **name, not literal IP**, so it stays repointable — see "Why a DNS name" below. |
 | Provisioning root | New share `k8s-smb` on `/volume1` | 2.2T headroom, no contention with the iSCSI LUN store on `/volume2`, and PV subdirectories stay separate from human-facing shares. |
 | SMB identity | Existing `maxjeffwell` account | Consistent with the one-credential-everywhere approach already in place across both NAS boxes and `debian-marmoset`. |
@@ -83,8 +88,14 @@ Chart defaults are correct for this cluster and need no toleration overrides:
 despite its `workload=gpu:NoSchedule` taint, and the controller already tolerates control-plane
 taints. `linux.kubelet` is also correct as shipped — this k3s install uses the standard
 `/var/lib/kubelet`, not `/var/lib/rancher/k3s/agent/kubelet`, which does not exist. And
-`feature.enableGetVolumeStats` is already `true` by default, so PV usage is scrapeable by the
-existing Mimir stack with no override.
+`feature.enableGetVolumeStats` is already `true` by default with no override — but this is
+weaker than it sounds. `GetVolumeStats` statfs's the underlying CIFS mount, and SMB has no
+per-directory quota, so every PV reports the **whole share's** capacity (currently ~3.6T total /
+~2.2T free on `/volume1`), not its own usage. Any per-PV percent-full alert built on this metric
+would be meaningless — a `1Gi` PVC can silently fill the entire volume, and
+`allowVolumeExpansion: true` is effectively a no-op that the driver satisfies by just returning
+the requested size, since there is no quota to actually expand. A capacity alarm belongs at the
+NAS level, on `/volume1` itself, not per-PV in Mimir.
 
 The values override is therefore minimal: `windows.enabled: false` (the chart ships it `true`,
 creating a DaemonSet that can never schedule on this Linux-only cluster) and `logLevel: 2` on
@@ -257,3 +268,28 @@ reboots.
 - Migrating any existing NFS or iSCSI workload onto SMB.
 - A second StorageClass on `.142`/`.133` or over Tailscale.
 - Changes to the ASUSTOR's `smb.conf`, network configuration, or existing shares.
+
+## Post-implementation notes
+
+- `smb-asustor` exists, backed by `//asustor-smb.home.arpa/k8s-smb` → `192.168.50.149`, `Retain`,
+  RWX-capable.
+- **Failover procedure is incomplete if it stops at the ConfigMap.** Editing `home-arpa.server` in
+  `coredns-custom` and restarting CoreDNS repoints new resolutions — and correctly requires no PV
+  rebuild, since `source` is a name — but it does **not** repair already-mounted volumes.
+  `cifs.ko` re-resolves on reconnect via the kernel `dns_resolver` upcall, which runs host-side
+  against the node's own `/etc/resolv.conf`, not cluster DNS — and the host cannot resolve
+  `asustor-smb.home.arpa` (verified: a host-side `mount -t cifs //asustor-smb.home.arpa/...` fails
+  with "could not resolve address"). So failover additionally requires restarting every pod
+  consuming an SMB PV, and allowing roughly 60s for stacked DNS cache to clear (node-local-dns 30s
+  + CoreDNS 30s). Separately: hand-mounting the share on a node for debugging must use
+  `192.168.50.149` directly, not the name, since the host resolver doesn't serve this zone.
+- ADM regenerating `smb.conf` silently degrades multichannel to one channel. A throughput
+  regression on SMB PVs should send you to `smb.conf` before anywhere else.
+- **Credential rotation.** `smbcreds` refreshes from Doppler hourly via ExternalSecret with
+  `deletionPolicy: Retain`. If the Doppler value and the NAS password ever diverge, the
+  ExternalSecret still reports `SecretSynced/True` — it synced *a* value successfully — and
+  existing kernel sessions keep working on their cached credential. New mounts then start failing
+  with `NT_STATUS_LOGON_FAILURE` hours later, and a NAS reboot breaks everything at once when all
+  sessions re-authenticate. Rotation procedure: change the password in both Doppler and the NAS
+  account, then `kubectl -n kube-system delete secret smbcreds` to force an immediate resync
+  rather than waiting up to an hour.
