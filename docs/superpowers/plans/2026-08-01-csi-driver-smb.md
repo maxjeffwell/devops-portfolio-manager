@@ -235,6 +235,109 @@ asustor-smb.home.arpa is added for the smb-asustor StorageClass."
 
 ---
 
+### Task 2b: Route `home.arpa` through node-local-dns
+
+Task 2 added the record to CoreDNS, but pods never reach CoreDNS for this zone. `node-local-dns` binds `10.43.0.10` (the kube-dns ClusterIP) itself; it forwards only `cluster.local`, `in-addr.arpa`, and `ip6.arpa` to real CoreDNS, and its catch-all `.:53` forwards everything else to the *node's* upstream resolver. Without this task, `source: //asustor-smb.home.arpa/k8s-smb` is unresolvable from every pod and Task 5 cannot mount.
+
+Verified before this task: pod resolver returns `NXDOMAIN`, while `nslookup asustor-smb.home.arpa 10.43.199.239` (kube-dns-upstream) returns `192.168.50.149`.
+
+This also repairs `backrest.home.arpa`, unresolvable from pods since node-local-dns was deployed on 2026-06-10 — a latent bug independent of the stale address Task 2 fixed.
+
+**Files:**
+- Modify: `k8s/nodelocaldns/configmap.yaml`
+
+**Interfaces:**
+- Consumes: the `home.arpa` zone in `coredns-custom` from Task 2.
+- Produces: `asustor-smb.home.arpa` resolvable from any pod via the standard resolver. Tasks 4 and 5 depend on this.
+
+- [ ] **Step 1: Confirm the gap still exists**
+
+```bash
+kubectl run dnscheck --image=busybox:1.36 --restart=Never --rm -i --quiet \
+ --overrides='{"spec":{"containers":[{"name":"dnscheck","image":"busybox:1.36","stdin":true,"command":["sh","-c","nslookup asustor-smb.home.arpa 2>&1 | tail -3"],"resources":{"requests":{"cpu":"10m","memory":"16Mi"},"limits":{"memory":"32Mi"}}}]}}'
+```
+
+Expected: `NXDOMAIN`. The `--overrides` block is required — the `default` namespace has a `default-quota` ResourceQuota that rejects pods without `requests.cpu`, `requests.memory`, and `limits.memory`.
+
+- [ ] **Step 2: Add the `home.arpa` server block**
+
+In `k8s/nodelocaldns/configmap.yaml`, insert this block into the `Corefile` immediately **after** the closing brace of the `ip6.arpa:53` block and **before** the `.:53` catch-all. Order matters: CoreDNS matches the most specific zone, but keeping it above the catch-all makes the intent legible.
+
+```
+    home.arpa:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind 169.254.20.10 10.43.0.10
+        forward . __PILLAR__CLUSTER__DNS__ {
+            force_tcp
+        }
+        prometheus :9253
+    }
+```
+
+`__PILLAR__CLUSTER__DNS__` is substituted at pod startup with the `kube-dns-upstream` ClusterIP, so this routes `home.arpa` to real CoreDNS exactly as the `cluster.local` block does. Do **not** hardcode `10.43.199.239` — the pillar is what keeps this correct if the Service is recreated.
+
+- [ ] **Step 3: Verify the rendered Corefile is well-formed**
+
+```bash
+kubectl apply --dry-run=server -f k8s/nodelocaldns/configmap.yaml
+```
+
+Expected: `configured (server dry run)`, no error.
+
+- [ ] **Step 4: Commit and push**
+
+```bash
+git add k8s/nodelocaldns/configmap.yaml
+git commit -m "fix(dns): forward home.arpa through node-local-dns to CoreDNS
+
+node-local-dns binds the kube-dns ClusterIP and forwards only
+cluster.local, in-addr.arpa and ip6.arpa to CoreDNS; its catch-all sends
+everything else to the node upstream. Custom CoreDNS zones were therefore
+invisible to pods.
+
+Fixes asustor-smb.home.arpa for the smb-asustor StorageClass, and
+backrest.home.arpa, unresolvable from pods since node-local-dns was
+deployed 2026-06-10."
+git push origin main
+```
+
+- [ ] **Step 5: Sync and roll out**
+
+```bash
+argocd app sync nodelocaldns || kubectl -n argocd patch app nodelocaldns \
+  --type merge -p '{"operation":{"sync":{}}}'
+kubectl -n kube-system rollout restart daemonset/node-local-dns
+kubectl -n kube-system rollout status daemonset/node-local-dns --timeout=180s
+```
+
+The rollout is required: node-local-dns does not hot-reload the Corefile pillar substitution. Expect a brief DNS cache restart per node.
+
+- [ ] **Step 6: Verify resolution from a pod**
+
+```bash
+kubectl run dnscheck --image=busybox:1.36 --restart=Never --rm -i --quiet \
+ --overrides='{"spec":{"containers":[{"name":"dnscheck","image":"busybox:1.36","stdin":true,"command":["sh","-c","nslookup asustor-smb.home.arpa; nslookup backrest.home.arpa"],"resources":{"requests":{"cpu":"10m","memory":"16Mi"},"limits":{"memory":"32Mi"}}}]}}'
+```
+
+Expected: `asustor-smb.home.arpa` → `192.168.50.149`; `backrest.home.arpa` → `100.64.0.1` and `100.64.0.2`.
+
+- [ ] **Step 7: Confirm no collateral DNS damage**
+
+```bash
+kubectl run dnscheck --image=busybox:1.36 --restart=Never --rm -i --quiet \
+ --overrides='{"spec":{"containers":[{"name":"dnscheck","image":"busybox:1.36","stdin":true,"command":["sh","-c","nslookup kubernetes.default.svc.cluster.local; nslookup github.com"],"resources":{"requests":{"cpu":"10m","memory":"16Mi"},"limits":{"memory":"32Mi"}}}]}}'
+kubectl -n kube-system get pods -l k8s-app=node-local-dns
+```
+
+Expected: in-cluster and external resolution both work; all node-local-dns pods `Running`. This proves neither the `cluster.local` path nor the catch-all regressed.
+
+If DNS breaks cluster-wide, `k8s/nodelocaldns/ROLLBACK.md` documents the recovery path.
+
+---
+
 ### Task 3: Install the driver via ArgoCD
 
 **Files:**
@@ -648,6 +751,14 @@ spec:
     - name: writer
       image: busybox:1.36
       command: ["sh", "-c", "echo smb-ok > /data/canary.txt && sleep 3600"]
+      # The default namespace has a `default-quota` ResourceQuota that rejects
+      # any pod missing requests.cpu, requests.memory and limits.memory.
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 64Mi
       volumeMounts:
         - name: smb
           mountPath: /data
