@@ -506,7 +506,7 @@ Expected: `192.168.50.149`. This proves `ClusterFirstWithHostNet` works from the
 ### Task 4: ExternalSecret and StorageClass
 
 **Files:**
-- Create: `k8s/storage/csi-driver-smb/externalsecret.yaml`
+- Create: `k8s/storage/csi-driver-smb/smbcreds-externalsecret.yaml`
 - Create: `k8s/storage/csi-driver-smb/storageclass.yaml`
 - Modify: `gitops/applications/csi-driver-smb.yaml` (append the second Application)
 
@@ -524,7 +524,13 @@ Expected: `NotFound`.
 
 - [ ] **Step 2: Create the ExternalSecret**
 
-Create `k8s/storage/csi-driver-smb/externalsecret.yaml`:
+Create `k8s/storage/csi-driver-smb/smbcreds-externalsecret.yaml`.
+
+**The filename matters.** `.gitignore:72` has `*secret*.yaml`, with negations that all
+require a hyphen prefix (`!*-externalsecret.yaml`). A bare `externalsecret.yaml` is ignored
+and would need `git add -f` — bypassing a security guardrail and leaving the file able to
+silently fall out of tracking. `smbcreds-externalsecret.yaml` matches the negation and the
+repo's existing convention (`garage-externalsecret.yaml`, `bookmarked-external-secret.yaml`).
 
 ```yaml
 ---
