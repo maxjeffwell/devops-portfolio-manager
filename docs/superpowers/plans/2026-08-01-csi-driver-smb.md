@@ -605,7 +605,7 @@ Expected: `provisioner: smb.csi.k8s.io`, `source: //asustor-smb.home.arpa/k8s-sm
 Proves the whole path works, and — equally important — that `Retain` behaves as intended before any real workload depends on it.
 
 **Files:**
-- Create: `k8s/storage/csi-driver-smb/test/test-pvc.yaml` (temporary; deleted in this task, never committed)
+- Create: `/tmp/claude-1000/-home-maxjeffwell/5eb2bf80-ad5e-49ee-a811-837ddbf11a0b/scratchpad/smb-test-pvc.yaml` (temporary, OUTSIDE the repo)
 
 **Interfaces:**
 - Consumes: everything from Tasks 1–4.
@@ -613,7 +613,12 @@ Proves the whole path works, and — equally important — that `Retain` behaves
 
 - [ ] **Step 1: Write the test manifest**
 
-Create `k8s/storage/csi-driver-smb/test/test-pvc.yaml`:
+Create the manifest **outside the repository**. `k8s/storage/csi-driver-smb/` is synced by the
+`csi-driver-smb-resources` Application with `prune: true`; a test PVC placed there would be
+adopted by ArgoCD and re-created on every sync, fighting the cleanup in Step 7.
+
+Write to `$SCRATCH/smb-test-pvc.yaml` where
+`SCRATCH=/tmp/claude-1000/-home-maxjeffwell/5eb2bf80-ad5e-49ee-a811-837ddbf11a0b/scratchpad`:
 
 ```yaml
 ---
@@ -656,7 +661,7 @@ spec:
 - [ ] **Step 2: Apply and wait for Bound**
 
 ```bash
-kubectl apply -f k8s/storage/csi-driver-smb/test/test-pvc.yaml
+kubectl apply -f "$SCRATCH/smb-test-pvc.yaml"
 kubectl wait --for=jsonpath='{.status.phase}'=Bound pvc/smb-test-pvc -n default --timeout=120s
 kubectl get pvc smb-test-pvc -n default
 ```
@@ -700,7 +705,7 @@ If it reports 1 channel, multichannel is not active — check `server multi chan
 - [ ] **Step 6: Verify Retain actually retains**
 
 ```bash
-kubectl delete -f k8s/storage/csi-driver-smb/test/test-pvc.yaml
+kubectl delete -f "$SCRATCH/smb-test-pvc.yaml"
 kubectl get pv "$PV"
 ssh Asustor "cat '/volume1/k8s-smb/$PV/canary.txt'"
 ```
@@ -712,13 +717,14 @@ Expected: the PV survives in `Released` phase, and the file still exists on the 
 ```bash
 kubectl delete pv "$PV" --ignore-not-found
 ssh Asustor "rm -rf '/volume1/k8s-smb/$PV'"
-rm -rf k8s/storage/csi-driver-smb/test
+rm -f "$SCRATCH/smb-test-pvc.yaml"
 ssh Asustor "ls -la /volume1/k8s-smb/"
 ```
 
 Expected: `/volume1/k8s-smb/` is empty again.
 
-The test directory is deleted rather than committed — a manifest that provisions storage on every ArgoCD sync does not belong in a synced path.
+The test manifest never enters the repo at all — a manifest that provisions storage on every
+ArgoCD sync does not belong in a synced path.
 
 - [ ] **Step 8: Confirm both Applications are healthy and nothing else regressed**
 
@@ -734,15 +740,10 @@ Expected: both new apps `Synced`/`Healthy`; no other application degraded.
 
 ```bash
 git status --short
-git add -A
-git commit -m "chore(storage): verified smb-asustor end-to-end
-
-Dynamic provisioning, subdirectory-per-PV, multichannel, and Retain
-semantics all confirmed against the ASUSTOR. Test manifests removed."
-git push origin main
 ```
 
-If `git status` is clean (the test directory was the only untracked change and it is deleted), skip the commit.
+Expected: **clean**. The test manifest lived outside the repo, so this task produces no commit.
+If anything is listed, investigate before finishing — nothing in Task 5 should modify the repo.
 
 ---
 
