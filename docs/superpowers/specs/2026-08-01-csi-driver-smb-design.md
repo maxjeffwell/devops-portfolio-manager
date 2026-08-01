@@ -81,12 +81,23 @@ iSCSI LUN store `.@iscsi`).
 Chart defaults are correct for this cluster and need no toleration overrides:
 `linux.tolerations` defaults to `- operator: Exists`, so the node DaemonSet lands on `marmoset`
 despite its `workload=gpu:NoSchedule` taint, and the controller already tolerates control-plane
-taints. The values override is limited to resource requests/limits and
-`feature.enableGetVolumeStats: true` so PV usage is scrapeable by the existing Mimir stack.
+taints. `linux.kubelet` is also correct as shipped — this k3s install uses the standard
+`/var/lib/kubelet`, not `/var/lib/rancher/k3s/agent/kubelet`, which does not exist. And
+`feature.enableGetVolumeStats` is already `true` by default, so PV usage is scrapeable by the
+existing Mimir stack with no override.
+
+The values override is therefore minimal: `windows.enabled: false` (the chart ships it `true`,
+creating a DaemonSet that can never schedule on this Linux-only cluster) and `logLevel: 2` on
+both controller and node (the chart default of 5 is extremely verbose and ships into Loki on
+every mount operation).
 
 A second Application, `csi-driver-smb-resources`, is defined in the same file (as
-`node-problem-detector.yaml` does) with `path: k8s/csi-driver-smb`, carrying the ExternalSecret
-and StorageClass described below. Same destination namespace and sync policy.
+`node-problem-detector.yaml` does) with `path: k8s/storage/csi-driver-smb`, carrying the
+ExternalSecret and StorageClass described below. Same destination namespace and sync policy.
+`k8s/storage/<driver>/` is this repo's existing convention for storage-driver manifests
+(`democratic-csi`, `mayastor`, `openebs-zfs`, `synology-csi` all live there), though none of
+those are currently ArgoCD-synced — they are applied by hand. This change places only the new
+`csi-driver-smb` path under GitOps; the sibling directories are untouched.
 
 ### Component 2 — Credential
 
@@ -104,7 +115,7 @@ oversight.
 
 ### Component 3 — StorageClass
 
-`k8s/csi-driver-smb/storageclass.yaml`:
+`k8s/storage/csi-driver-smb/storageclass.yaml`:
 
 - `provisioner: smb.csi.k8s.io`
 - `parameters.source: //asustor-smb.home.arpa/k8s-smb`
