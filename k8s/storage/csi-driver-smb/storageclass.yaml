@@ -1,0 +1,54 @@
+---
+# Dynamic SMB provisioning against the ASUSTOR AS5402T.
+#
+# Each PVC becomes a subdirectory named for its PV under //<source>/k8s-smb.
+# The subdirectory behaviour is enabled by the presence of the
+# provisioner-secret parameters; without them the driver would mount the whole
+# share instead.
+#
+# `source` is copied into every PV's volumeAttributes at provision time and is
+# IMMUTABLE per-PV. It is a DNS name, not an IP, so that failing over to
+# .142/.133 is a coredns-custom edit rather than a rebuild of every PV.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: smb-asustor
+provisioner: smb.csi.k8s.io
+parameters:
+  source: //asustor-smb.home.arpa/k8s-smb
+  csi.storage.k8s.io/provisioner-secret-name: smbcreds
+  csi.storage.k8s.io/provisioner-secret-namespace: kube-system
+  csi.storage.k8s.io/node-stage-secret-name: smbcreds
+  csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  # SMB servers can hand out duplicate inode numbers across a share. A client
+  # that caches them will alias distinct files onto each other. The upstream
+  # chart annotates this option as "required to prevent data corruption".
+  - noserverino
+  # cache=strict follows SMB2 lease/oplock semantics: the server breaks the
+  # lease when another client writes, invalidating the local cache. This is the
+  # SAFE choice for the Windows-interop goal. (cache=loose is the dangerous one
+  # — it assumes exclusive access and ignores other writers.)
+  - cache=strict
+  # Emulate symlinks via Minshall+French encoding; the share has no POSIX
+  # extensions, so without this symlink creation fails outright.
+  - mfsymlinks
+  # SMB has no server-side uid mapping. Every file presents as this uid/gid
+  # regardless of a pod's securityContext, so the modes must be permissive
+  # enough for any consumer.
+  - uid=0
+  - gid=0
+  - file_mode=0777
+  - dir_mode=0777
+  # Pin the dialect rather than negotiating down.
+  - vers=3.1.1
+  # The Linux client NEVER uses multichannel unless the mount asks. The server
+  # advertises eth0/eth1/eth2, so LAN nodes bind up to 3 channels.
+  # Caveat: on the two Contabo nodes all three advertised paths funnel through
+  # the single Tailscale subnet-router tunnel, so the extra channels add
+  # overhead without bandwidth. Accepted for a single cluster-wide class.
+  - multichannel
+  - max_channels=3
