@@ -44,6 +44,17 @@ data:
         }
         prometheus :9253
     }
+    home.arpa:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind 169.254.20.10 10.43.0.10
+        forward . __PILLAR__CLUSTER__DNS__ {
+            force_tcp
+        }
+        prometheus :9253
+    }
     .:53 {
         errors
         cache 30
