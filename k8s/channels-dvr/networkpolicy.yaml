@@ -12,7 +12,7 @@
 # ClusterIP): NOTRACK interception means the dst IP is never DNAT'd to a
 # kube-dns pod IP, so a namespaceSelector rule alone can't match it.
 #
-# No NFS egress rules: the /primary mount (192.168.50.133) is performed by
+# No NFS egress rules: the /primary mount (192.168.50.149) is performed by
 # kubelet in the HOST network namespace — that traffic never traverses the
 # pod veth, so pod policy cannot and need not allow it.
 apiVersion: networking.k8s.io/v1
