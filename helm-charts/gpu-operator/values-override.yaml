@@ -27,6 +27,13 @@ toolkit:
       value: nvidia
     - name: CONTAINERD_SET_AS_DEFAULT
       value: "true"
+    # Toolkit >=1.18 defaults to config-source [command, file]: it runs
+    # `containerd config dump` via the host PATH, which on marmoset hits
+    # Docker's containerd (2.3.x) and emits a version=4 config that K3s's
+    # embedded containerd (2.1.x, max version 3) rejects — killing the
+    # k3s-agent (2026-08-08 outage). Force reading CONTAINERD_CONFIG instead.
+    - name: RUNTIME_CONFIG_SOURCE
+      value: file
 devicePlugin:
   enabled: true
 dcgmExporter:
