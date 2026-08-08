@@ -39,7 +39,10 @@ spec:
         # not k8s state. A full kopia upload can't finish inside Velero's 4h
         # fs-backup-timeout, and the nightly failure wedged node-agent
         # data-path slots, starving every other backup on this node.
-        backup.velero.io/backup-volumes-excludes: primary
+        # recordings is bulk DVR media with the same problem: its PVB crawled
+        # at ~20KB/s past the timeout on 8/8, cascading ~80 errors into the
+        # daily backup as every later item hit the exhausted context.
+        backup.velero.io/backup-volumes-excludes: primary,recordings
     spec:
       nodeSelector:
         kubernetes.io/hostname: debian-marmoset
