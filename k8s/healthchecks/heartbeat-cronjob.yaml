@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: healthchecks-heartbeat
+  namespace: monitoring
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          containers:
+          - name: heartbeat
+            image: curlimages/curl:8.11.1
+            command:
+            - sh
+            - -c
+            - |
+              # ESO extracts this single UUID into its own key, so there is no
+              # JSON to parse here. A missing file must fail loudly, not ping.
+              UUID=$(cat /etc/healthchecks/k3s-cluster-heartbeat)
+              if [ -z "$UUID" ]; then echo "FATAL: no k3s-cluster-heartbeat UUID"; exit 1; fi
+              exec curl -fsS -m 20 --retry 3 "https://hc-ping.com/$UUID"
+            resources:
+              requests:
+                cpu: 10m
+                memory: 16Mi
+              limits:
+                memory: 32Mi
+            volumeMounts:
+            - name: uuids
+              mountPath: /etc/healthchecks
+              readOnly: true
+          volumes:
+          - name: uuids
+            secret:
+              secretName: healthchecks-uuids

@@ -5,6 +5,7 @@ resources:
 - rbac.yaml
 - healthchecks-external-secret.yaml
 - verifier-cronjob.yaml
+- heartbeat-cronjob.yaml
 configMapGenerator:
 - name: healthchecks-code
   files:
