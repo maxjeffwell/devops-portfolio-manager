@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: healthchecks-verifier
+  namespace: monitoring
+spec:
+  schedule: "7 * * * *"
+  # Without this, the controller counts missed schedules since
+  # lastScheduleTime and refuses to run at all after 100 misses -- and never
+  # self-heals, because lastScheduleTime never advances. That would silently
+  # disable the checker after exactly the kind of outage it exists to catch.
+  startingDeadlineSeconds: 600
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: healthchecks-verifier
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+          containers:
+          - name: verifier
+            image: python:3.12-alpine
+            command: ["python", "-m", "scripts.healthchecks.verifier"]
+            workingDir: /app
+            env:
+            - name: HC_DRY_RUN
+              value: "true"
+            - name: PYTHONPATH
+              value: /app
+            resources:
+              requests:
+                cpu: 25m
+                memory: 64Mi
+              limits:
+                memory: 128Mi
+            volumeMounts:
+            - name: code
+              mountPath: /app/scripts/healthchecks
+              readOnly: true
+            - name: uuids
+              mountPath: /etc/healthchecks
+              readOnly: true
+          volumes:
+          - name: code
+            configMap:
+              name: healthchecks-code
+          - name: uuids
+            secret:
+              secretName: healthchecks-uuids

@@ -1,4 +1,8 @@
 # Dependencies
+.venv/
+__pycache__/
+.pytest_cache/
+.superpowers/
 node_modules/
 npm-debug.log*
 yarn-debug.log*
