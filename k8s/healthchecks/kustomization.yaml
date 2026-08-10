@@ -3,7 +3,7 @@ kind: Kustomization
 namespace: monitoring
 resources:
 - rbac.yaml
-- external-secret.yaml
+- healthchecks-external-secret.yaml
 - verifier-cronjob.yaml
 configMapGenerator:
 - name: healthchecks-code
