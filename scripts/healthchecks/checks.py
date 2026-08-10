@@ -48,6 +48,7 @@ CHECKS = [
             "default/mongodb-backup-microservices",
             "default/mongodb-backup-vertex-platform",
             "monitoring/influxdb-backup",
+            "vertex-platform/influxdb-backup",
         ),
         DAILY_WINDOW_HOURS,
         DEFAULT_MAX_ERRORS,
