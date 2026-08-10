@@ -977,9 +977,16 @@ spec:
     name: healthchecks-uuids
     creationPolicy: Owner
   data:
+  # Full map for the verifier, which needs every slug.
   - secretKey: uuids.json
     remoteRef:
       key: HEALTHCHECKS_UUIDS_JSON
+  # Single UUID extracted for the heartbeat, so a shell script never has to
+  # parse JSON. `property` selects one field out of the JSON secret value.
+  - secretKey: k3s-cluster-heartbeat
+    remoteRef:
+      key: HEALTHCHECKS_UUIDS_JSON
+      property: k3s-cluster-heartbeat
 ```
 
 - [ ] **Step 4: Write the CronJob**
@@ -1134,7 +1141,9 @@ spec:
             - sh
             - -c
             - |
-              UUID=$(sed -n 's/.*"k3s-cluster-heartbeat"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' /etc/healthchecks/uuids.json)
+              # ESO extracts this single UUID into its own key, so there is no
+              # JSON to parse here. A missing file must fail loudly, not ping.
+              UUID=$(cat /etc/healthchecks/k3s-cluster-heartbeat)
               if [ -z "$UUID" ]; then echo "FATAL: no k3s-cluster-heartbeat UUID"; exit 1; fi
               exec curl -fsS -m 20 --retry 3 "https://hc-ping.com/$UUID"
             resources:
