@@ -8,6 +8,10 @@ from dataclasses import dataclass
 
 DAILY_WINDOW_HOURS = 26
 WEEKLY_WINDOW_HOURS = 192  # 8 days
+# Unused: evaluate_cronjob() takes no max_errors parameter, so this value has
+# no effect on any "cronjobs"-kind check today. Retained for when an
+# error-bearing non-velero check kind is added -- tightening this number
+# currently changes nothing.
 DEFAULT_MAX_ERRORS = 5
 VELERO_MAX_ERRORS = 10
 
@@ -57,7 +61,7 @@ CHECKS = [
         "dns-doppler-backups",
         "cronjobs",
         ("default/dns-zone-backup", "default/doppler-secrets-backup"),
-        DAILY_WINDOW_HOURS,
+        WEEKLY_WINDOW_HOURS,
         DEFAULT_MAX_ERRORS,
     ),
     Check(
@@ -69,7 +73,7 @@ CHECKS = [
             "default/dns-zone-restore-test",
             "default/doppler-secrets-restore-test",
         ),
-        DAILY_WINDOW_HOURS,
+        WEEKLY_WINDOW_HOURS,
         DEFAULT_MAX_ERRORS,
     ),
     Check(

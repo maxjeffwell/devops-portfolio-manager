@@ -15,7 +15,7 @@ class FakeClient:
         return self.backups.get(schedule_name, [])
 
     def cronjob_last_success(self, namespace, name):
-        return self.cronjobs.get(name)
+        return self.cronjobs.get((namespace, name))
 
 
 class FakePinger:
@@ -79,13 +79,14 @@ def test_check_without_uuid_is_skipped_not_crashed():
 def test_grouped_cronjob_check_fails_if_one_member_stale():
     client = FakeClient(
         cronjobs={
-            "postgresql-backup": NOW - timedelta(hours=3),
-            "mongodb-backup": NOW - timedelta(hours=99),
-            "mongodb-backup-educationelly": NOW - timedelta(hours=3),
-            "mongodb-backup-educationelly-graphql": NOW - timedelta(hours=3),
-            "mongodb-backup-microservices": NOW - timedelta(hours=3),
-            "mongodb-backup-vertex-platform": NOW - timedelta(hours=3),
-            "influxdb-backup": NOW - timedelta(hours=3),
+            ("default", "postgresql-backup"): NOW - timedelta(hours=3),
+            ("default", "mongodb-backup"): NOW - timedelta(hours=99),
+            ("default", "mongodb-backup-educationelly"): NOW - timedelta(hours=3),
+            ("default", "mongodb-backup-educationelly-graphql"): NOW - timedelta(hours=3),
+            ("default", "mongodb-backup-microservices"): NOW - timedelta(hours=3),
+            ("default", "mongodb-backup-vertex-platform"): NOW - timedelta(hours=3),
+            ("monitoring", "influxdb-backup"): NOW - timedelta(hours=3),
+            ("vertex-platform", "influxdb-backup"): NOW - timedelta(hours=3),
         }
     )
     pinger = FakePinger()

@@ -42,6 +42,17 @@ def test_stale_backup_fails():
     assert "26h" in v.reason
 
 
+def test_errors_exactly_at_threshold_passes():
+    # Inclusive upper bound: equal to the threshold is acceptable.
+    v = evaluate_backup([run("Completed", 10, 1)], now=NOW, window_hours=26, max_errors=10)
+    assert v.ok is True
+
+
+def test_errors_one_over_threshold_fails():
+    v = evaluate_backup([run("Completed", 11, 1)], now=NOW, window_hours=26, max_errors=10)
+    assert v.ok is False
+
+
 def test_no_runs_fails():
     v = evaluate_backup([], now=NOW, window_hours=26, max_errors=10)
     assert v.ok is False
