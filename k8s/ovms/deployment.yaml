@@ -98,7 +98,17 @@ spec:
           resources:
             requests:
               cpu: "1"
-              memory: 1500Mi
+              # 1500Mi reserved but steady-state usage is ~343Mi. debian-marmoset
+              # is the only gpu-node=true node, and after its 2026-08-09 reboot
+              # repacked 85 pods onto it, requests hit 99% of allocatable (~19Mi
+              # free) — which left channels-dvr-db-sync (hard-pinned there for its
+              # node-local PVCs, 64Mi) permanently unschedulable. Freeing ~730Mi
+              # here fixes that. Real node usage is ~10G/15G with zero memory
+              # pressure, so this reservation was the constraint, not actual RAM.
+              # NOTE: the 3Gi LIMIT below is deliberately unchanged — the pod does
+              # burst past 1500Mi during model load, and the limit is what governs
+              # that. Do not lower the limit.
+              memory: 768Mi
               gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
