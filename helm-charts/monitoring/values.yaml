@@ -153,6 +153,18 @@ kube-prometheus-stack:
   # Prometheus Configuration
   prometheus:
     prometheusSpec:
+      # 2026-08-10: keep the TSDB out of Velero. Velero reads 48.14 GB of LOGICAL
+      # bytes off this volume (df shows 22.5G of 50G — openebs-zfs compresses ~2.1x;
+      # the disk is fine, the read volume is not). It lives on vmi2951245 (New York,
+      # see nodeSelector below), so fs-backup dragged those reads across the WAN at
+      # ~2.75 MB/s => ~4.4h for this ONE volume, blowing the 4h
+      # itemBlock window and dropping every item queued behind it. Velero honours this
+      # annotation for EVERY backup (daily/weekly/local/nas-local/manual) — a velero
+      # Schedule cannot exclude a single volume, only whole namespaces or resources.
+      # Value must be the POD volume name, not the PVC name.
+      podMetadata:
+        annotations:
+          backup.velero.io/backup-volumes-excludes: prometheus-prometheus-kube-prometheus-prometheus-db
       # Number of replicas
       replicas: 1
       # Retention period for metrics
