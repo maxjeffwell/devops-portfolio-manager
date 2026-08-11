@@ -102,6 +102,33 @@ node-feature-discovery:
   # Root cause: health server at :8080 starts slowly → "connection refused"
   # before liveness kicks in. startupProbe gates liveness until server is ready.
   worker:
+    # Only run the worker on nodes that actually have a GPU.
+    #
+    # vmi2951245 and vmi3115606 are Contabo VPSes with zero nvidia.com/gpu and
+    # zero gpu.intel.com/i915 capacity, so the worker there discovers nothing
+    # gpu-operator consumes — but it still exits(1) on the FIRST transient
+    # apiserver error (nfd-worker has no retry around the NodeFeature PUT).
+    # Every brief blip becomes a restart: 3155 on vmi3115606, 42 on vmi2951245,
+    # while every other pod on those same nodes rides the blip out. The probe
+    # tuning below fixed the health-server restarts; it cannot fix this one,
+    # because the exit is by design in nfd-worker.
+    #
+    # Verified before pinning: no workload in the cluster selects on
+    # feature.node.kubernetes.io/* labels, and the 46 such labels on each VPS
+    # node are unused. Existing labels freeze rather than disappear (nfd-gc only
+    # reaps NodeFeature objects for deleted nodes).
+    #
+    # Remove this affinity if a GPU is ever added to one of the VPSes.
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - marmoset
+                    - debian-marmoset
     tolerations:
       - key: node-role.kubernetes.io/master
         operator: Equal
