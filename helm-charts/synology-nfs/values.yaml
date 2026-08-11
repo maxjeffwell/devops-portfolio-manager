@@ -48,7 +48,14 @@ resources:
 nodeSelector:
   kubernetes.io/hostname: vmi2951245
 
-podAnnotations: {}
+# 2026-08-11: keep the provisioner's root mount out of Velero. This pod mounts
+# the ROOT of the export (/volume1/k8s-nfs), i.e. the parent directory of every
+# PVC this provisioner hands out — so fs-backup copies all of that data a SECOND
+# time, on top of the per-PVC backups that already cover it. The PV declares 10Mi
+# (NFS PVs ignore spec.capacity), which is why the real size never showed up in
+# any capacity audit. Excluding the root loses no coverage.
+podAnnotations:
+  backup.velero.io/backup-volumes-excludes: nfs-subdir-external-provisioner-root
 
 rbac:
   create: true

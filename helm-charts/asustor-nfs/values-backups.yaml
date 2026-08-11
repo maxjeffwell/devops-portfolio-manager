@@ -43,6 +43,16 @@ resources:
 nodeSelector:
   kubernetes.io/hostname: vmi2951245
 
+# 2026-08-11: keep the provisioner's root mount out of Velero. This pod mounts
+# the ROOT of the export (192.168.50.149:/mnt/backups) — Velero measured it at
+# 408.56 GB and was copying the whole ASUSTOR *backups* share into garage, from
+# a pod in New York, at ~0.4 MB/s. Recursive (backing up a backup target) and
+# duplicative (the parent dir of every PVC this provisioner hands out, all of
+# which are already backed up individually). The PV declares 10Mi because NFS
+# PVs ignore spec.capacity, which is why this hid for so long.
+podAnnotations:
+  backup.velero.io/backup-volumes-excludes: nfs-subdir-external-provisioner-root
+
 rbac:
   create: true
 
