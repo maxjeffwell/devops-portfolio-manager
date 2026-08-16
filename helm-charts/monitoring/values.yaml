@@ -4,6 +4,13 @@ veleroSchedules:
   namespace: velero
   # Velero default is 10m; storage layer (Mayastor/synology/democratic-csi) needs longer.
   csiSnapshotTimeout: "20m"
+  # Volume-level opt-out policy (ConfigMap in the velero namespace, owned by the
+  # `backups` ArgoCD app). Skips raw NFS mounts + csi-s3 volumes. Required: with
+  # opt-out fs-backup on, Velero otherwise walks the stremio-nas-addon media
+  # shares (movies 302GB + tv 392GB on ASUSTOR .149). Those cannot finish in the
+  # 4h window and orphan InProgress PVBs that permanently hold node-agent
+  # data-path slots (loadConcurrency=3), starving every later backup on that node.
+  resourcePolicyConfigMap: nas-local-volume-policy
   excludedNamespaces:
     - gpu-operator
     # 2026-06-11 — jellyfin decommissioned to ASUSTOR (scaled to 0); its config PVC

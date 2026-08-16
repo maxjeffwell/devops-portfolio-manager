@@ -21,6 +21,14 @@ spec:
     storageLocation: backblaze
     defaultVolumesToFsBackup: true
     ttl: 720h
+    # Skip raw NFS mounts + csi-s3 volumes. Without this, opt-out fs-backup walks
+    # the stremio-nas-addon media shares (movies 302GB + tv 392GB on ASUSTOR .149),
+    # which cannot finish in the 4h window and orphan InProgress PVBs that hold
+    # node-agent data-path slots forever (2026-08-16; 3rd recurrence of the
+    # zombie-PVB concurrency deadlock).
+    resourcePolicy:
+      kind: configmap
+      name: nas-local-volume-policy
     includedNamespaces:
       - default
       - lunary

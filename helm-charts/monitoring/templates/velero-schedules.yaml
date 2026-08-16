@@ -11,6 +11,11 @@ spec:
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
     ttl: {{ .Values.veleroSchedules.daily.ttl }}
+    {{- with .Values.veleroSchedules.resourcePolicyConfigMap }}
+    resourcePolicy:
+      kind: configmap
+      name: {{ . }}
+    {{- end }}
 ---
 apiVersion: velero.io/v1
 kind: Schedule
@@ -24,6 +29,11 @@ spec:
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
     ttl: {{ .Values.veleroSchedules.weekly.ttl }}
+    {{- with .Values.veleroSchedules.resourcePolicyConfigMap }}
+    resourcePolicy:
+      kind: configmap
+      name: {{ . }}
+    {{- end }}
 ---
 apiVersion: velero.io/v1
 kind: Schedule
@@ -38,4 +48,9 @@ spec:
     excludedNamespaces:
       {{- toYaml .Values.veleroSchedules.excludedNamespaces | nindent 6 }}
     ttl: {{ .Values.veleroSchedules.weeklyLocal.ttl }}
+    {{- with .Values.veleroSchedules.resourcePolicyConfigMap }}
+    resourcePolicy:
+      kind: configmap
+      name: {{ . }}
+    {{- end }}
 {{- end }}
