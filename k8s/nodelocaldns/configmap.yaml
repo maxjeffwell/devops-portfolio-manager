@@ -55,6 +55,19 @@ data:
         }
         prometheus :9253
     }
+    backblazeb2.com:53 {
+        errors
+        cache 30
+        reload
+        loop
+        bind 169.254.20.10 10.43.0.10
+        # Cluster has no IPv6 egress; B2 AAAA records break velero (dial v6 -> unreachable)
+        template IN AAAA {
+            rcode NOERROR
+        }
+        forward . __PILLAR__UPSTREAM__SERVERS__
+        prometheus :9253
+    }
     .:53 {
         errors
         cache 30
