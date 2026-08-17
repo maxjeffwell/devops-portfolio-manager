@@ -10,9 +10,9 @@ dependencies:
   version: 6.52.0
 - name: alloy
   repository: https://grafana.github.io/helm-charts
-  version: 1.6.0
+  version: 1.11.1
 - name: mimir-distributed
   repository: https://grafana.github.io/helm-charts
   version: 6.0.5
-digest: sha256:c00555d41c93f6dccac0054c2910825e7fe3383bad450e2882f307ebf77c7821
-generated: "2026-02-07T03:15:04.867308393-05:00"
+digest: sha256:2a0f04149fe986773f261b0c2d20674b930b26a6774aa539323ac50a2727666a
+generated: "2026-08-17T07:27:55.494483813-04:00"
