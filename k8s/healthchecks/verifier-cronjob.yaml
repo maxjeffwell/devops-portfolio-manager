@@ -30,7 +30,7 @@ spec:
             workingDir: /app
             env:
             - name: HC_DRY_RUN
-              value: "true"
+              value: "false"
             - name: PYTHONPATH
               value: /app
             resources:
