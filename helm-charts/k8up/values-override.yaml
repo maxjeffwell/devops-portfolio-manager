@@ -1,0 +1,11 @@
+# K8up operator — restic-based PVC backup operator (velero replacement, pilot
+# started 2026-08-18 on cluster-nfs). Chart: https://k8up-io.github.io/k8up
+# Operator is apiserver-light (per-namespace jobs, no cluster-object crawl), so
+# no node pin needed; backup job pods self-schedule onto the node where each RWO
+# PVC is mounted.
+resources:
+  requests:
+    cpu: 20m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
