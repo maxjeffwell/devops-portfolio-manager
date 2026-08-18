@@ -11,12 +11,15 @@ spec:
   - Egress
   egress:
   # Allow access to Kubernetes API server on host
+  # (kube-router matches post-DNAT: VIP traffic arrives as 100.64.0.1:6443)
   - ports:
     - port: 6443
       protocol: TCP
     - port: 443
       protocol: TCP
     to:
+    - ipBlock:
+        cidr: 100.64.0.1/32
     - ipBlock:
         cidr: 86.48.29.183/32
   # Allow access to Kubernetes service ClusterIP

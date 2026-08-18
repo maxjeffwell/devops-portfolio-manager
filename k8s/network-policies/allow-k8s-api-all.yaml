@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-k8s-api-all
+  namespace: default
+  annotations:
+    purpose: Allow all default-ns pods to reach the K8s API server. Required because default-deny-all blocks port 6443 to control-plane.
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # kube-router matches egress post-DNAT, so the allowed destination must be
+  # the apiserver's advertise-address, not the ClusterIP 10.43.0.1
+  - ports:
+    - port: 6443
+      protocol: TCP
+    to:
+    # tailnet address of vmi2951245 (advertise-address since 2026-05-05)
+    - ipBlock:
+        cidr: 100.64.0.1/32
+    # legacy wg0 address, kept for transition
+    - ipBlock:
+        cidr: 10.0.0.1/32
