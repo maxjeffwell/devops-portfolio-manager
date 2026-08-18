@@ -27,6 +27,9 @@ spec:
       allowEmpty: false
     syncOptions:
       - CreateNamespace=true
+      # The podconfigs/prebackuppods CRDs exceed the 256KB last-applied-configuration
+      # annotation limit under client-side apply.
+      - ServerSideApply=true
     retry:
       limit: 5
       backoff:
