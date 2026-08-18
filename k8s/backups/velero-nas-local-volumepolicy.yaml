@@ -1,9 +1,11 @@
-# Velero volume resource-policy for the nas-local coarse backup tier.
-# Skips large/replaceable/circular volumes so .109 carries data worth protecting,
-# not NAS-to-NAS echo. First-match-wins.
+# Velero volume resource-policy — now referenced by ALL schedules (name kept for
+# continuity; originally nas-local-only). Skips large/replaceable/circular volumes
+# so backups carry data worth protecting, not NAS-to-NAS echo. First-match-wins.
 #   - nfs:            jellyfin-media-movies/tvshows (2Ti each, NFS-backed by the ASUSTOR)
 #   - csi-s3:         triton-models-pvc (50Gi, re-stageable from S3) — currently out of
 #                     scope, kept as a defensive/inert rule.
+#   - emptyDir:       ephemeral by definition; each 0-byte emptyDir still cost ~4min
+#                     of kopia repo overhead per run under opt-out fs-backup (2026-08-18).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -20,5 +22,10 @@ data:
     - conditions:
         storageClass:
         - csi-s3
+      action:
+        type: skip
+    - conditions:
+        volumeTypes:
+        - emptyDir
       action:
         type: skip
