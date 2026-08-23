@@ -10,8 +10,17 @@ resources:
   limits:
     memory: 512Mi
 
-# No ingress/auth yet — access via:
-#   kubectl port-forward svc/radar 9280:9280 -n radar
+# Exposed on the tailnet at https://radar.tailnet.el-jefe.me via the
+# radar-tailnet proxy Deployment (k8s/radar-tailnet/): tailscale userspace
+# sidecar -> nginx (TLS + basic auth) -> radar service. nginx authenticates
+# and asserts X-Forwarded-User; a NetworkPolicy blocks all other ingress to
+# the radar pod since proxy mode trusts that header.
+auth:
+  mode: proxy
+  proxy:
+    userHeader: X-Forwarded-User
+    groupsHeader: X-Forwarded-Groups
+
 ingress:
   enabled: false
 

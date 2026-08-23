@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radar-tailnet
+  namespace: radar
+  labels:
+    app: radar-tailnet
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: radar-tailnet
+  template:
+    metadata:
+      labels:
+        app: radar-tailnet
+    spec:
+      serviceAccountName: radar-tailnet
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+            - name: tls
+              mountPath: /certs
+              readOnly: true
+            - name: htpasswd
+              mountPath: /auth
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+        - name: tailscale
+          image: tailscale/tailscale:v1.88.4
+          env:
+            - name: TS_USERSPACE
+              value: "true"
+            - name: TS_HOSTNAME
+              value: radar
+            - name: TS_EXTRA_ARGS
+              value: --login-server=https://headscale.el-jefe.me
+            - name: TS_KUBE_SECRET
+              value: radar-tailnet-ts-state
+            - name: TS_AUTH_ONCE
+              value: "true"
+            - name: TS_SERVE_CONFIG
+              value: /config/serve.json
+            - name: TS_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: radar-tailscale-auth
+                  key: TS_AUTHKEY
+                  optional: true
+          volumeMounts:
+            - name: serve-config
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: radar-tailnet-nginx
+        - name: serve-config
+          configMap:
+            name: radar-tailnet-serve
+        - name: tls
+          secret:
+            secretName: radar-tailnet-tls
+        - name: htpasswd
+          secret:
+            secretName: radar-basic-auth

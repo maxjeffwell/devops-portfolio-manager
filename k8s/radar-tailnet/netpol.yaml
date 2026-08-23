@@ -1,0 +1,24 @@
+---
+# Radar trusts X-Forwarded-User (auth.mode=proxy), so nothing except the
+# authenticating nginx proxy may reach the Radar pod directly.
+# Note: this also blocks kubectl port-forward to the radar pod — the tailnet
+# URL is the access path.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: radar-only-from-tailnet-proxy
+  namespace: radar
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: radar
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: radar-tailnet
+      ports:
+        - protocol: TCP
+          port: 9280

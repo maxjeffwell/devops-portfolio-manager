@@ -1,0 +1,41 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: radar-tailnet-nginx
+  namespace: radar
+data:
+  radar.conf: |
+    map $http_upgrade $connection_upgrade {
+      default upgrade;
+      ''      close;
+    }
+
+    server {
+      listen 8443 ssl;
+      http2 on;
+      server_name radar.tailnet.el-jefe.me;
+
+      ssl_certificate     /certs/tls.crt;
+      ssl_certificate_key /certs/tls.key;
+
+      auth_basic           "Radar";
+      auth_basic_user_file /auth/htpasswd;
+
+      location / {
+        proxy_pass http://radar:9280;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        # Radar runs auth.mode=proxy and trusts these headers — always
+        # overwrite them here so a client can never inject its own.
+        proxy_set_header X-Forwarded-User $remote_user;
+        proxy_set_header X-Forwarded-Groups "";
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        proxy_buffering off;
+      }
+    }
