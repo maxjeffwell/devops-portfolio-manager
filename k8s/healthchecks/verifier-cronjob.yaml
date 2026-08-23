@@ -5,6 +5,7 @@ metadata:
   namespace: monitoring
 spec:
   schedule: "7 * * * *"
+  timeZone: America/New_York
   # Without this, the controller counts missed schedules since
   # lastScheduleTime and refuses to run at all after 100 misses -- and never
   # self-heals, because lastScheduleTime never advances. That would silently
