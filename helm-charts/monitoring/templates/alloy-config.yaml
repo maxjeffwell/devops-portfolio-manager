@@ -82,7 +82,7 @@ data:
     // Collect container logs by tailing kubelet's files on the host.
     // This deliberately replaces loki.source.kubernetes, which streamed every
     // container's logs through the apiserver (pods/log proxy) and, without a
-    // node filter, did so once per Alloy replica (5x1560 concurrent streams
+    // node filter, did so once per Alloy replica (5 replicas x 316 containers = 1560 streams
     // on the control plane).
     local.file_match "pod_logs" {
       path_targets = discovery.relabel.pod_logs.output
