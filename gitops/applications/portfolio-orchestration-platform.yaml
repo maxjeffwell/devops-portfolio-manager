@@ -7,10 +7,18 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
-  source:
-    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
-    targetRevision: main
-    path: k8s/deployments
+  sources:
+    - repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+      targetRevision: main
+      path: k8s/deployments
+    # Platform-level ingress + services that no app helm chart owns
+    # (shared/legacy hostnames, argocd/keel/traefik-dashboard ingresses).
+    - repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+      targetRevision: main
+      path: k8s/ingress
+    - repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+      targetRevision: main
+      path: k8s/services
   destination:
     server: https://kubernetes.default.svc
     namespace: default
