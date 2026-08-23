@@ -44,3 +44,16 @@ ingress:
 # sqlite retention later if multi-day audit history proves useful.
 persistence:
   enabled: false
+
+# Keep off elitedesk: inbound cross-node pod traffic there does not match
+# NetworkPolicy source selectors (multihoming SNAT suspected, found
+# 2026-08-23), which breaks the traefik-only netpol with a 504.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: NotIn
+              values:
+                - elitedesk
