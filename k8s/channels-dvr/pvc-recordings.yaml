@@ -1,7 +1,13 @@
-# Recordings (and the Channels DVR dir incl. its Database/) on the dedicated
-# 1TB USB drive — static local PV channels-dvr-recordings-usb, mounted in the
-# pod at /shares/DVR. Previously local-path on the root NVMe; contents were
-# rsynced across during the 2026-07-25 swap.
+# Standby's /shares/DVR (Channels DVR dir incl. Database/). local-path on the
+# root NVMe — the standby has recording passes DISABLED, so this only grows
+# after a failover; move it to the NAS if that ever becomes permanent.
+#
+# 2026-07-25..2026-08-23 this was a static local PV on the 1TB ex-HDHomeRun
+# WD My Passport (channels-usb). Dropped: the drive failed to spin up at boot,
+# and its hung SCSI probe blocked every kernel module load for 3 minutes
+# (k3s-agent stuck "activating"); when it was absent, a local PV at the bare
+# mountpoint silently wrote to the root NVMe instead. Not worth it for a
+# warm-standby scratch volume.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -12,8 +18,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: channels-usb
-  volumeName: channels-dvr-recordings-usb
+  storageClassName: local-path
   resources:
     requests:
-      storage: 900Gi
+      storage: 50Gi
