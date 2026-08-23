@@ -1,0 +1,16 @@
+---
+# With auth enabled, Radar impersonates the authenticated user against the
+# K8s API — K8s RBAC decides what each login can see. Bind the basic-auth
+# user to Radar's own read-only ClusterRole so the UI shows the cluster.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: radar-user-maxjeffwell
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: radar
+subjects:
+  - kind: User
+    name: maxjeffwell
+    apiGroup: rbac.authorization.k8s.io
