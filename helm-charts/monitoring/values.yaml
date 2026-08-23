@@ -863,14 +863,18 @@ alloy:
         protocol: TCP
 
 # Perimeter Audit - nmap scan of home network from VPS
+# Disabled 2026-08-23: maxjeffwell.ddns.net no longer resolves (no DDNS for
+# the home WAN) — jobs "succeeded" while scanning nothing. CronJobs deleted
+# from the cluster the same day.
 perimeterAudit:
-  enabled: true
+  enabled: false
   schedule: "0 */6 * * *"
   ddnsHostname: "maxjeffwell.ddns.net"
 
 # Network Quality - speedtest + traceroute to home network
+# Disabled 2026-08-23: same dead-DDNS reason as perimeterAudit.
 networkQuality:
-  enabled: true
+  enabled: false
   schedule: "*/30 * * * *"
   ddnsHostname: "maxjeffwell.ddns.net"
 
