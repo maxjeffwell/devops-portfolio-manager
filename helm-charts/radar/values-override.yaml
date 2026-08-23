@@ -1,0 +1,21 @@
+# Radar OSS — in-cluster Kubernetes UI (https://radarhq.io)
+# RBAC stays at chart defaults: cluster-wide READ-ONLY.
+# secrets/podExec/portForward/helm-write all remain disabled until
+# authentication is configured in front of the UI.
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# No ingress/auth yet — access via:
+#   kubectl port-forward svc/radar 9280:9280 -n radar
+ingress:
+  enabled: false
+
+# Timeline is in-memory (lost on pod restart). Enable persistence +
+# sqlite retention later if multi-day audit history proves useful.
+persistence:
+  enabled: false
