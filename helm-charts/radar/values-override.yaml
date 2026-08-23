@@ -10,11 +10,12 @@ resources:
   limits:
     memory: 512Mi
 
-# Exposed on the tailnet at https://radar.tailnet.el-jefe.me via the
-# radar-tailnet proxy Deployment (k8s/radar-tailnet/): tailscale userspace
-# sidecar -> nginx (TLS + basic auth) -> radar service. nginx authenticates
-# and asserts X-Forwarded-User; a NetworkPolicy blocks all other ingress to
-# the radar pod since proxy mode trusts that header.
+# Exposed at https://radar.el-jefe.me via the shared Traefik ingress
+# (DNS A record -> 100.64.0.2, DNS-only, routable on the tailnet). Traefik
+# middlewares (k8s/radar/middleware.yaml) strip client-supplied identity
+# headers, enforce basic auth, and assert X-Forwarded-User; a NetworkPolicy
+# blocks all other ingress to the radar pod since proxy mode trusts that
+# header.
 auth:
   mode: proxy
   proxy:
@@ -22,7 +23,22 @@ auth:
     groupsHeader: X-Forwarded-Groups
 
 ingress:
-  enabled: false
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: radar-strip-auth-headers@kubernetescrd,radar-basicauth@kubernetescrd
+  hosts:
+    - host: radar.el-jefe.me
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: radar-tls
+      hosts:
+        - radar.el-jefe.me
 
 # Timeline is in-memory (lost on pod restart). Enable persistence +
 # sqlite retention later if multi-day audit history proves useful.

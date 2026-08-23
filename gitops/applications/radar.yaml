@@ -22,7 +22,7 @@ spec:
       ref: values
     - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
       targetRevision: main
-      path: k8s/radar-tailnet
+      path: k8s/radar
   destination:
     server: https://kubernetes.default.svc
     namespace: radar

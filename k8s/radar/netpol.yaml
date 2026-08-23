@@ -1,0 +1,27 @@
+---
+# Radar trusts X-Forwarded-User (auth.mode=proxy), so only Traefik — where
+# basic auth and header stripping happen — may reach the Radar pod.
+# Note: this also blocks kubectl port-forward to the radar pod — the
+# ingress URL is the access path.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: radar-only-from-traefik
+  namespace: radar
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: radar
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 9280

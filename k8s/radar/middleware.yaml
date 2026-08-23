@@ -1,0 +1,25 @@
+---
+# Strip any client-supplied identity headers BEFORE auth runs — Radar
+# (auth.mode=proxy) trusts X-Forwarded-User/-Groups blindly. Empty value
+# removes the header in Traefik.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-auth-headers
+  namespace: radar
+spec:
+  headers:
+    customRequestHeaders:
+      X-Forwarded-User: ""
+      X-Forwarded-Groups: ""
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: basicauth
+  namespace: radar
+spec:
+  basicAuth:
+    secret: radar-basic-auth
+    removeHeader: true
+    headerField: X-Forwarded-User
