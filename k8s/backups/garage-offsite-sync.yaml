@@ -8,6 +8,7 @@ metadata:
 spec:
   # Sundays 06:00 UTC — runs after weekly-offsite (04:00) finishes
   # so the freshest Velero state is included in the off-site copy.
+  timeZone: "America/New_York"
   schedule: "0 6 * * 0"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3

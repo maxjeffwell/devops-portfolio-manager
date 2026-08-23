@@ -5,6 +5,7 @@ metadata:
   labels:
     app: postgresql-backup
 spec:
+  timeZone: "America/New_York"
   schedule: "30 3 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1

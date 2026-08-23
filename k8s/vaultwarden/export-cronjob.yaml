@@ -11,6 +11,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
+  timeZone: "America/New_York"
   schedule: "0 4 * * 0"          # weekly, Sunday 04:00
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3

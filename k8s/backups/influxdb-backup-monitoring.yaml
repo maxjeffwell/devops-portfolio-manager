@@ -6,6 +6,7 @@ metadata:
   labels:
     app: influxdb-backup
 spec:
+  timeZone: "America/New_York"
   schedule: "0 4 * * *"
   # Forbid prevents a hung run from spawning a daily pileup of overlapping pods.
   concurrencyPolicy: Forbid

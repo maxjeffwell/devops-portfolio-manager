@@ -35,6 +35,7 @@ metadata:
   name: cnpg-snapshot-pruner
   namespace: default
 spec:
+  timeZone: "America/New_York"
   schedule: "30 4 * * *"
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 3
