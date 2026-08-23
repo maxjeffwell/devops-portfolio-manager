@@ -13,6 +13,7 @@ spec:
   # Storage = mayastor-2 (NVMe-oF/TCP, replica=2 across debian-marmoset↔marmoset):
   # the single instance's data is replicated at the storage layer, so it survives
   # a debian-marmoset disk/node loss — storage-level redundancy under WAL PITR→B2.
+  enablePDB: false
   instances: 1
   imageName: ghcr.io/cloudnative-pg/postgresql:17
   primaryUpdateStrategy: unsupervised
