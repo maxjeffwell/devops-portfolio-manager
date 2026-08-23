@@ -6,9 +6,15 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   config.alloy: |
-    // Discover all Kubernetes pods
+    // Discover pods on THIS node only. Alloy runs as a DaemonSet and tails
+    // container log files from the host, so cluster-wide discovery would
+    // only produce targets whose files don't exist here.
     discovery.kubernetes "pods" {
       role = "pod"
+      selectors {
+        role  = "pod"
+        field = "spec.nodeName=" + env("HOSTNAME")
+      }
     }
 
     // Relabel to extract useful metadata
@@ -56,11 +62,47 @@ data:
         source_labels = ["__meta_kubernetes_pod_node_name"]
         target_label  = "node"
       }
+
+      // Map each container to its kubelet log file on the host:
+      //   /var/log/pods/<namespace>_<pod>_<uid>/<container>/*.log
+      rule {
+        source_labels = [
+          "__meta_kubernetes_namespace",
+          "__meta_kubernetes_pod_name",
+          "__meta_kubernetes_pod_uid",
+          "__meta_kubernetes_pod_container_name",
+        ]
+        separator    = "/"
+        regex        = "(.+)/(.+)/(.+)/(.+)"
+        replacement  = "/var/log/pods/$1_$2_$3/$4/*.log"
+        target_label = "__path__"
+      }
     }
 
-    // Collect logs from Kubernetes pods
-    loki.source.kubernetes "pod_logs" {
-      targets    = discovery.relabel.pod_logs.output
+    // Collect container logs by tailing kubelet's files on the host.
+    // This deliberately replaces loki.source.kubernetes, which streamed every
+    // container's logs through the apiserver (pods/log proxy) and, without a
+    // node filter, did so once per Alloy replica (5x1560 concurrent streams
+    // on the control plane).
+    local.file_match "pod_logs" {
+      path_targets = discovery.relabel.pod_logs.output
+    }
+
+    loki.source.file "pod_logs" {
+      targets    = local.file_match.pod_logs.targets
+      forward_to = [loki.process.pod_logs.receiver]
+    }
+
+    loki.process "pod_logs" {
+      // Parse the CRI log line format (timestamp stream flags content).
+      stage.cri {}
+
+      // Drop the per-file label: container restarts rotate 0.log -> 1.log and
+      // would otherwise fork a new series each time.
+      stage.label_drop {
+        values = ["filename"]
+      }
+
       forward_to = [loki.write.default.receiver]
     }
 

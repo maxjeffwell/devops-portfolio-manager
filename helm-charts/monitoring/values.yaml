@@ -793,6 +793,10 @@ alloy:
         - name: debugfs
           mountPath: /sys/kernel/debug
           readOnly: true
+        # Persist loki.source.file read positions (and WAL) across pod
+        # restarts; otherwise every restart re-ingests all of /var/log/pods.
+        - name: alloy-storage
+          mountPath: /tmp/alloy
     extraPorts:
       - name: otlp-grpc
         port: 4317
@@ -848,6 +852,10 @@ alloy:
           hostPath:
             path: /sys/kernel/debug
             type: Directory
+        - name: alloy-storage
+          hostPath:
+            path: /var/lib/alloy
+            type: DirectoryOrCreate
     extraPorts:
       - name: otlp-grpc
         port: 4317
