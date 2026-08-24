@@ -203,15 +203,23 @@ data:
         expression = "^(?P<client_ip>[\\d.]+) - - \\[(?P<timestamp>[^\\]]+)\\] \"(?P<method>\\S+) (?P<path>\\S+) [^\"]+\" (?P<status>\\d+) \\d+ \"(?P<referer>[^\"]*)\" \"(?P<user_agent>[^\"]*)\" \\d+ \"(?P<router>[^\"]*)\" \"[^\"]*\" (?P<duration>\\S+)"
       }
 
-      // Promote to labels for Grafana queries
+      // Promote only BOUNDED fields to stream labels. path/referer/user_agent
+      // are unbounded and previously exhausted Loki's 10k global stream cap
+      // (blocking stream creation for every other pipeline); they go to
+      // structured metadata instead and stay queryable as `| path="..."`.
       stage.labels {
         values = {
-          status     = "",
-          method     = "",
+          status = "",
+          method = "",
+          router = "",
+        }
+      }
+
+      stage.structured_metadata {
+        values = {
           path       = "",
           referer    = "",
           user_agent = "",
-          router     = "",
         }
       }
 
