@@ -21,12 +21,18 @@
 # in gitops/applications/. Deleting this file therefore deletes the Cluster, and
 # with it the bookmarked database.
 #
-# Two known inert defects, deliberately preserved so adoption stays behaviour-
-# neutral (`kubectl diff` exit 0). Fix them as a separate change:
-#   - superuserSecret points at cnpg-bookmarked-superuser, which does not exist.
-#   - bootstrap.initdb says database/owner "app"; the real database is "neondb".
-#     (CNPG's defaulting webhook backfilled this when the dead pg_basebackup
-#     bootstrap was removed on 2026-08-24. bootstrap is only read at creation.)
+# enableSuperuserAccess is false, the CloudNativePG default since 1.21. It was
+# previously true while superuserSecret named cnpg-bookmarked-superuser, a Secret
+# that does not exist -- so status.superuserSecretVersion was never set and the
+# postgres role's password stayed NULL. The flag advertised superuser access that
+# did not work. Turning it off was verified to change nothing: the password was
+# already NULL, identical to cnpg-codetalk which has always had it off. Superuser
+# access remains available via `kubectl exec` and the local socket.
+#
+# One known inert defect remains, deliberately preserved: bootstrap.initdb says
+# database/owner "app" while the real database is "neondb". CNPG's defaulting
+# webhook backfilled that when the dead pg_basebackup bootstrap was removed on
+# 2026-08-24. bootstrap is only read at cluster creation, so it has no effect.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -69,9 +75,7 @@ spec:
       name: cnpg-default-monitoring
     disableDefaultQueries: false
     enablePodMonitor: true
-  enableSuperuserAccess: true
-  superuserSecret:
-    name: cnpg-bookmarked-superuser
+  enableSuperuserAccess: false
   backup:
     target: prefer-standby
     volumeSnapshot:
