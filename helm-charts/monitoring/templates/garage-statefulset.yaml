@@ -30,8 +30,19 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.garage.antiAffinity }}
+      {{- if or .Values.garage.antiAffinity .Values.garage.nodeHostnames }}
       affinity:
+        {{- with .Values.garage.nodeHostnames }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      {{- toYaml . | nindent 22 }}
+        {{- end }}
+        {{- if .Values.garage.antiAffinity }}
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
@@ -39,6 +50,7 @@ spec:
                   app.kubernetes.io/name: garage
                   app.kubernetes.io/component: object-storage
               topologyKey: kubernetes.io/hostname
+        {{- end }}
       {{- end }}
       {{- with .Values.garage.tolerations }}
       tolerations:

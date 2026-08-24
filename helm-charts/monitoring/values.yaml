@@ -606,6 +606,16 @@ garage:
   enabled: true
   replicas: 2
   antiAffinity: true
+  # These two pods are the GATEWAY members (zero blocks) of the federated
+  # Garage cluster. hostNetwork + rpc on :3901, so they can only live on nodes
+  # without a native garage (elitedesk/debian-marmoset run one on the host).
+  nodeHostnames:
+    - vmi2951245
+    - vmi3115606
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: PreferNoSchedule
   image:
     repository: dxflrs/garage
     tag: "v2.2.0"
