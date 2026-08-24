@@ -18,6 +18,16 @@ image:
   tag: "2.14.3"
   pullPolicy: IfNotPresent
 
+# 🪤 MUST be Recreate, not the chart's default RollingUpdate. This volume is
+# single-mount (see the k8up note below), and RollingUpdate with replicas:1
+# rounds maxUnavailable 25% DOWN TO 0 — so Kubernetes starts the replacement
+# pod before terminating the old one, and the new pod can never mount the
+# volume the old one still holds. Observed as a hard deadlock on 2026-08-24:
+# every rollout would hang in ContainerCreating with `verifyMount: device
+# already mounted` until the progress deadline expired.
+strategy:
+  type: Recreate
+
 # Objects render as plain `stirling-pdf` instead of `stirling-pdf-stirling-pdf-chart`.
 nameOverride: stirling-pdf
 
