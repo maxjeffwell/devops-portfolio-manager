@@ -31,7 +31,9 @@ spec:
     automated:
       prune: true
       selfHeal: true
-      allowEmpty: false
+      # allowEmpty deliberately omitted: it defaults to false, and an explicit
+      # `false` serializes away (omitempty), so git and the live object can never
+      # agree — which left app-of-apps permanently OutOfSync on 2026-08-24.
     syncOptions:
       - CreateNamespace=false
     retry:
