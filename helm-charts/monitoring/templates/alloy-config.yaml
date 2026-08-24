@@ -326,9 +326,19 @@ data:
         // alone only yields HTTP RED metrics.
         features = ["application", "network"]
       }
-      // dst.port and transport are hidden attributes on beyla_network_flow_bytes
-      // and must be opted into. Deliberately NOT include = ["*"]: that would also
-      // pull in src.port, whose ephemeral values would explode series cardinality.
+      // Hidden attributes on beyla_network_flow_bytes that must be opted into.
+      // The list is dictated by Radar's L4 query (internal/traffic/beyla.go):
+      //   sum by (k8s_src_owner_name, k8s_src_namespace, k8s_src_owner_type,
+      //           k8s_dst_owner_name, k8s_dst_namespace, k8s_dst_owner_type,
+      //           dst_port, transport)
+      //     (rate(beyla_network_flow_bytes_total{job=~".*beyla.*|.*alloy.*",
+      //           direction="request"}[5m]))
+      // `direction` is REQUIRED: Radar filters direction="request" to drop the
+      // response half of every conversation. Without the attribute that selector
+      // matches nothing and the traffic graph is silently empty.
+      // That filter is also what makes selecting dst.port safe -- response series
+      // carry the client's ephemeral port, so one conversation would otherwise
+      // become hundreds of series. Still NOT include = ["*"]: that adds src.port.
       attributes {
         // Required sub-block: without it Alloy rejects the attributes block
         // outright ("missing required block \"kubernetes\""). "true" (not
@@ -341,11 +351,14 @@ data:
           attr    = "beyla_network_flow_bytes"
           include = [
             "k8s.src.owner.name",
+            "k8s.src.owner.type",
             "k8s.src.namespace",
             "k8s.dst.owner.name",
+            "k8s.dst.owner.type",
             "k8s.dst.namespace",
             "dst.port",
             "transport",
+            "direction",
           ]
         }
       }
