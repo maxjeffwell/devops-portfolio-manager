@@ -10,7 +10,7 @@ spec:
   # Leaving the backup suspended left the DB unprotected AND made the restore test
   # fail 2/5 every run (no backup to restore). Verified the backup job produces a
   # valid archive in app-dumps before unsuspending.
-  suspend: false
+  suspend: true
   timeZone: "America/New_York"
   schedule: "20 3 * * *"
   concurrencyPolicy: Forbid
