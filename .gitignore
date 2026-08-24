@@ -11,6 +11,7 @@ pnpm-debug.log*
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+uv.lock
 
 # Environment variables
 .env
@@ -93,6 +94,9 @@ charts/*/charts/
 
 # Serena
 .serena/
+
+# Claude Code (agent worktrees, local session state)
+.claude/
 
 # kubectl cache
 .kube/
