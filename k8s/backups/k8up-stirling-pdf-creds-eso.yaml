@@ -1,0 +1,56 @@
+---
+# K8up credentials for the stirling-pdf namespace, sourced from Doppler.
+#
+# These are the SAME values the cluster-nfs and qdrant namespaces hold as
+# hand-copied secrets — all three write to one restic repo, so the repo
+# password in particular must not diverge. Pushing them into Doppler
+# (K8UP_REPO_PASSWORD / K8UP_S3_ACCESS_KEY / K8UP_S3_SECRET_KEY, portfolio/prd)
+# resolves the "TODO: Doppler + ESO" carried in k8up-qdrant-schedule.yaml for
+# this namespace; qdrant and cluster-nfs can be migrated to the same keys
+# whenever convenient.
+#
+# ⚠ Rotating K8UP_REPO_PASSWORD in Doppler orphans every existing snapshot in
+# the repo — restic cannot re-key a repository from the outside. Treat it as
+# permanent unless you are deliberately starting a new repo.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8up-repo-password
+  namespace: stirling-pdf
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-secret-store
+  data:
+    - remoteRef:
+        key: K8UP_REPO_PASSWORD
+      secretKey: password
+  target:
+    name: k8up-repo-password
+    creationPolicy: Owner
+    deletionPolicy: Retain
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: k8up-s3-credentials
+  namespace: stirling-pdf
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: doppler-secret-store
+  data:
+    # Key names match what the Schedule's backend block expects: `username`
+    # is the Garage access key ID, `password` is the secret access key.
+    - remoteRef:
+        key: K8UP_S3_ACCESS_KEY
+      secretKey: username
+    - remoteRef:
+        key: K8UP_S3_SECRET_KEY
+      secretKey: password
+  target:
+    name: k8up-s3-credentials
+    creationPolicy: Owner
+    deletionPolicy: Retain

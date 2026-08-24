@@ -1,0 +1,58 @@
+# K8up daily backup of the stirling-pdf PVC → Garage S3 bucket "k8up".
+# Third namespace in the velero→K8up rollout, after cluster-nfs and qdrant.
+#
+# What this protects: Stirling PDF keeps its user accounts in an embedded H2
+# database at /configs/stirling-pdf-DB-<engine>.mv.db on a 2Gi openebs-lvmpv
+# volume. That volume is node-local LVM on elitedesk, so nothing else in the
+# cluster or the NAS backup story covers it — losing elitedesk's NVMe loses
+# every login.
+#
+# No PreBackupPod, deliberately. K8up backs up every PVC in the namespace and
+# there is exactly one, so each snapshot captures BOTH the live .mv.db (crash
+# consistent — H2's MVStore recovers from it the same way it would from a power
+# cut) AND Stirling's own logically-consistent dumps under /configs/backup/db.
+# Two recovery paths per snapshot without quiescing a running app.
+#
+# 🪤 The PVC is RWO on node-local storage, so the backup job MUST schedule onto
+# elitedesk to mount it. That follows the volume automatically; a job stuck
+# Pending with a volume-node-affinity message is the signal that it did not.
+#
+# Timing is staggered from the other two namespaces on purpose — all three
+# share ONE restic repo, and concurrent prunes contend on the repo lock:
+#   cluster-nfs 01:15 / Sun 12:30 / Sun 13:30
+#   qdrant      01:30 / Sun 12:45 / Sun 13:45
+#   stirling    01:45 / Sun 13:00 / Sun 14:00
+#
+# Credentials come from Doppler via k8up-stirling-pdf-creds-eso.yaml.
+# Owned by the `backups` ArgoCD app.
+apiVersion: k8up.io/v1
+kind: Schedule
+metadata:
+  name: k8up-stirling-pdf
+  namespace: stirling-pdf
+spec:
+  backend:
+    repoPasswordSecretRef:
+      name: k8up-repo-password
+      key: password
+    s3:
+      endpoint: http://100.64.0.12:3900
+      bucket: k8up
+      accessKeyIDSecretRef:
+        name: k8up-s3-credentials
+        key: username
+      secretAccessKeySecretRef:
+        name: k8up-s3-credentials
+        key: password
+  backup:
+    schedule: '45 1 * * *'
+    failedJobsHistoryLimit: 2
+    successfulJobsHistoryLimit: 2
+  check:
+    schedule: '0 13 * * 0'
+  prune:
+    schedule: '0 14 * * 0'
+    retention:
+      keepDaily: 7
+      keepWeekly: 4
+      keepMonthly: 6
