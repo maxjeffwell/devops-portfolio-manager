@@ -49,6 +49,11 @@ persistence:
   size: 2Gi
   storageClass: openebs-lvmpv
   path: /configs
+  # The PVC is declared in k8s/stirling-pdf/pvc.yaml instead of by the chart,
+  # because it needs a `k8up.io/backup: "false"` annotation and the chart's PVC
+  # template supports labels only. Same name, same spec — ArgoCD adopted the
+  # existing volume in place.
+  existingClaim: stirling-pdf
 
 # 🪤 REQUIRED — the chart declares `storage-volume` as a pod volume and mounts
 # it ONLY in a volume-permissions initContainer, which itself is skipped
@@ -107,6 +112,25 @@ resources:
     memory: 1Gi
   limits:
     memory: 2Gi
+
+# K8up backs this volume up by EXEC, not by mounting it.
+#
+# 🪤 The obvious approach — k8up's normal PVC backup — cannot work here. It
+# mounts the PV a second time on the node, and the openebs LVM CSI driver
+# rejects that with `verifyMount: device already mounted`, leaving the backup
+# job in ContainerCreating until it times out. Verified against a real run on
+# 2026-08-24, not theory: 12 identical FailedMount retries over 9m39s.
+#
+# `k8up.io/backupcommand` sidesteps the mount entirely — K8up execs into the
+# running container and streams stdout to restic (~140KB for this volume). The
+# PVC carries `k8up.io/backup: "false"` so the file-level attempt is skipped.
+#
+# Consistency is no worse than the mount approach would have been: the tar
+# captures the live .mv.db (crash-consistent, recovers as H2 would from a power
+# cut) plus Stirling's own logically-consistent dumps in /configs/backup/db.
+podAnnotations:
+  k8up.io/backupcommand: "tar cf - -C / configs"
+  k8up.io/file-extension: ".tar"
 
 nodeSelector:
   kubernetes.io/hostname: elitedesk
