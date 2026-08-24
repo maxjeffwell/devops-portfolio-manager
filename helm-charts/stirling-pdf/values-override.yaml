@@ -1,0 +1,112 @@
+# Stirling PDF — self-hosted PDF toolkit at https://stirling.el-jefe.me
+#
+# Authentication is the APPLICATION's own login (SECURITY_ENABLELOGIN), not a
+# Traefik basicAuth middleware like radar. That choice makes the PVC below
+# load-bearing: Stirling keeps its user table in a bundled H2 database at
+# /configs/stirling-pdf-DB-<schema>.mv.db. An external Postgres (which would
+# have been the natural fit next to CNPG here) is gated behind an enterprise
+# license, so H2-on-a-PVC is the only supported store for a self-hosted login.
+
+# Chart 3.1.0 ships appVersion 2.5.1 — nine minor versions behind upstream, so
+# the tag is pinned explicitly rather than inherited from the chart.
+# Registry is ghcr.io, NOT the chart's default docker.stirlingpdf.com: an
+# anonymous manifest pull from that host returned 401 during deployment
+# planning, and ghcr serves the same images unauthenticated.
+image:
+  registry: ghcr.io
+  repository: stirling-tools/stirling-pdf
+  tag: "2.14.3"
+  pullPolicy: IfNotPresent
+
+# Objects render as plain `stirling-pdf` instead of `stirling-pdf-stirling-pdf-chart`.
+nameOverride: stirling-pdf
+
+envs:
+  # Enables the built-in login screen, user table and per-user API keys.
+  - name: SECURITY_ENABLELOGIN
+    value: "true"
+  # Authentication counts as an "additional feature" — leaving this true
+  # disables the login system regardless of SECURITY_ENABLELOGIN.
+  - name: DISABLE_ADDITIONAL_FEATURES
+    value: "false"
+  - name: SYSTEM_DEFAULTLOCALE
+    value: "en-US"
+
+# SECURITY_INITIALLOGIN_USERNAME / _PASSWORD seed the first admin account on an
+# empty database. Sourced from Doppler via the ExternalSecret in
+# k8s/stirling-pdf/. If these are missing at first boot Stirling silently falls
+# back to admin/stirling, so verify the intended credentials actually work
+# before treating the deployment as done.
+envsFrom:
+  - secretRef:
+      name: stirling-pdf-admin
+
+# node-local LVM on elitedesk's VG, which pairs with the nodeSelector pin below.
+# 2Gi covers the H2 database, settings.yml and custom files with room to spare.
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 2Gi
+  storageClass: openebs-lvmpv
+  path: /configs
+
+# 🪤 REQUIRED — the chart declares `storage-volume` as a pod volume and mounts
+# it ONLY in a volume-permissions initContainer, which itself is skipped
+# whenever securityContext.enabled is true (the default). Without this block
+# the container's volumeMounts render empty: the PVC binds, the pod runs, and
+# /configs quietly lives in the container filesystem, so every restart wipes
+# the user table. Verified with `helm template` against chart 3.1.0.
+deployment:
+  extraVolumeMounts:
+    - name: storage-volume
+      mountPath: /configs
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  pathType: Prefix
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  hosts:
+    - name: stirling.el-jefe.me
+      path: /
+      tls: true
+      tlsSecret: stirling-pdf-tls
+
+# Explicit on BOTH sides: a LimitRange defaultRequest cannot repair an explicit
+# zero, and QoS is decided per-pod. The standard image carries Tesseract OCR
+# and LibreOffice, so headroom here is real work, not padding.
+# The chart gives both probes initialDelaySeconds 5 / failureThreshold 3, i.e.
+# the app must answer /api/v1/info/status within ~35s of start or the kubelet
+# kills it. Stirling is a Spring Boot app on a ~3GB image with OCR and
+# LibreOffice; a cold start on a node that has to pull the image will not make
+# that. The chart has no startupProbe, so a generous liveness delay is the
+# workaround: readiness holds traffic off until it answers, liveness only
+# intervenes once the app has had a real chance to come up.
+probes:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 180
+    periodSeconds: 15
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 5
+  readiness:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 30
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 1Gi
+  limits:
+    memory: 2Gi
+
+nodeSelector:
+  kubernetes.io/hostname: elitedesk

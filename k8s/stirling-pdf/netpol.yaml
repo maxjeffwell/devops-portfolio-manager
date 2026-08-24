@@ -1,0 +1,28 @@
+---
+# Stirling PDF authenticates itself (SECURITY_ENABLELOGIN), so unlike radar
+# this policy is defence in depth rather than the thing holding the door shut.
+# It still matters: the pod accepts file uploads and runs OCR/LibreOffice
+# conversions on them, so the ingress path should be the only path in.
+# Note: this also blocks `kubectl port-forward` — reach it via the ingress URL.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: stirling-pdf-only-from-traefik
+  namespace: stirling-pdf
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: stirling-pdf
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080

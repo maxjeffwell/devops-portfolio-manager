@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: stirling-pdf
+  namespace: argocd
+  labels:
+    app: stirling-pdf
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://stirling-tools.github.io/Stirling-PDF-chart
+      chart: stirling-pdf-chart
+      targetRevision: 3.1.0
+      helm:
+        valueFiles:
+          - $values/helm-charts/stirling-pdf/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      path: k8s/stirling-pdf
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: stirling-pdf
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
