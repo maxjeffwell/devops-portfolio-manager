@@ -1,0 +1,200 @@
+# Default resource *requests* for namespaces whose workloads ship without any.
+# defaultRequest only — no 'default' (limits) so nothing is OOM-killed by a guessed cap.
+# Applies at pod admission; existing pods pick it up on their next restart.
+# Explicit requests in a chart/manifest always override these.
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: argocd
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: cert-manager
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: cnpg-system
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: democratic-csi
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: external-secrets
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: gpu-operator
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: headscale
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: nfs-provisioners
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: openebs
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: percona-mongodb
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: synology-csi
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: vaultwarden
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: velero
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+# kube-system: svclb-traefik alone is 9 tiny proxy containers; keep the floor low.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: kube-system
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 32Mi
+---
+# cluster-nfs / qdrant: no long-running pods lack requests, but every k8up
+# backup/check/prune Job pod does — they land BestEffort and are first out
+# under node memory pressure, mid-backup. Covered for the Job pods only.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: cluster-nfs
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-requests
+  namespace: qdrant
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
