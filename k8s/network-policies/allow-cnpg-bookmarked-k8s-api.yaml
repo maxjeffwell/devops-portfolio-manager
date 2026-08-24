@@ -1,0 +1,55 @@
+# Egress policy for the cnpg-bookmarked instance pod.
+#
+# Brings cnpg-bookmarked in line with its siblings (cnpg-auth, cnpg-codetalk,
+# cnpg-lunary), which have had egress policies since before this repo tracked
+# them. Unlike those, this one names the API server explicitly rather than
+# allowing 443 to any destination — see allow-k8s-api.yaml for the convention.
+#
+# NOT applied to cnpg-vaultwarden: that cluster archives WAL to Backblaze B2 via
+# the barman-cloud sidecar and is intentionally left unrestricted. See the header
+# of k8s/vaultwarden/networkpolicy.yaml.
+#
+# DNS is deliberately absent here — allow-dns.yaml uses `podSelector: {}` and
+# already grants UDP/TCP 53 egress to every pod in the default namespace.
+#
+# Backups are CSI volume snapshots (.spec.backup.volumeSnapshot), orchestrated by
+# the operator/CSI rather than by this pod, so no off-cluster egress is required.
+# The cluster's leftover .spec.externalClusters entry (cnpg-bookmarked-src-rw) is
+# dormant: that service no longer exists and pg_is_in_recovery() is false.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cnpg-bookmarked-k8s-api
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: cnpg-bookmarked
+  policyTypes:
+  - Egress
+  egress:
+  # Kubernetes API server — the instance manager fetches its Cluster CR on every
+  # probe. kube-router matches post-DNAT, so the node/VIP addresses are listed
+  # alongside the ClusterIP (see allow-k8s-api.yaml).
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+    - port: 9443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.43.0.1/32
+    - ipBlock:
+        cidr: 100.64.0.1/32
+    - ipBlock:
+        cidr: 86.48.29.183/32
+  # Streaming replication to other instances of this same cluster.
+  - ports:
+    - port: 5432
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          cnpg.io/cluster: cnpg-bookmarked
