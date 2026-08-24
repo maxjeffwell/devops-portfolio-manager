@@ -74,7 +74,7 @@ data:
         ]
         separator    = "/"
         regex        = "(.+)/(.+)/(.+)/(.+)"
-        replacement  = "/var/log/pods/$1_$2_$3/$4/*.log"
+        replacement  = "/var/log/pods/${1}_${2}_${3}/${4}/*.log"
         target_label = "__path__"
       }
     }
