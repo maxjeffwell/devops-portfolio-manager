@@ -83,7 +83,7 @@ tempoMonolithic:
       endpoint: garage-home.monitoring.svc.cluster.local:3900
       bucket: tempo-traces
       insecure: true
-      region: garage
+      region: us-east-1   # home Garage nodes use us-east-1 (in-cluster gateways use "garage")
   config:
     retention: 720h
     ingester:
@@ -142,7 +142,7 @@ pyroscope:
       endpoint: garage-home.monitoring.svc.cluster.local:3900
       bucket: pyroscope-profiles
       insecure: true
-      region: garage
+      region: us-east-1   # home Garage nodes use us-east-1 (in-cluster gateways use "garage")
   serviceMonitor:
     enabled: true
 
