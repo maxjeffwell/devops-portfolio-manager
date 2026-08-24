@@ -336,9 +336,16 @@ data:
       // `direction` is REQUIRED: Radar filters direction="request" to drop the
       // response half of every conversation. Without the attribute that selector
       // matches nothing and the traffic graph is silently empty.
-      // That filter is also what makes selecting dst.port safe -- response series
-      // carry the client's ephemeral port, so one conversation would otherwise
-      // become hundreds of series. Still NOT include = ["*"]: that adds src.port.
+      //
+      // dst.port is deliberately NOT selected. With it, Beyla labels each reply
+      // series with the CLIENT's ephemeral port, so a new counter appears per
+      // connection and is usually gone before a second scrape can observe it.
+      // rate() then yields nothing and received-byte figures collapse: Radar
+      // measured 74.7% of reply counters unrateable on this cluster. The cost of
+      // omitting it is that L4 edges carry port 0 and Radar aggregates HTTP
+      // latency/errors per destination instead of per port -- acceptable here
+      // since these services each serve HTTP on one port.
+      // Never include = ["*"]: that adds src.port, which is unbounded.
       attributes {
         // Required sub-block: without it Alloy rejects the attributes block
         // outright ("missing required block \"kubernetes\""). "true" (not
@@ -356,7 +363,6 @@ data:
             "k8s.dst.owner.name",
             "k8s.dst.owner.type",
             "k8s.dst.namespace",
-            "dst.port",
             "transport",
             "direction",
           ]
