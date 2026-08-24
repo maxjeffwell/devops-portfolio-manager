@@ -47,3 +47,16 @@ persistence:
 
 nodeSelector:
   kubernetes.io/hostname: elitedesk
+
+# ArgoCD integration (GitOps deep diff on Application pages).
+# Token is minted for a dedicated read-only account, NOT admin: argocd's admin
+# is a superuser that bypasses RBAC entirely, so an admin token could delete
+# every Application. The radar account carries `apiKey` only (no `login`), so
+# there is no password to leak or rotate.
+#   argocd-cm      accounts.radar: apiKey
+#   argocd-rbac-cm policy.csv:     g, radar, role:readonly
+# existingSecret (not an inline token) keeps it out of the Helm release state
+# and out of `helm get values` output.
+argocd:
+  existingSecret: radar-argocd-token
+  existingSecretKey: token
