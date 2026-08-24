@@ -30,6 +30,19 @@ spec:
     name: k8up-repo-password
     creationPolicy: Owner
     deletionPolicy: Retain
+    # 🪤 The repo password ENDS IN A NEWLINE. The restic key in the repo was
+    # created from a 45-byte value; the hand-made secrets in qdrant and
+    # cluster-nfs carry it, and restic fails with the misleading "wrong password
+    # or no key found" without it. Doppler holds the 44-byte value, so the
+    # newline is re-appended here — putting it in Doppler risks it being
+    # trimmed, and this way the requirement is visible at the point of use.
+    # Verified 2026-08-24: qdrant secret decodes to 45 bytes ending b'\n'.
+    # ⚠ Any byte-comparison of this value must read the base64 directly —
+    # `$(kubectl ... | base64 -d)` strips the trailing newline and will report
+    # a false match.
+    template:
+      data:
+        password: "{{ .password }}\n"
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
