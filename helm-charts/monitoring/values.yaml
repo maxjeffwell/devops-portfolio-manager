@@ -67,7 +67,7 @@ tempoMonolithic:
     tag: "2.7.2"
   priorityClassName: monitoring
   nodeSelector:
-    kubernetes.io/hostname: vmi2951245
+    kubernetes.io/hostname: elitedesk
   resources:
     requests:
       cpu: 100m
@@ -75,7 +75,7 @@ tempoMonolithic:
     limits:
       memory: 2Gi
   persistence:
-    storageClass: openebs-zfs
+    storageClass: local-path
     size: 20Gi
   storage:
     credentialsSecret: garage-tempo-credentials
@@ -107,7 +107,7 @@ tempoRedis:
     repository: docker.dragonflydb.io/dragonflydb/dragonfly
     tag: "latest"
   nodeSelector:
-    kubernetes.io/hostname: vmi2951245
+    kubernetes.io/hostname: elitedesk
   resources:
     requests:
       cpu: 50m
@@ -125,7 +125,7 @@ pyroscope:
     tag: "1.18.1"
   priorityClassName: monitoring
   nodeSelector:
-    kubernetes.io/hostname: vmi2951245
+    kubernetes.io/hostname: elitedesk
   resources:
     requests:
       cpu: 100m
@@ -133,7 +133,7 @@ pyroscope:
     limits:
       memory: 2Gi
   persistence:
-    storageClass: openebs-zfs
+    storageClass: local-path
     size: 20Gi
   storage:
     credentialsSecret: garage-pyroscope-credentials
@@ -178,12 +178,12 @@ kube-prometheus-stack:
       retention: 15d
       # Node selector - run on VPS to ensure network access to all targets
       nodeSelector:
-        kubernetes.io/hostname: vmi2951245
+        kubernetes.io/hostname: elitedesk
       # Storage configuration
       storageSpec:
         volumeClaimTemplate:
           spec:
-            storageClassName: openebs-zfs
+            storageClassName: local-path
             accessModes: ["ReadWriteOnce"]
             resources:
               requests:
@@ -508,7 +508,7 @@ kube-prometheus-stack:
   # The /livez endpoint returns 503 when informer cache falls behind under API server load
   kube-state-metrics:
     nodeSelector:
-      kubernetes.io/hostname: vmi2951245
+      kubernetes.io/hostname: elitedesk
     livenessProbe:
       failureThreshold: 10
       periodSeconds: 15
@@ -553,10 +553,10 @@ minio:
     # log object store). PVC pre-seeded + statically bound to the ZFS PV; this value
     # keeps a future `helm upgrade` from reverting the class. Pinned to vmi2951245
     # where the 99.5G openebs-zfs pool lives.
-    storageClass: openebs-zfs
+    storageClass: local-path
     size: 20Gi
   nodeSelector:
-    kubernetes.io/hostname: vmi2951245
+    kubernetes.io/hostname: elitedesk
   resources:
     requests:
       cpu: 100m
@@ -616,7 +616,9 @@ garage:
     limits:
       memory: 2Gi
   persistence:
-    storageClass: openebs-lvmpv
+    # 2026-08-23: local-path so replicas can run off the control-plane VPS
+    # (its PreferNoSchedule taint + antiAffinity spread them elsewhere).
+    storageClass: local-path
     size: 10Gi
   ingress:
     enabled: true
@@ -689,7 +691,7 @@ loki:
   singleBinary:
     replicas: 1
     nodeSelector:
-      kubernetes.io/hostname: vmi2951245
+      kubernetes.io/hostname: elitedesk
     persistence:
       storageClass: local-path
       size: 5Gi
@@ -937,7 +939,7 @@ mimirMonolithic:
     tag: "3.0.1"
   priorityClassName: monitoring
   nodeSelector:
-    kubernetes.io/hostname: vmi2951245
+    kubernetes.io/hostname: elitedesk
   # Combined resources for all Mimir components in a single process
   resources:
     requests:
@@ -946,7 +948,7 @@ mimirMonolithic:
     limits:
       memory: 4Gi
   persistence:
-    storageClass: openebs-zfs
+    storageClass: local-path
     size: 20Gi
   storage:
     credentialsSecret: garage-mimir-credentials
