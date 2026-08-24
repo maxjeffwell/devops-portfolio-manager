@@ -31,3 +31,15 @@ manager:
 #   controllerManager.nodeSelector
 #   nodeSelector  (top-level if chart is simple)
 # If patch doesn't propagate, render with `helm template` and adjust.
+
+# 2026-08-23: chart default is a 100m CPU limit with 1s probe timeouts. On the
+# control-plane VPS that is CFS-throttled hard enough that /readyz misses the
+# 1s window (~4000 Unhealthy events / 14d) and leader-election renewals time
+# out (579 restarts / 23d). Give it real headroom.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
