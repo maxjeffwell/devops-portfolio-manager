@@ -61,12 +61,21 @@ data:
               type: string
         cache_min_compaction_level: {{ .Values.tempoMonolithic.redis.cacheMinCompactionLevel }}
         cache_max_block_age: {{ .Values.tempoMonolithic.redis.cacheMaxBlockAge }}
-        cache: redis
-        redis:
-          endpoint: {{ .Values.tempoMonolithic.redis.address }}
-          # Default is 100ms; a cold cluster-DNS lookup takes ~300ms and the
-          # failed first connect trips a "duplicate metrics collector" panic.
-          timeout: {{ .Values.tempoMonolithic.redis.timeout | default "2s" }}
+
+    # Tempo 2.4+ role-based cache. Replaces the deprecated
+    # storage.trace.cache/redis block: its createLegacyCache path re-registers
+    # Prometheus collectors when the first connect fails (cold cluster-DNS
+    # lookup ~300ms) and panics with "duplicate metrics collector registration
+    # attempted" -- crashed tempo-monolithic-0 on 2026-08-24 04:23 despite the
+    # 2s timeout. The new path does not call createLegacyCache at all.
+    cache:
+      caches:
+        - roles:
+            - bloom
+            - parquet-footer
+          redis:
+            endpoint: {{ .Values.tempoMonolithic.redis.address }}
+            timeout: {{ .Values.tempoMonolithic.redis.timeout | default "2s" }}
 
     metrics_generator:
       registry:
