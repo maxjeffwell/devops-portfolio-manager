@@ -8,6 +8,7 @@ metadata:
 spec:
   timeZone: "America/New_York"
   schedule: "0 4 * * *"
+  suspend: true
   # Forbid prevents a hung run from spawning a daily pileup of overlapping pods.
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
