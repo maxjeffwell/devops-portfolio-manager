@@ -213,16 +213,10 @@ kube-prometheus-stack:
               memory: 25Mi
             limits:
               memory: 50Mi
-      # Remote write to Mimir for long-term metric storage
-      remoteWrite:
-        - url: http://mimir-monolithic.monitoring.svc.cluster.local:8080/api/v1/push
-          name: mimir
-          remoteTimeout: 30s
-          writeRelabelConfigs:
-            # Drop high-cardinality apiserver request/watch metrics
-            - sourceLabels: [__name__]
-              regex: "apiserver_request_duration_seconds_bucket|apiserver_request_body_size_bytes_bucket|apiserver_response_body_size_bytes_bucket|apiserver_watch_events_sizes_bucket"
-              action: drop
+      # No remote_write: Mimir is fed by Alloy. Prometheus keeps its own 15d
+      # TSDB. (A previous remote_write to a dead prometheus-mimir-gateway
+      # Service retried 422M samples forever — removed 2026-08-23.)
+      remoteWrite: []
       # Service monitors for scraping application metrics
       serviceMonitorSelectorNilUsesHelmValues: false
       podMonitorSelectorNilUsesHelmValues: false
