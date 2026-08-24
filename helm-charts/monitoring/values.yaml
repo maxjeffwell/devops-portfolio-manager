@@ -527,8 +527,15 @@ kube-prometheus-stack:
     livenessProbe:
       failureThreshold: 10
       periodSeconds: 15
+      # /livez proxies to the apiserver's own /livez, so this probe measures
+      # control-plane latency, not KSM health. Measured 2026-08-24: KSM /livez
+      # ~3.7s (apiserver /livez alone ~1s) vs /metrics 4.3MB in <1s. The 5s
+      # chart default left 1.3s of headroom and failed intermittently.
+      timeoutSeconds: 10
     readinessProbe:
       failureThreshold: 10
+      periodSeconds: 20
+      timeoutSeconds: 10
     resources:
       requests:
         cpu: 50m
