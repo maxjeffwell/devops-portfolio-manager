@@ -1,0 +1,24 @@
+{{- if .Values.alloySelfMetrics.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: alloy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+    app.kubernetes.io/part-of: kube-prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy
+      app.kubernetes.io/instance: prometheus
+  podMetricsEndpoints:
+    - port: http-metrics
+      path: /metrics
+      interval: {{ .Values.alloySelfMetrics.interval | default "30s" }}
+      scrapeTimeout: {{ .Values.alloySelfMetrics.scrapeTimeout | default "15s" }}
+      relabelings:
+        - action: replace
+          sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+{{- end }}

@@ -1,0 +1,69 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: tempo-alloy-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus        # matches kube-prometheus-stack ruleSelector (matchLabels.release)
+    app.kubernetes.io/part-of: kube-prometheus-stack
+spec:
+  groups:
+    - name: tempo-traces
+      rules:
+        - alert: TempoDown
+          expr: up{job=~"tempo-monolithic.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Tempo is down ({{ "{{" }} $labels.job {{ "}}" }})"
+            description: "Tempo is not scrapeable. Alloy exporters will see connection refused on :4317 and traces are being lost."
+
+        - alert: TempoRefusingSpans
+          expr: sum(rate(tempo_receiver_refused_spans[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo is refusing spans"
+            description: "Tempo refusing {{ "{{" }} $value | printf \"%.1f\" {{ "}}" }} spans/s. Traces being dropped at ingest."
+
+        # Tempo went down for 27 min on 2026-08-24 when it panicked on startup.
+        # The deprecated legacy cache path was migrated away from in the same
+        # change, but a restart is still worth knowing about.
+        - alert: TempoRestarted
+          expr: increase(kube_pod_container_status_restarts_total{namespace="{{ .Release.Namespace }}",pod=~"tempo-monolithic.*"}[30m]) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tempo restarted"
+            description: "tempo-monolithic restarted. Check startup logs for a panic before assuming it recovered cleanly."
+
+    - name: alloy-pipelines
+      rules:
+        - alert: AlloyDroppingLogEntries
+          expr: sum by (node, reason) (rate(loki_write_dropped_entries_total[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alloy dropping log entries on {{ "{{" }} $labels.node {{ "}}" }} (reason={{ "{{" }} $labels.reason {{ "}}" }})"
+            description: "{{ "{{" }} $value | printf \"%.1f\" {{ "}}" }} entries/s rejected by Loki. reason=ingester_error usually means a backlog replay older than Loki's out-of-order window (max_chunk_age/2)."
+
+        - alert: AlloyTraceExportFailing
+          expr: sum by (node) (rate(otelcol_exporter_send_failed_spans_total[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alloy failing to export spans on {{ "{{" }} $labels.node {{ "}}" }}"
+            description: "{{ "{{" }} $value | printf \"%.1f\" {{ "}}" }} spans/s failing to export to Tempo. Check TempoDown."
+
+        - alert: AlloyDown
+          expr: up{job="{{ .Release.Namespace }}/alloy"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alloy not scrapeable on {{ "{{" }} $labels.node {{ "}}" }}"
+            description: "Log/trace/profile pipeline health is blind on this node."

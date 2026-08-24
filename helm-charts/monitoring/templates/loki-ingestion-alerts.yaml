@@ -1,0 +1,42 @@
+{{- if .Values.lokiExternal.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: loki-ingestion-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus        # matches kube-prometheus-stack ruleSelector (matchLabels.release)
+    app.kubernetes.io/part-of: kube-prometheus-stack
+spec:
+  groups:
+    - name: loki-ingestion
+      rules:
+        # Loki runs outside the cluster (ASUSTOR, over wg0) and was never scraped
+        # until 2026-08-24; it had silently discarded 4.2% of all log lines.
+        - alert: LokiDiscardingLogEntries
+          expr: sum by (reason) (rate(loki_discarded_samples_total[5m])) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki is discarding log entries (reason={{ "{{" }} $labels.reason {{ "}}" }})"
+            description: "Loki is dropping {{ "{{" }} $value | printf \"%.1f\" {{ "}}" }} entries/s with reason={{ "{{" }} $labels.reason {{ "}}" }}. Logs are being lost. too_far_behind = a client replayed a backlog older than max_chunk_age/2 (1h). stream_limit = max_global_streams_per_user is full. rate_limited = past ingestion_rate_mb."
+
+        - alert: LokiStreamLimitApproaching
+          expr: max(loki_ingester_memory_streams) / {{ .Values.lokiExternal.maxGlobalStreams }} > 0.8
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki active streams above 80% of the stream cap"
+            description: "{{ "{{" }} $value | printf \"%.0f%%\" {{ "}}" }} of max_global_streams_per_user in use. A full stream cap causes 429s and stalls every log pipeline."
+
+        - alert: LokiTargetDown
+          expr: up{job="loki-external"} == 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Loki ({{ .Values.lokiExternal.address }}) is not scrapeable"
+            description: "Prometheus cannot reach Loki on the ASUSTOR over wg0. Log ingestion may be down and log-loss alerting is blind."
+{{- end }}

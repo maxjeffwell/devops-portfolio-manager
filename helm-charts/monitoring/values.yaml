@@ -1017,6 +1017,24 @@ mimirMonolithic:
 
 # SNMP Exporter - Scrapes SNMP targets (Synology NAS) via WireGuard mesh
 # Sidesteps Garage v2.2.0 /metrics deadlock on Synology; provides richer filesystem visibility
+# External Loki: runs in Docker on the ASUSTOR and is reached over wg0 -- there
+# are no Loki pods in this cluster. Scraped so log loss is visible; before this
+# was added it had silently discarded 4.2% of all log lines (10.5M / 1.96GB).
+lokiExternal:
+  enabled: true
+  address: 10.0.0.4:3100
+  scrapeInterval: 30s
+  scrapeTimeout: 15s
+  # must match Loki's max_global_streams_per_user for the headroom alert
+  maxGlobalStreams: 10000
+
+# Alloy self-metrics (DaemonSet, port name http-metrics/12345). Holds the
+# client-side drop counters for both logs and traces.
+alloySelfMetrics:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 15s
+
 snmpExporter:
   enabled: true
   image:

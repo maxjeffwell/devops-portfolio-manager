@@ -1,0 +1,22 @@
+{{- if .Values.lokiExternal.enabled }}
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: loki-external
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  jobName: loki-external
+  metricsPath: /metrics
+  scheme: HTTP
+  scrapeInterval: {{ .Values.lokiExternal.scrapeInterval | default "30s" }}
+  scrapeTimeout: {{ .Values.lokiExternal.scrapeTimeout | default "15s" }}
+  staticConfigs:
+    - targets:
+        - {{ .Values.lokiExternal.address | quote }}
+      labels:
+        host: asustor
+        role: loki
+        service: loki
+{{- end }}
