@@ -177,6 +177,12 @@ kube-prometheus-stack:
       replicas: 1
       # Retention period for metrics
       retention: 15d
+      # Accept remote-write pushes. Beyla runs inside Alloy and its RED/network
+      # metrics were only ever forwarded to Mimir, which holds no
+      # kube-state-metrics -- so Radar (which reads ONE Prometheus for both
+      # traffic AND resource metrics) could not see them. Alloy now fans the
+      # beyla scrape out to Mimir *and* here. See alloy-config.yaml.
+      enableRemoteWriteReceiver: true
       # Global scrape timeout: Prometheus runs at home now; the apiserver
       # /metrics (~19 MB) and the VPS kubelets arrive over the tailnet.
       scrapeTimeout: 30s

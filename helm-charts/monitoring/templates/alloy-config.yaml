@@ -121,6 +121,18 @@ data:
       }
     }
 
+    // --- kube-prometheus Remote Write (Beyla only) ---
+    // Mimir holds ONLY what Alloy sends it -- no kube-state-metrics, and only a
+    // thin slice of cAdvisor. Radar reads a single Prometheus for BOTH live
+    // traffic and resource metrics, so repointing it at Mimir would light up
+    // Traffic and blank out everything else. Instead the beyla scrape below
+    // fans out to both sinks. Requires prometheusSpec.enableRemoteWriteReceiver.
+    prometheus.remote_write "promstack" {
+      endpoint {
+        url = "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+      }
+    }
+
     // --- Host Metrics (unix exporter) ---
     prometheus.exporter.unix "node" {
       set_collectors = ["cpu", "diskstats", "filesystem", "loadavg", "meminfo", "netdev", "uname"]
@@ -309,19 +321,48 @@ data:
         }
       }
       metrics {
-        features = ["application"]
+        // "network" adds beyla_network_flow_bytes (L4 flows), which is what
+        // Radar's Traffic view needs to draw per-port edges; "application"
+        // alone only yields HTTP RED metrics.
+        features = ["application", "network"]
+      }
+      // dst.port and transport are hidden attributes on beyla_network_flow_bytes
+      // and must be opted into. Deliberately NOT include = ["*"]: that would also
+      // pull in src.port, whose ephemeral values would explode series cardinality.
+      attributes {
+        // Required sub-block: without it Alloy rejects the attributes block
+        // outright ("missing required block \"kubernetes\""). "true" (not
+        // "autodetect") because the k8s.*.owner.name decorations below only
+        // exist when kube metadata decoration is on.
+        kubernetes {
+          enable = "true"
+        }
+        select {
+          attr    = "beyla_network_flow_bytes"
+          include = [
+            "k8s.src.owner.name",
+            "k8s.src.namespace",
+            "k8s.dst.owner.name",
+            "k8s.dst.namespace",
+            "dst.port",
+            "transport",
+          ]
+        }
       }
       output {
         traces = [otelcol.processor.batch.tempo.input]
       }
     }
 
-    // --- Scrape Beyla RED metrics into Mimir ---
+    // --- Scrape Beyla RED + network metrics into Mimir AND Prometheus ---
     prometheus.scrape "beyla" {
       targets         = beyla.ebpf.auto.targets
       honor_labels    = true
       scrape_interval = "30s"
-      forward_to      = [prometheus.remote_write.mimir.receiver]
+      forward_to      = [
+        prometheus.remote_write.mimir.receiver,
+        prometheus.remote_write.promstack.receiver,
+      ]
     }
 
     // --- OTLP Receiver (for future SDK-instrumented apps) ---
