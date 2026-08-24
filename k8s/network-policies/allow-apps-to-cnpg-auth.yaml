@@ -1,0 +1,29 @@
+# Adopted into GitOps 2026-08-24. Previously applied by hand and tracked by
+# nothing: it existed only as a live object and would not have survived a
+# cluster rebuild. Exported verbatim from the running cluster — behaviour is
+# unchanged. Note these grant 443/6443/9443 to ANY destination rather than
+# naming the API server as allow-k8s-api.yaml does; tightening them is a
+# separate change, deliberately not bundled with this adoption.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-apps-to-cnpg-auth
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 5432
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          cnpg.io/cluster: cnpg-auth
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - portfolio-api
+      - devops-portfolio-api
+  policyTypes:
+  - Egress

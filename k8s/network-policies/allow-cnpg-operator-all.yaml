@@ -1,0 +1,25 @@
+# Adopted into GitOps 2026-08-24. Previously applied by hand and tracked by
+# nothing: it existed only as a live object and would not have survived a
+# cluster rebuild. Exported verbatim from the running cluster — behaviour is
+# unchanged. Note these grant 443/6443/9443 to ANY destination rather than
+# naming the API server as allow-k8s-api.yaml does; tightening them is a
+# separate change, deliberately not bundled with this adoption.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cnpg-operator-all
+  namespace: default
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: cnpg-system
+    ports:
+    - port: 8000
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: cloudnative-pg
+  policyTypes:
+  - Ingress
