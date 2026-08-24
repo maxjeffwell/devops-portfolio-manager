@@ -204,7 +204,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(25, sum by (path) (count_over_time({job=\"traefik-access-log\", path!=\"\", path!~\"/api/.*\"} [$__interval])))",
+              "expr": "topk(25, sum by (path) (count_over_time({job=\"traefik-access-log\"} | path!=\"\" | path!~\"/api/.*\" [$__interval])))",
               "legendFormat": "{{ "{{" }}path{{ "}}" }}",
               "refId": "A"
             }
@@ -239,7 +239,7 @@ data:
           "targets": [
             {
               "datasource": { "type": "loki", "uid": "loki" },
-              "expr": "topk(25, sum by (referer) (count_over_time({job=\"traefik-access-log\", referer!=\"\", referer!=\"-\", referer!~\".*el-jefe\\\\.me.*\"} [$__interval])))",
+              "expr": "topk(25, sum by (referer) (count_over_time({job=\"traefik-access-log\"} | referer!=\"\" | referer!=\"-\" | referer!~\".*el-jefe\\\\.me.*\" [$__interval])))",
               "legendFormat": "{{ "{{" }}referer{{ "}}" }}",
               "refId": "A"
             }
