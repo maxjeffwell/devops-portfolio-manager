@@ -64,6 +64,9 @@ data:
         cache: redis
         redis:
           endpoint: {{ .Values.tempoMonolithic.redis.address }}
+          # Default is 100ms; a cold cluster-DNS lookup takes ~300ms and the
+          # failed first connect trips a "duplicate metrics collector" panic.
+          timeout: {{ .Values.tempoMonolithic.redis.timeout | default "2s" }}
 
     metrics_generator:
       registry:
