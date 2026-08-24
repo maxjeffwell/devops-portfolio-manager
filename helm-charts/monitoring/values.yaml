@@ -513,6 +513,10 @@ kube-prometheus-stack:
     serviceMonitor:
       interval: 60s
       scrapeTimeout: 30s
+  kubeApiServer:
+    serviceMonitor:
+      interval: 60s
+      scrapeTimeout: 45s   # /metrics is ~19 MB / 127k series from a busy apiserver
 
   kube-state-metrics:
     nodeSelector:
