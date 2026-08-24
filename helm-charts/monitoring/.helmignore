@@ -1,0 +1,19 @@
+# Helm bundles the ENTIRE chart directory into every release secret. This chart
+# directory contained monitoring-1.0.0.tgz -- a 595 KB packaged copy of the chart
+# itself -- which is 33% of the 1.78 MB directory and was therefore duplicated
+# into all ~185 revisions.
+#
+# That matters beyond disk: the release secrets are stored in kine/sqlite, and a
+# cluster-wide `LIST /secrets` is what velero issues on every cluster-wide
+# backup. Fat release secrets are a direct contributor to the LIST timing out.
+# Anchored with a leading slash so charts/*.tgz -- the real subchart
+# dependencies -- are NOT excluded.
+/monitoring-*.tgz
+
+.git/
+.gitignore
+*.swp
+*.bak
+*.tmp
+*.orig
+.DS_Store
