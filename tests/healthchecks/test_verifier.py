@@ -1,21 +1,25 @@
 from datetime import datetime, timedelta, timezone
 
-from scripts.healthchecks.checks import CHECKS
-from scripts.healthchecks.verifier import run_all
+from scripts.healthchecks.checks import CHECKS, Check
+from scripts.healthchecks.verifier import _judge, run_all
 
 NOW = datetime(2026, 8, 10, 12, 0, 0, tzinfo=timezone.utc)
 
 
 class FakeClient:
-    def __init__(self, backups=None, cronjobs=None):
+    def __init__(self, backups=None, cronjobs=None, suspended=None):
         self.backups = backups or {}
         self.cronjobs = cronjobs or {}
+        self.suspended = set(suspended or ())
 
     def list_velero_backups(self, schedule_name):
         return self.backups.get(schedule_name, [])
 
     def cronjob_last_success(self, namespace, name):
         return self.cronjobs.get((namespace, name))
+
+    def cronjob_suspended(self, namespace, name):
+        return (namespace, name) in self.suspended
 
 
 class FakePinger:
@@ -94,3 +98,22 @@ def test_grouped_cronjob_check_fails_if_one_member_stale():
     db = [r for r in results if r[0] == "db-backups"][0]
     assert db[1].ok is False
     assert "mongodb-backup" in db[1].reason
+
+
+def test_suspended_cronjob_passes_even_when_stale():
+    from scripts.healthchecks.evaluate import evaluate_cronjob
+
+    verdict = evaluate_cronjob(
+        NOW - timedelta(hours=99), now=NOW, window_hours=24, suspended=True
+    )
+    assert verdict.ok
+    assert verdict.reason == "suspended"
+
+
+def test_suspended_member_does_not_fail_grouped_check():
+    client = FakeClient(
+        cronjobs={("default", "a"): NOW - timedelta(hours=3)},
+        suspended={("default", "b")},
+    )
+    check = Check("grp", "cronjobs", ("default/a", "default/b"), 24, 0)
+    assert _judge(check, client, NOW).ok

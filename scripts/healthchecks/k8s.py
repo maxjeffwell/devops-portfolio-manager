@@ -59,3 +59,7 @@ class K8sClient:
     def cronjob_last_success(self, namespace, name):
         data = self._get(f"/apis/batch/v1/namespaces/{namespace}/cronjobs/{name}")
         return parse_ts(data.get("status", {}).get("lastSuccessfulTime"))
+
+    def cronjob_suspended(self, namespace, name):
+        data = self._get(f"/apis/batch/v1/namespaces/{namespace}/cronjobs/{name}")
+        return bool(data.get("spec", {}).get("suspend", False))

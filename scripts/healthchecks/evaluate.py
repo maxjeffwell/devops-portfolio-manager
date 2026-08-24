@@ -38,8 +38,16 @@ def evaluate_backup(runs, *, now: datetime, window_hours: int, max_errors: int) 
     return Verdict(True, f"phase={phase} errors={errors}")
 
 
-def evaluate_cronjob(last_successful, *, now: datetime, window_hours: int) -> Verdict:
-    """Judge a Kubernetes CronJob by its last successful completion time."""
+def evaluate_cronjob(
+    last_successful, *, now: datetime, window_hours: int, suspended: bool = False
+) -> Verdict:
+    """Judge a Kubernetes CronJob by its last successful completion time.
+
+    A deliberately suspended CronJob (spec.suspend=true) is not expected to
+    run, so it passes rather than aging out of the window.
+    """
+    if suspended:
+        return Verdict(True, "suspended")
     if last_successful is None:
         return Verdict(False, "never succeeded")
     if last_successful < now - timedelta(hours=window_hours):

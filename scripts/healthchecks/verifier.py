@@ -39,6 +39,7 @@ def _judge(check, client, now):
                         client.cronjob_last_success(namespace, name),
                         now=now,
                         window_hours=check.window_hours,
+                        suspended=client.cronjob_suspended(namespace, name),
                     ),
                 )
             )
