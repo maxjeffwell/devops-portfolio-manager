@@ -36,6 +36,45 @@ toolkit:
       value: file
 devicePlugin:
   enabled: true
+  # Time-slicing config. Previously a hand-`kubectl apply`ed ConfigMap plus a
+  # manual edit to ClusterPolicy.spec.devicePlugin.config — both invisible to
+  # ArgoCD (it three-way-merges against its own last-applied, so fields it
+  # never set are neither pruned nor reported out-of-sync; the app read
+  # "Synced" the whole time). On a rebuild the chart would have rendered
+  # neither, silently dropping marmoset back to 1 replica per GPU.
+  #
+  # `default: marmoset` is the fallback config name; the node carries no
+  # nvidia.com/device-plugin.config label, so this is what is always used.
+  config:
+    create: true
+    name: device-plugin-config
+    default: marmoset
+    data:
+      # NOTE: migStrategy here is overridden at runtime by the MIG_STRATEGY=single
+      # env var the operator sets on the DaemonSet. The plugin's own "Running
+      # with config" log dump is authoritative, not this file.
+      #
+      # NOTE: a `devices: ["GPU-8060da56-..."]` line used to sit under the
+      # resource below, intending to restrict time-slicing to marmoset's GTX
+      # 1080 and spare the 4GB MX150. The plugin IGNORES it —
+      #   "Customizing the 'devices' field in sharing.timeSlicing.resources
+      #    is not yet supported in the config. Ignoring..."
+      # It was dropped rather than carried forward, because it reads as an
+      # active restriction while doing nothing. Consequence: marmoset
+      # advertises 4 opaque nvidia.com/gpu slots across TWO different GPUs
+      # (GTX 1080 8GB + MX150 4GB), so a GPU request can land on the 4GB card.
+      # Latent today — nothing requests nvidia.com/gpu. The only real fix is
+      # excluding the MX150 at the driver level (NVreg_ExcludeDevices on
+      # 0000:02:00.0); deliberately not done.
+      marmoset: |-
+        version: v1
+        flags:
+          migStrategy: none
+        sharing:
+          timeSlicing:
+            resources:
+            - name: nvidia.com/gpu
+              replicas: 2
 dcgmExporter:
   enabled: true
 nodeStatusExporter:
