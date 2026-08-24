@@ -1,0 +1,42 @@
+# Owns the CloudNativePG Cluster CRs. Created 2026-08-24, when it was found that
+# none of the four CNPG clusters (auth, bookmarked, codetalk, lunary) were tracked
+# by any ArgoCD app — they existed only as live objects, with stale and in places
+# actively dangerous manifests sitting unsynced in another repo.
+#
+# Only cnpg-bookmarked is adopted so far. The other three are the same defect and
+# should follow, each verified with `kubectl diff` (exit 0) before adoption so that
+# selfHeal cannot reshape a running database.
+#
+# prune: true matches the other applications in this directory. Note the
+# consequence: removing a Cluster manifest from k8s/cnpg-clusters/ deletes the
+# Cluster, and with it the database.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cnpg-clusters
+  namespace: argocd
+  labels:
+    app: cnpg-clusters
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/cnpg-clusters
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

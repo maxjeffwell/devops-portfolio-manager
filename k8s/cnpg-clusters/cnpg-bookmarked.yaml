@@ -1,0 +1,83 @@
+# CNPG cluster for Bookmarked. Adopted into GitOps 2026-08-24.
+#
+# Regenerated from the RUNNING cluster, not from the old manifest in
+# portfolio-orchestration-platform/k8s/databases/ — that file had drifted badly
+# (instances: 3, bootstrap: pg_basebackup, synology-iscsi storage) and was never
+# synced by any app. It has been deleted.
+#
+# !! NO SECRET HERE, ON PURPOSE !!
+# The app credentials live in Secret/cnpg-bookmarked-app (username neondb_owner),
+# hand-created, real password, owned by nothing. The deleted manifest shipped a
+# Secret with `password: REPLACE_AT_DEPLOY_TIME`; syncing it would have replaced
+# the live database password with that literal string. Do not "complete" this
+# manifest by adding the Secret back.
+#
+# This file lists only fields that were deliberately declared. The ~16 remaining
+# fields on the live object are CloudNativePG webhook defaults and are left to the
+# operator on purpose: pinning them here would make ArgoCD selfHeal fight the
+# operator every time it changes a default.
+#
+# The cnpg-clusters Application syncs with prune: true, matching every other app
+# in gitops/applications/. Deleting this file therefore deletes the Cluster, and
+# with it the bookmarked database.
+#
+# Two known inert defects, deliberately preserved so adoption stays behaviour-
+# neutral (`kubectl diff` exit 0). Fix them as a separate change:
+#   - superuserSecret points at cnpg-bookmarked-superuser, which does not exist.
+#   - bootstrap.initdb says database/owner "app"; the real database is "neondb".
+#     (CNPG's defaulting webhook backfilled this when the dead pg_basebackup
+#     bootstrap was removed on 2026-08-24. bootstrap is only read at creation.)
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cnpg-bookmarked
+  namespace: default
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+  instances: 1
+  enablePDB: false
+  priorityClassName: portfolio-critical
+  inheritedMetadata:
+    labels:
+      portfolio: 'true'
+  affinity:
+    enablePodAntiAffinity: true
+    nodeSelector:
+      kubernetes.io/hostname: debian-marmoset
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  bootstrap:
+    initdb:
+      database: app
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+      owner: app
+  storage:
+    resizeInUseVolumes: true
+    size: 5Gi
+    storageClass: democratic-synology-iscsi-mp
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  monitoring:
+    customQueriesConfigMap:
+    - key: queries
+      name: cnpg-default-monitoring
+    disableDefaultQueries: false
+    enablePodMonitor: true
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: cnpg-bookmarked-superuser
+  backup:
+    target: prefer-standby
+    volumeSnapshot:
+      className: democratic-csi-mp-snapclass
+      online: true
+      onlineConfiguration:
+        immediateCheckpoint: false
+        waitForArchive: true
+      snapshotOwnerReference: none
