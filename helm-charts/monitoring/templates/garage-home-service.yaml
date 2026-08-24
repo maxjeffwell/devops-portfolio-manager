@@ -1,0 +1,30 @@
+{{- if .Values.garageHome.enabled }}
+# Stable in-cluster name for a HOME Garage node's S3 API. The in-cluster
+# `garage` Service fronts the two VPS gateway pods, so a client at home
+# (Mimir/Tempo/Pyroscope on elitedesk) would cross the WAN twice per object.
+apiVersion: v1
+kind: Service
+metadata:
+  name: garage-home
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: garage-home
+spec:
+  type: ClusterIP
+  ports:
+    - name: s3
+      port: 3900
+      targetPort: 3900
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: garage-home
+  namespace: {{ .Release.Namespace }}
+subsets:
+  - addresses:
+      - ip: {{ .Values.garageHome.ip }}
+    ports:
+      - name: s3
+        port: 3900
+{{- end }}

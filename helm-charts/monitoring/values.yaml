@@ -80,7 +80,7 @@ tempoMonolithic:
   storage:
     credentialsSecret: garage-tempo-credentials
     s3:
-      endpoint: garage.monitoring.svc.cluster.local:3900
+      endpoint: garage-home.monitoring.svc.cluster.local:3900
       bucket: tempo-traces
       insecure: true
       region: garage
@@ -139,7 +139,7 @@ pyroscope:
   storage:
     credentialsSecret: garage-pyroscope-credentials
     s3:
-      endpoint: garage.monitoring.svc.cluster.local:3900
+      endpoint: garage-home.monitoring.svc.cluster.local:3900
       bucket: pyroscope-profiles
       insecure: true
       region: garage
@@ -617,6 +617,13 @@ minio:
       enabled: true
 
 # Garage - Lightweight S3-compatible object storage (replaces MinIO)
+# Home-side Garage S3 endpoint for the observability stores (see
+# templates/garage-home-service.yaml). elitedesk's native garage node
+# (zone `elitedesk`, tailnet 100.64.0.8) — same node the stores run on.
+garageHome:
+  enabled: true
+  ip: 100.64.0.8
+
 garage:
   enabled: true
   replicas: 2
@@ -978,7 +985,7 @@ mimirMonolithic:
   storage:
     credentialsSecret: garage-mimir-credentials
     s3:
-      endpoint: garage.monitoring.svc.cluster.local:3900
+      endpoint: garage-home.monitoring.svc.cluster.local:3900
       insecure: true
     buckets:
       blocks: mimir-blocks
