@@ -507,6 +507,13 @@ kube-prometheus-stack:
 
   # kube-state-metrics sub-chart overrides
   # The /livez endpoint returns 503 when informer cache falls behind under API server load
+  # Prometheus now runs at home; the VPS kubelets answer /metrics/cadvisor
+  # slowly over the tailnet (busy control plane), so give scrapes room.
+  kubelet:
+    serviceMonitor:
+      interval: 60s
+      scrapeTimeout: 30s
+
   kube-state-metrics:
     nodeSelector:
       kubernetes.io/hostname: elitedesk
