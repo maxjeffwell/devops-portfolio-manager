@@ -103,6 +103,21 @@ data:
         values = ["filename"]
       }
 
+      // Percona's mongodb-healthcheck readiness probe (every 3s per mongod)
+      // authenticates as clusterMonitor and mongod 7 logs id 5286202
+      // "Different user name was supplied to saslSupportedMechs" at severity I
+      // on every probe. ~12.7k lines/h across the 9 mongod pods, all tagged
+      // detected_level=error by Loki because of the nested "error" key.
+      // It is not suppressible from mongod (level-0 message), so drop it at
+      // ingest. Scoped to the mongod container so nothing else is affected.
+      stage.match {
+        selector = "{namespace=\"percona-mongodb\", container=\"mongod\"}"
+        stage.drop {
+          expression          = "\"id\":5286202,"
+          drop_counter_reason = "mongod_healthcheck_sasl_noise"
+        }
+      }
+
       forward_to = [loki.write.default.receiver]
     }
 
