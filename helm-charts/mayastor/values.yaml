@@ -14,18 +14,105 @@
 # chronically restarting on vmi3115606 due to Tailscale-to-control-plane
 # micro-blips. Pinned to vmi2951245 (the API server node) 2026-05-25.
 
-mayastor:
+# NOTE 2026-08-25: body below is `helm -n openebs get values mayastor -o yaml`
+# (git had drifted far behind the live release; upgrading from the old file
+# would have dropped io_engine hugepages, etcd, nodeSelectors, CRD toggles).
+# The csi-snapshot-controller sidecar is removed by post-render.sh (no chart
+# toggle exists as of umbrella 4.5.1 / mayastor 2.11.1).
+#
+#   helm upgrade mayastor openebs-umbrella/openebs --version 4.4.0 -n openebs \
+#     -f helm-charts/mayastor/values.yaml --post-renderer helm-charts/mayastor/post-render.sh
+#
+# Pinned hand-patched state (else helm reverts it): io_engine.coreList=[1] +
+# cpu 1, etcd.pdb.create=false (zero-budget PDB purge 8/23), localpv-provisioner
+# leader election off + pinned to vmi2951245, hostpathClass off (SC deleted).
+# Known chart-driven residuals accepted 8/25: csi-node --nvme-nr-io-queues
+# follows coreList (2->1); provisioner also gets the chart's 5s NoExecute
+# tolerations appended.
+
+alloy:
+  enabled: false
+engines:
+  local:
+    lvm:
+      enabled: false
+    rawfile:
+      enabled: false
+    zfs:
+      enabled: false
+  replicated:
+    mayastor:
+      enabled: true
+localpv-provisioner:
+  hostpathClass:
+    enabled: false
   localpv:
+    enableLeaderElection: false
     nodeSelector:
       kubernetes.io/hostname: vmi2951245
     tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: PreferNoSchedule
-
-# NOTE: exact subkey may vary by openebs umbrella chart version. If a
-# helm upgrade results in the nodeSelector not propagating, check the
-# rendered manifest with:
-#   helm template mayastor openebs/openebs -f values.yaml | grep -B 5 -A 5 nodeSelector
-# and adjust the YAML path accordingly (some chart versions use
-# `mayastor.localpvProvisioner.nodeSelector` or `localpv-provisioner.nodeSelector`).
+    - effect: PreferNoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+loki:
+  enabled: false
+mayastor:
+  alloy:
+    enabled: false
+  crds:
+    csi:
+      volumeSnapshots:
+        enabled: false
+    enabled: true
+  csi:
+    node:
+      initContainers:
+        enabled: true
+  etcd:
+    clusterDomain: cluster.local
+    enabled: true
+    localpvScConfig:
+      enabled: false
+    nodeSelector:
+      kubernetes.io/arch: amd64
+      openebs.io/engine: mayastor
+    pdb:
+      create: false
+    persistence:
+      enabled: true
+      size: 2Gi
+      storageClass: local-path
+    replicaCount: 1
+  eventing:
+    enabled: true
+  io_engine:
+    coreList:
+    - 1
+    envcontext: iova-mode=pa
+    resources:
+      limits:
+        cpu: '1'
+        hugepages2Mi: 2Gi
+      requests:
+        cpu: '1'
+        hugepages2Mi: 2Gi
+  localpv-provisioner:
+    enabled: false
+  loki:
+    enabled: false
+  nodeSelector:
+    kubernetes.io/arch: amd64
+    openebs.io/engine: mayastor
+  obs:
+    callhome:
+      enabled: false
+  tolerations:
+  - effect: NoSchedule
+    key: workload
+    operator: Equal
+    value: gpu
+openebs-crds:
+  csi:
+    volumeSnapshots:
+      enabled: false
+      keep: true
