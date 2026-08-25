@@ -11,4 +11,31 @@ data:
       - /var/log/traefik/access.log
     labels:
       type: traefik
+  00-traefik-xff-rightmost.yaml: |
+    # Runs BEFORE crowdsecurity/traefik-logs (same stage, alphabetical order).
+    #
+    # Traefik trusts the cloudflared hop (10.42.0.0/16) so it logs the raw
+    # X-Forwarded-For list as ClientHost, e.g. "127.0.0.1,103.215.74.185": a
+    # client-supplied spoof first, then the real address Cloudflare appended.
+    # The hub parser feeds ClientHost straight into source_ip, which fails to
+    # parse -- so those requests are never scored (and a parsed 127.0.0.1 would
+    # be whitelisted anyway). Rewrite ClientHost to the RIGHTMOST element: no
+    # proxy after Cloudflare appends to the header, so it is the real client.
+    name: local/traefik-xff-rightmost
+    description: "Reduce a multi-hop ClientHost (X-Forwarded-For list) to the rightmost address"
+    filter: >-
+      evt.Parsed.program startsWith 'traefik'
+      && TrimSpace(evt.Parsed.message) startsWith "{"
+      && UnmarshalJSON(evt.Parsed.message, evt.Unmarshaled, "xff") in ["", nil]
+      && evt.Unmarshaled.xff.ClientHost != nil
+      && evt.Unmarshaled.xff.ClientHost contains ","
+    statics:
+      - parsed: message
+        expression: >-
+          Replace(evt.Parsed.message,
+                  '"ClientHost":"' + evt.Unmarshaled.xff.ClientHost + '"',
+                  '"ClientHost":"' + TrimSpace(Split(evt.Unmarshaled.xff.ClientHost, ",")[-1]) + '"',
+                  1)
+      - meta: xff_rewritten
+        expression: evt.Unmarshaled.xff.ClientHost
 {{- end }}

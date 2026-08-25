@@ -57,6 +57,13 @@ spec:
         - name: acquis-config
           mountPath: /etc/crowdsec/acquis.yaml
           subPath: acquis.yaml
+        # Local pre-parser: collapses a multi-hop X-Forwarded-For ClientHost to
+        # the rightmost (Cloudflare-appended, real) address before the hub
+        # traefik-logs parser turns it into source_ip. Same ConfigMap; a new
+        # subPath mount so the hub-managed s01-parse dir keeps its symlinks.
+        - name: acquis-config
+          mountPath: /etc/crowdsec/parsers/s01-parse/00-traefik-xff-rightmost.yaml
+          subPath: 00-traefik-xff-rightmost.yaml
         - name: traefik-logs
           mountPath: /var/log/traefik
           readOnly: true
