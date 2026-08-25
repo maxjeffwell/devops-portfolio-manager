@@ -509,6 +509,12 @@ kube-prometheus-stack:
         memory: 32Mi
       limits:
         memory: 64Mi
+    # thermal_zone is redundant with hwmon (which reports 12-27 sensors per
+    # physical node vs 3-9 here) and fails outright on marmoset every scrape:
+    # thermal_zone8 (iwlwifi_1) returns ENODATA and node-exporter 1.8.2 has no
+    # per-zone exclude, so the whole collector errors ("invalid argument").
+    extraArgs:
+      - --no-collector.thermal_zone
 
   # Kube State Metrics - collect Kubernetes object metrics
   kubeStateMetrics:
