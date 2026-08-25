@@ -1,5 +1,13 @@
 # On-cluster Garage backup BackupStorageLocation (primary local target).
-# S3 endpoint is the in-cluster Garage ClusterIP. Shares the velero-local bucket
+# S3 endpoint is the elitedesk Garage node (52bf690b, zone elitedesk) via its
+# tailscale IP, NOT the in-cluster ClusterIP. `garage status` shows the two VPS
+# Garage pods are gateway-only (no storage) — every byte written via the ClusterIP
+# crossed the WAN twice (LAN node → VPS gateway → Garage RPC → LAN storage node).
+# On 2026-08-23 that path ran at ~11 Mbit/s (iperf3 laptop→VPS over tailscale,
+# heavy retransmits): debian-marmoset's PodVolumeBackups alone took 605 min and
+# blew the 4h fs-backup-timeout (the chronic weekly-backup-local PartiallyFailed).
+# Repos are kopia (no resticIdentifier), so switching the endpoint is transparent.
+# Switched 2026-08-25. Shares the velero-local bucket
 # with the nas-local BSL (k8s/backups/velero-nas-local-bsl.yaml), which writes under
 # prefix nas-local/. This BSL therefore MUST also carry a prefix (local/) — without
 # one it owns the bucket root and Velero's validation rejects nas-local/ as an
@@ -33,4 +41,4 @@ spec:
   config:
     region: garage
     s3ForcePathStyle: "true"
-    s3Url: http://garage.monitoring.svc.cluster.local:3900
+    s3Url: http://100.64.0.8:3900

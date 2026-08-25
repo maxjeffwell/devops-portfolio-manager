@@ -38,15 +38,29 @@ spec:
         description: "Velero backup {{ "{{" }} $labels.schedule {{ "}}" }} failed. Check velero logs for details."
         priority: "8"
 
-    # Alert when no successful backup in 24h
+    # Alert when a DAILY schedule has no successful backup in 24h (+2h grace).
+    # Scoped to daily-* schedules only: the unlabelled aggregate series and the
+    # weekly-* schedules legitimately go >24h between successes and were firing
+    # this alert every week (2026-08-25).
     - alert: VeleroNoRecentBackup
-      expr: time() - velero_backup_last_successful_timestamp > 86400
+      expr: time() - velero_backup_last_successful_timestamp{schedule=~"daily-.*"} > 93600
       for: 1h
       labels:
         severity: warning
       annotations:
-        summary: "No successful Velero backup in 24 hours"
-        description: "Schedule {{ "{{" }} $labels.schedule {{ "}}" }} has not had a successful backup in over 24 hours."
+        summary: "No successful Velero daily backup in 26 hours"
+        description: "Daily schedule {{ "{{" }} $labels.schedule {{ "}}" }} has not had a successful backup in over 26 hours."
+        priority: "5"
+
+    # Alert when a WEEKLY schedule has no successful backup in 8 days.
+    - alert: VeleroNoRecentWeeklyBackup
+      expr: time() - velero_backup_last_successful_timestamp{schedule=~"weekly-.*"} > 691200
+      for: 1h
+      labels:
+        severity: warning
+      annotations:
+        summary: "No successful Velero weekly backup in 8 days"
+        description: "Weekly schedule {{ "{{" }} $labels.schedule {{ "}}" }} has not had a successful backup in over 8 days."
         priority: "5"
 
     # Alert when backup is partially failed
