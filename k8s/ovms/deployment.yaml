@@ -89,6 +89,9 @@ spec:
             - "--port=9000"
             - "--rest_port=8000"
             - "--log_level=INFO"
+            # OVMS answers /metrics with HTTP 400 unless metrics are enabled;
+            # without this the ovms/ovms-embeddings ServiceMonitor is always down.
+            - "--metrics_enable"
           ports:
             - { name: rest, containerPort: 8000, protocol: TCP }
             - { name: grpc, containerPort: 9000, protocol: TCP }
