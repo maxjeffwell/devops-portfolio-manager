@@ -1,0 +1,23 @@
+# Allow Prometheus (monitoring ns) to scrape the CNPG postgres exporter on
+# cnpg-bookmarked. The other CNPG clusters get this via their *-replication
+# policies; bookmarked (created 2026-08-24) never had one, so the
+# default/cnpg-bookmarked PodMonitor target was down since creation.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cnpg-bookmarked-metrics
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      cnpg.io/cluster: cnpg-bookmarked
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+    ports:
+    - port: 9187
+      protocol: TCP
