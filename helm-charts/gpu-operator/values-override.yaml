@@ -1,7 +1,13 @@
 # GPU Operator Helm values override
-# Keeps operator + NFD master on the control-plane node (vmi2951245) so leader
-# election lease renewals use loopback to the local API server, avoiding the
-# cross-node network timeouts that cause CrashLoopBackOff.
+#
+# Operator, NFD master and NFD gc are pinned to LAN nodes (elitedesk preferred,
+# debian-marmoset fallback). The chart's built-in control-plane affinity is
+# only *preferred*, so historically they drifted onto whichever VPS had room
+# (NFD master sat on vmi3115606 with ~100 restarts/week, every one of them a
+# "http2: client connection lost" on the lossy VPS<->VPS tailscale path).
+# Neither VPS has a GPU, so nothing gpu-operator runs belongs there. marmoset
+# is deliberately excluded: it carries the workload=gpu taint and is the node
+# these controllers manage.
 #
 # Managed by ArgoCD (gitops/applications/gpu-operator.yaml).
 # After manual sync, re-run patch-operator-probes.sh to fix hardcoded operator probes.
@@ -93,9 +99,27 @@ daemonsets:
       value: gpu
       effect: NoSchedule
 
-# Operator controller - no node affinity override (defaults to control-plane
-# via chart's built-in preferredDuringScheduling for control-plane/master nodes)
+# Operator controller — pinned to LAN nodes (see header). `affinity` here
+# replaces the chart's default control-plane preference wholesale.
 operator:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - elitedesk
+                  - debian-marmoset
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 10
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - elitedesk
   resources:
     limits:
       cpu: 1000m
@@ -109,12 +133,30 @@ node-feature-discovery:
   image:
     repository: registry.k8s.io/nfd/node-feature-discovery
     tag: v0.18.3
-  # NFD master - no node affinity override (defaults to control-plane via
-  # chart's built-in toleration for control-plane/master nodes)
+  # NFD master — pinned to LAN nodes (see header). elitedesk preferred over
+  # debian-marmoset because the laptop is cordoned by the UPS drain hook.
   # Leader election has a known panic bug in v0.18.x (NamespaceLister.stop nil
   # pointer on lease loss). Can't disable via values — flag is hardcoded in chart
   # template. Aggressive lease durations reduce loss frequency to near zero.
   master:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - elitedesk
+                    - debian-marmoset
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            preference:
+              matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - elitedesk
     config:
       extraLabelNs: ["nvidia.com"]
       leaderElection:
@@ -200,6 +242,25 @@ node-feature-discovery:
       periodSeconds: 10
       failureThreshold: 10
   gc:
+    # Same LAN pin as master; gc only reaps NodeFeature objects, no node deps.
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - elitedesk
+                    - debian-marmoset
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 10
+            preference:
+              matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values:
+                    - elitedesk
     livenessProbe:
       initialDelaySeconds: 10
       timeoutSeconds: 5
