@@ -32,6 +32,9 @@ spec:
             - --proactor_threads
             - "{{ .Values.tempoRedis.proactorThreads }}"
             - --cache_mode
+            {{- if .Values.tempoRedis.forceEpoll }}
+            - --force_epoll
+            {{- end }}
           ports:
             - name: redis
               containerPort: 6379
