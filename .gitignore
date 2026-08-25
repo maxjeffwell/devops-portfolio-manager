@@ -88,6 +88,8 @@ secrets/
 # Helm
 charts/*/charts/
 *.tgz
+# vendored local subchart — ArgoCD needs it in the checkout (file:// dep, otherwise every refresh fails once and retries)
+!helm-charts/*/charts/portfolio-common-*.tgz
 
 # ArtiForge
 .artiforge/
