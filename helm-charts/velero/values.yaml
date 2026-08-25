@@ -1,0 +1,103 @@
+# Values for the `velero` Helm release in namespace `velero`.
+#
+# The release is deployed with the REAL helm CLI from the upstream chart — it is
+# NOT ArgoCD-managed (the `backups` Argo app owns k8s/backups, not this release),
+# so committing here does not apply anything. Apply with:
+#
+#   helm repo add vmware-tanzu https://vmware-tanzu.github.io/helm-charts
+#   helm upgrade velero vmware-tanzu/velero --version 12.0.0 -n velero \
+#     -f helm-charts/velero/values.yaml
+#
+# ⚠️ Upgrading restarts the velero server, which FAILS any backup that is
+# InProgress at that moment — never upgrade while a backup is running.
+#
+# History: before 2026-08-25 these values lived only in the cluster (helm release
+# revision 15, 2026-06-04) plus unrecorded kubectl drift on top. This file is the
+# union of both, verified byte-identical to the live deployment via helm template.
+
+configMaps:
+  node-agent-config:
+    data:
+      # loadConcurrency = concurrent data-path (kopia upload) slots per node.
+      # debian-marmoset hosts ~19 of ~26 PVBs per weekly-local run; at the global
+      # 3 slots the queue tail could not get a slot within --resource-timeout=45m
+      # and failed with the misleading "exposed PVB is not ready: error to wait
+      # for rediness of pod" (2026-08-24 diagnosis). 8 slots clears the queue.
+      # The node-agent reads this ONLY at startup — restart the DaemonSet pod
+      # after changing it.
+      node-agent-config.json: |
+        {"loadConcurrency":{"globalConfig":3,"perNodeConfig":[{"nodeSelector":{"matchLabels":{"kubernetes.io/hostname":"debian-marmoset"}},"number":8}]}}
+
+configuration:
+  backupStorageLocation:
+    - bucket: velero
+      config:
+        region: garage
+        s3ForcePathStyle: true
+        s3Url: http://garage.monitoring.svc.cluster.local:3900
+      credential:
+        key: cloud
+        name: velero-garage-credentials
+      name: default
+      provider: aws
+  clientBurst: 200
+  clientQPS: 100
+  # 20 keeps each secrets/etc. List response small enough that the kube-apiserver
+  # does not kill the HTTP/2 stream mid-list (the recurring 2-error
+  # "stream error ... INTERNAL_ERROR" PartiallyFailed mode, fixed 2026-08-23).
+  clientPageSize: 20
+  defaultRepoMaintainFrequency: 24h
+  defaultVolumesToFsBackup: true
+  features: EnableCSI
+  itemBlockWorkerCount: 8
+  repositoryMaintenanceJob:
+    repositoryConfigData:
+      global:
+        keepLatestMaintenanceJobs: 1
+  volumeSnapshotLocation:
+    - config:
+        region: garage
+      name: default
+      provider: aws
+  extraArgs:
+    # No dedicated chart key for this one. 45m bounds how long a PVB may wait
+    # for a data-path slot before failing (see loadConcurrency above).
+    - --resource-timeout=45m
+
+credentials:
+  existingSecret: cloud-credentials
+
+deployNodeAgent: true
+
+initContainers:
+  - image: velero/velero-plugin-for-aws:v1.8.0
+    name: velero-plugin-for-aws
+    volumeMounts:
+      - mountPath: /target
+        name: plugins
+
+metrics:
+  enabled: true
+  nodeAgentPodMonitor:
+    additionalLabels:
+      release: prometheus
+    enabled: true
+  serviceMonitor:
+    additionalLabels:
+      release: prometheus
+    enabled: true
+
+nodeAgent:
+  extraArgs:
+    - --node-agent-configmap=velero-node-agent-config
+  podVolumePath: /var/lib/kubelet/pods
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+
+snapshotsEnabled: true
+upgradeCRDs: false
