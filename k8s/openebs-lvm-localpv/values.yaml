@@ -1,0 +1,18 @@
+# Helm release openebs-lvm (namespace openebs), chart openebs/lvm-localpv.
+# Upgrade:  helm upgrade openebs-lvm openebs/lvm-localpv --version 1.10.0 -n openebs \
+#             -f k8s/openebs-lvm-localpv/values.yaml --timeout 10m
+# Rollback: helm -n openebs rollback openebs-lvm 1
+crds:
+  csi:
+    volumeSnapshots:
+      # snapshot.storage.k8s.io CRDs belong to kube-system/snapshot-controller.
+      enabled: false
+lvmController:
+  snapshotController:
+    # The cluster-wide VolumeSnapshot reconciler runs ONCE, leader-elected, in
+    # kube-system/snapshot-controller. The chart's bundled copy (v7.0.0, no
+    # leader election) was one of four uncoordinated instances. Toggle exists
+    # from chart 1.10.0.
+    enabled: false
+analytics:
+  enabled: false
