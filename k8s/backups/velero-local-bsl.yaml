@@ -39,6 +39,6 @@ spec:
     name: velero-garage-credentials
     key: cloud
   config:
-    region: garage
+    region: us-east-1  # elitedesk garage.toml s3_region (in-cluster pods/Synology use "garage")
     s3ForcePathStyle: "true"
     s3Url: http://100.64.0.8:3900
