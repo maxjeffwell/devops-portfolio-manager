@@ -1,0 +1,23 @@
+# openebs-zfs (zfs-localpv) -- NOT a helm release; rendered and kubectl-applied.
+# Render + apply (from repo root):
+#   helm pull openebs-zfs/zfs-localpv --version 2.11.0 -d /tmp
+#   helm template openebs-zfs /tmp/zfs-localpv-2.11.0.tgz -n openebs --include-crds \
+#     -f k8s/openebs-zfs-localpv/values.yaml | kubectl diff -f -    # then apply
+zfsController:
+  snapshotController:
+    # The cluster-wide VolumeSnapshot reconciler runs ONCE, in
+    # kube-system/snapshot-controller (leader-elected). The chart's bundled copy
+    # was a 4th uncoordinated instance resyncing every snapshot at --v=5.
+    enabled: false
+zfsNode:
+  # Only nodes that have (or will have) a zpool. elitedesk has no zfs binary;
+  # without this the node plugin failed its sync loop there every 60s.
+  nodeSelector:
+    openebs.io/zfs: "true"
+crds:
+  csi:
+    volumeSnapshots:
+      # snapshot.storage.k8s.io CRDs are owned by the kube-system controller install.
+      enabled: false
+analytics:
+  enabled: false
