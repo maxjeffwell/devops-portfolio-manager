@@ -12,6 +12,14 @@ data:
     metadata_dir = "/var/lib/garage/meta"
     data_dir = "/var/lib/garage/data"
     db_engine = "sqlite"
+
+    # Perf tuning 2026-08-26: these gateways chunk+compress the mimir/tempo/
+    # pyroscope write path; payloads are pre-compressed, so zstd is CPU waste.
+    block_size = "10MiB"
+    compression_level = 'none'
+    block_ram_buffer_max = "512MiB"
+    metadata_auto_snapshot_interval = "1d"
+
     replication_factor = 2
 
     rpc_bind_addr = "[::]:3901"
