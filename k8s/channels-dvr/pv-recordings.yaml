@@ -1,0 +1,29 @@
+# Static NFS PV for ASUSTOR /volume1/channels-backup (READ-WRITE) — the
+# standby's own DVR dir (Database/, and recordings only after a failover).
+# 2026-08-29: moved off local-path per the long-standing note in
+# pvc-recordings.yaml — the standby's state now lives on the NAS /volume1
+# HDD pool, next to (but strictly separate from) the primary's
+# /volume1/channels-data, which remains read-only via pv-primary-data.yaml.
+# Export persisted in the S97lvm-nfs boot script heredoc + added live via
+# ad-hoc exportfs (NOT exportfs -ra, which drops ADM's ad-hoc exports).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: channels-dvr-recordings-nfs
+  labels:
+    app: channels-dvr
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/channels-backup

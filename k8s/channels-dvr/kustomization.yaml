@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - pv-primary-data.yaml
   - pvc-primary-data.yaml
+  - pv-recordings.yaml
   - pvc-data.yaml
   - pvc-recordings.yaml
   - networkpolicy.yaml
