@@ -213,6 +213,30 @@ data:
       metrics_path    = "/metrics"
     }
 
+    // --- BE88U router node_exporter (Entware, LAN-only) ---
+    // The router has no return route for 10.0.0.0/24 (replies exit the WAN) and
+    // TCP-over-tailscale to it is broken by VPN Director policy routing, so only
+    // home-side Alloy replicas can reach it. Drop the target on VPS nodes.
+    discovery.relabel "router_node" {
+      targets = [{ "__address__" = "192.168.50.1:9100", "instance" = "be88u" }]
+      rule {
+        target_label = "__tmp_nodename"
+        replacement  = env("HOSTNAME")
+      }
+      rule {
+        source_labels = ["__tmp_nodename"]
+        regex         = "vmi.*"
+        action        = "drop"
+      }
+    }
+
+    prometheus.scrape "router_node" {
+      targets         = discovery.relabel.router_node.output
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "30s"
+      job_name        = "router-node"
+    }
+
     // --- WireGuard Metrics (scraped from node's prometheus_wireguard_exporter) ---
     prometheus.scrape "wireguard" {
       targets         = [{ "__address__" = env("HOST_IP") + ":9586" }]
