@@ -17,7 +17,6 @@ spec:
     spec:
       backoffLimit: 2
       # Auto-reap finished jobs so they don't accumulate in the namespace.
-      ttlSecondsAfterFinished: 3600
       # A normal backup completes in well under 2 min. 30 min is generous headroom;
       # if a run hangs (e.g. apk/network stall) it self-terminates instead of
       # living for weeks as a zombie.
