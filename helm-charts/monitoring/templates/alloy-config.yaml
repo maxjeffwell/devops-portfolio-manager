@@ -203,6 +203,8 @@ data:
         { "__address__" = "garage.monitoring.svc.cluster.local:3903", "instance" = "k8s-gateway" },
         { "__address__" = "10.0.0.4:3903", "instance" = "asustor" },
         { "__address__" = "10.0.0.6:3903", "instance" = "ax86u-pro" },
+        { "__address__" = "10.0.0.9:3903", "instance" = "debian-marmoset" },
+        { "__address__" = "100.64.0.8:3903", "instance" = "elitedesk" },
       ]
       forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "30s"
