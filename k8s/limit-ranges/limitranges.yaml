@@ -172,21 +172,10 @@ spec:
         cpu: 10m
         memory: 32Mi
 ---
-# cluster-nfs / qdrant: no long-running pods lack requests, but every k8up
+# qdrant: no long-running pods lack requests, but every k8up
 # backup/check/prune Job pod does — they land BestEffort and are first out
 # under node memory pressure, mid-backup. Covered for the Job pods only.
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: default-requests
-  namespace: cluster-nfs
-spec:
-  limits:
-    - type: Container
-      defaultRequest:
-        cpu: 10m
-        memory: 64Mi
----
+# (cluster-nfs entry removed 2026-09-01 with the stack's retirement.)
 apiVersion: v1
 kind: LimitRange
 metadata:
