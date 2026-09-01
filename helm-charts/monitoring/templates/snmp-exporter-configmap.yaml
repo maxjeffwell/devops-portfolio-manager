@@ -14,8 +14,11 @@ data:
         username: {{ .Values.snmpExporter.auth.username | quote }}
         security_level: {{ .Values.snmpExporter.auth.securityLevel }}
         auth_protocol: {{ .Values.snmpExporter.auth.authProtocol }}
-        # expanded at runtime via --config.expand-environment-variables
+        priv_protocol: {{ .Values.snmpExporter.auth.privProtocol }}
+        # expanded at runtime via --config.expand-environment-variables;
+        # DSM uses a single passphrase for both auth and privacy
         password: ${SNMP_AUTH_PASSWORD}
+        priv_password: ${SNMP_AUTH_PASSWORD}
     modules:
       hrstorage:
         walk:

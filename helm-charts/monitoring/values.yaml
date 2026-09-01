@@ -1075,16 +1075,17 @@ snmpExporter:
       memory: 64Mi
     limits:
       memory: 128Mi
-  # DSM only serves SNMPv2c to localhost; the wg-reachable path is SNMPv3 with
-  # the user below (authNoPriv/MD5, from Synology /etc/snmp/snmpd.conf). The auth
+  # DSM v1/v2c is disabled; the wg-reachable path is SNMPv3 authPriv (SHA auth +
+  # AES privacy, hardened 2026-09-01 — DSM uses ONE passphrase for both). The
   # passphrase is NOT in git: it is read from Secret `snmp-exporter-auth`
   # (key SNMP_AUTH_PASSWORD) in the release namespace, created out of band.
   auth:
     name: synology_v3
     version: 3
     username: maxjeffwell
-    securityLevel: authNoPriv
-    authProtocol: MD5
+    securityLevel: authPriv
+    authProtocol: SHA
+    privProtocol: AES
     passwordSecret: snmp-exporter-auth
 
 # SNMP Synology - Scrape target + alerts for the Synology DS423 (boom_boom)
