@@ -40,7 +40,7 @@ metadata:
   namespace: default
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:17
-  instances: 1
+  instances: 2
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
@@ -48,8 +48,18 @@ spec:
       portfolio: 'true'
   affinity:
     enablePodAntiAffinity: true
-    nodeSelector:
-      kubernetes.io/hostname: debian-marmoset
+    # Migrated off the dm-only pin 2026-09-01: mayastor-2 volumes are reachable
+    # from both storage nodes, and required anti-affinity + a single-host
+    # nodeSelector makes a second instance unschedulable by construction.
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - debian-marmoset
+            - elitedesk
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   bootstrap:
@@ -62,7 +72,7 @@ spec:
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: democratic-synology-iscsi-mp
+    storageClass: mayastor-2  # migrated off Synology iSCSI 2026-09-01 (repl=2 dm+elitedesk)
   resources:
     limits:
       memory: 512Mi
@@ -79,7 +89,7 @@ spec:
   backup:
     target: prefer-standby
     volumeSnapshot:
-      className: democratic-csi-mp-snapclass
+      className: mayastor-snapclass
       online: true
       onlineConfiguration:
         immediateCheckpoint: false
