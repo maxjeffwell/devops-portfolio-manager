@@ -40,7 +40,7 @@ metadata:
   namespace: default
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:17
-  instances: 2
+  instances: 1
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
