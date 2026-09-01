@@ -27,6 +27,22 @@ windows:
 # into Loki on every mount operation. 2 keeps errors and warnings.
 controller:
   logLevel: 2
+  # The controller mounts the SMB share for every CreateVolume (mount, mkdir
+  # subDir, unmount). From the Contabo VPSs that mount takes 40-70s — the
+  # multichannel option tries the ASUSTOR's advertised LAN interfaces, which
+  # are unreachable through the Tailscale tunnel and must time out first —
+  # while csi-provisioner's default RPC deadline is 15s, so provisioning
+  # loops DeadlineExceeded forever. Keep the controller on LAN nodes, where
+  # the mount is sub-second. (Node-side data mounts are unaffected; VPS pods
+  # can still consume SMB PVs, just slowly.)
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values: [vmi2951245, vmi3115606]
 
 node:
   logLevel: 2
