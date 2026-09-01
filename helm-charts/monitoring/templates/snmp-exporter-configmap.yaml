@@ -10,11 +10,12 @@ data:
   snmp.yml: |
     auths:
       {{ .Values.snmpExporter.auth.name }}:
-        community: {{ .Values.snmpExporter.auth.community | quote }}
-        security_level: noAuthNoPriv
-        auth_protocol: MD5
-        priv_protocol: DES
-        version: 2
+        version: {{ .Values.snmpExporter.auth.version }}
+        username: {{ .Values.snmpExporter.auth.username | quote }}
+        security_level: {{ .Values.snmpExporter.auth.securityLevel }}
+        auth_protocol: {{ .Values.snmpExporter.auth.authProtocol }}
+        # expanded at runtime via --config.expand-environment-variables
+        password: ${SNMP_AUTH_PASSWORD}
     modules:
       hrstorage:
         walk:

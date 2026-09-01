@@ -537,6 +537,18 @@ kube-prometheus-stack:
       interval: 60s
       scrapeTimeout: 45s   # /metrics is ~19 MB / 127k series from a busy apiserver
 
+  # k3s embeds the scheduler, controller-manager and kube-proxy in the server
+  # process and binds their metrics to 127.0.0.1 only, so the stack's headless
+  # Services never get endpoints and KubeSchedulerDown / KubeControllerManagerDown
+  # / KubeProxyDown fire permanently at severity=critical. Disabling the component
+  # also drops its Service, ServiceMonitor and alert rule groups.
+  kubeScheduler:
+    enabled: false
+  kubeControllerManager:
+    enabled: false
+  kubeProxy:
+    enabled: false
+
   kube-state-metrics:
     nodeSelector:
       kubernetes.io/hostname: elitedesk
@@ -1063,10 +1075,17 @@ snmpExporter:
       memory: 64Mi
     limits:
       memory: 128Mi
-  # Community string used in all scrape targets; must match Synology /etc/snmp/snmpd.conf
+  # DSM only serves SNMPv2c to localhost; the wg-reachable path is SNMPv3 with
+  # the user below (authNoPriv/MD5, from Synology /etc/snmp/snmpd.conf). The auth
+  # passphrase is NOT in git: it is read from Secret `snmp-exporter-auth`
+  # (key SNMP_AUTH_PASSWORD) in the release namespace, created out of band.
   auth:
-    name: k8smesh_v2
-    community: k8smesh
+    name: synology_v3
+    version: 3
+    username: maxjeffwell
+    securityLevel: authNoPriv
+    authProtocol: MD5
+    passwordSecret: snmp-exporter-auth
 
 # SNMP Synology - Scrape target + alerts for the Synology DS423 (boom_boom)
 snmpSynology:

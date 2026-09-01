@@ -27,7 +27,14 @@ spec:
           image: "{{ .Values.snmpExporter.image.repository }}:{{ .Values.snmpExporter.image.tag }}"
           args:
             - --config.file=/etc/snmp_exporter/snmp.yml
+            - --config.expand-environment-variables
             - --web.listen-address=:9116
+          env:
+            - name: SNMP_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.snmpExporter.auth.passwordSecret }}
+                  key: SNMP_AUTH_PASSWORD
           ports:
             - name: http
               containerPort: 9116
