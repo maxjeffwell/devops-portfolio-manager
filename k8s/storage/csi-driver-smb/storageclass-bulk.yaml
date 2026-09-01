@@ -1,0 +1,37 @@
+---
+# Bulk RWX tier: same SMB driver and provisioning pattern as smb-asustor, but
+# backed by the k8s-smb shared folder on /volume1 (md1 RAID1 HDDs, ~2TB free)
+# instead of the 110G Corsair SSD behind USB22. Use for large, throughput-over-
+# latency workloads: model caches, dataset staging, media processing scratch.
+# Same smbcreds; PVCs become subdirectories directly under //…/k8s-smb.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: smb-asustor-bulk
+provisioner: smb.csi.k8s.io
+parameters:
+  source: //asustor-smb.home.arpa/k8s-smb
+  csi.storage.k8s.io/provisioner-secret-name: smbcreds
+  csi.storage.k8s.io/provisioner-secret-namespace: kube-system
+  csi.storage.k8s.io/node-stage-secret-name: smbcreds
+  csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+  subDir: ${pvc.metadata.namespace}-${pvc.metadata.name}-${pv.metadata.name}
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+mountOptions:
+  # Same rationale as smb-asustor (see storageclass.yaml for the full notes):
+  # noserverino is corruption-prevention, cache=strict follows SMB leases,
+  # uid/gid+modes because SMB has no server-side uid mapping.
+  - noserverino
+  - cache=strict
+  - mfsymlinks
+  - uid=0
+  - gid=0
+  - file_mode=0777
+  - dir_mode=0777
+  - vers=3.1.1
+  # multichannel helps less here (HDD-bound), but keeping parity with the SSD
+  # class costs nothing on LAN nodes and the caveats are identical.
+  - multichannel
+  - max_channels=3
