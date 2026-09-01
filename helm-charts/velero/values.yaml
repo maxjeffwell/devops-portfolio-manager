@@ -92,6 +92,11 @@ nodeAgent:
     - --node-agent-configmap=velero-node-agent-config
   podVolumePath: /var/lib/kubelet/pods
 
+# Server pinned to elitedesk since 2026-08-18 (kubectl patch; ported to values
+# 2026-09-01 — without this an upgrade would silently unpin it).
+nodeSelector:
+  kubernetes.io/hostname: elitedesk
+
 resources:
   limits:
     memory: 1Gi
