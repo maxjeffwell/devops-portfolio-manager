@@ -1,0 +1,83 @@
+# cnpg-lunary: captured from the live cluster 2026-09-05 (was live-patched, untracked).
+# Same field set as cnpg-bookmarked. Migrated off Synology iSCSI to mayastor-2 2026-09-05 (repl=2, primary on m720q).
+# bootstrap/externalClusters are the original pg_basebackup migration source — immutable, kept for a clean diff.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cnpg-lunary
+  namespace: default
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+  instances: 1
+  enablePDB: false
+  priorityClassName: portfolio-critical
+  inheritedMetadata:
+    labels:
+      portfolio: 'true'
+  affinity:
+    enablePodAntiAffinity: true
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - debian-marmoset
+            - elitedesk
+            - m720q
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  bootstrap:
+    pg_basebackup:
+      database: lunary
+      owner: neondb_owner
+      source: cnpg-lunary-src
+  externalClusters:
+  - connectionParameters:
+      dbname: postgres
+      host: cnpg-lunary-src-rw
+      sslmode: verify-ca
+      user: streaming_replica
+    name: cnpg-lunary-src
+    sslCert:
+      key: tls.crt
+      name: cnpg-lunary-src-replication
+    sslKey:
+      key: tls.key
+      name: cnpg-lunary-src-replication
+    sslRootCert:
+      key: ca.crt
+      name: cnpg-lunary-src-ca
+  probes:
+    liveness:
+      isolationCheck:
+        connectionTimeout: 5000
+        enabled: true
+        requestTimeout: 5000
+  storage:
+    resizeInUseVolumes: true
+    size: 5Gi
+    storageClass: mayastor-2
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  monitoring:
+    customQueriesConfigMap:
+    - key: queries
+      name: cnpg-default-monitoring
+    disableDefaultQueries: false
+    enablePodMonitor: true
+  enableSuperuserAccess: false
+  backup:
+    target: prefer-standby
+    volumeSnapshot:
+      className: mayastor-snapclass
+      online: true
+      onlineConfiguration:
+        immediateCheckpoint: false
+        waitForArchive: true
+      snapshotOwnerReference: none
