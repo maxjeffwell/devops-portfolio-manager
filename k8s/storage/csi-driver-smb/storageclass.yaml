@@ -21,8 +21,9 @@ metadata:
   name: smb-asustor
   annotations:
     # StorageClass parameters are immutable; a `source` change must be a
-    # delete+create, which is safe while the class has no PVs.
-    argocd.argoproj.io/sync-options: Replace=true
+    # delete+create (`kubectl replace --force`), which is safe while the class
+    # has no PVs. Replace alone still PUTs and is rejected by the API.
+    argocd.argoproj.io/sync-options: Replace=true,Force=true
 provisioner: smb.csi.k8s.io
 parameters:
   source: //asustor-smb.home.arpa/USB3
