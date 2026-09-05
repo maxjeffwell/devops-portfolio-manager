@@ -202,7 +202,7 @@ data:
       targets         = [
         { "__address__" = "garage.monitoring.svc.cluster.local:3903", "instance" = "k8s-gateway" },
         { "__address__" = "10.0.0.4:3903", "instance" = "asustor" },
-        { "__address__" = "10.0.0.6:3903", "instance" = "ax86u-pro" },
+        { "__address__" = "100.64.0.11:3903", "instance" = "m720q" },
         { "__address__" = "10.0.0.9:3903", "instance" = "debian-marmoset" },
         { "__address__" = "10.0.0.10:3903", "instance" = "elitedesk" },
         { "__address__" = "10.0.0.5:3903", "instance" = "synology" },
