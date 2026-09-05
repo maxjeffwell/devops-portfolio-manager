@@ -1,0 +1,30 @@
+{{- if .Values.garageExternal.enabled }}
+# Cluster Prometheus scrape of every Garage node's admin /metrics (:3903).
+# Alloy already ships the same targets to the ASUSTOR Mimir; this copy is what
+# the in-cluster alert rules (garage-alerts.yaml) evaluate against.
+# Prometheus is pinned to a home node, so 10.0.0.x (wg0) and 100.64.x (tailscale)
+# targets are both reachable without a relay.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: garage-external
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  jobName: garage
+  metricsPath: /metrics
+  scheme: HTTP
+  scrapeInterval: {{ .Values.garageExternal.scrapeInterval | default "30s" }}
+  scrapeTimeout: {{ .Values.garageExternal.scrapeTimeout | default "15s" }}
+  staticConfigs:
+  {{- range .Values.garageExternal.nodes }}
+    - targets:
+        - {{ .address | quote }}
+      labels:
+        instance: {{ .name | quote }}
+        host: {{ .name | quote }}
+        role: {{ .role | default "storage" | quote }}
+        zone: {{ .zone | quote }}
+  {{- end }}
+{{- end }}

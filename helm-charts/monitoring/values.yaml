@@ -1056,6 +1056,45 @@ lokiExternal:
   # must match Loki's max_global_streams_per_user for the headroom alert
   maxGlobalStreams: 10000
 
+# Every Garage node's admin /metrics (:3903, no token), scraped by the cluster
+# Prometheus so the garage-alerts rules fire from in-cluster. Keep this list in
+# sync with `garage layout show` and the Alloy "garage" scrape in
+# alloy-config.yaml (which feeds the ASUSTOR Mimir instead).
+# 2026-09-05: layout v29 — m720q added as a 1.5 TB storage node, AX86U removed.
+garageExternal:
+  enabled: true
+  scrapeInterval: 30s
+  scrapeTimeout: 15s
+  nodes:
+    - name: asustor
+      address: 10.0.0.4:3903
+      zone: nas
+    - name: synology
+      address: 10.0.0.5:3903
+      zone: nas2
+    - name: m720q
+      address: 100.64.0.11:3903
+      zone: m720q
+    - name: debian-marmoset
+      address: 10.0.0.9:3903
+      zone: home-k8s
+    - name: elitedesk
+      address: 10.0.0.10:3903
+      zone: elitedesk
+    # VPS gateway pods (sqlite, zero blocks) via the in-cluster Service.
+    - name: k8s-gateway
+      address: garage.monitoring.svc.cluster.local:3903
+      zone: k8s
+      role: gateway
+  alerts:
+    enabled: true
+    scrapeDownFor: 10m
+    unhealthyFor: 5m
+    disconnectedFor: 10m
+    resyncErrorsFor: 30m
+    resyncQueueThreshold: 10000
+    diskLowRatio: 0.10
+
 # Alloy self-metrics (DaemonSet, port name http-metrics/12345). Holds the
 # client-side drop counters for both logs and traces.
 alloySelfMetrics:

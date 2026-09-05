@@ -1,0 +1,86 @@
+{{- if and .Values.garageExternal.enabled .Values.garageExternal.alerts.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: garage-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: garage
+    prometheus: kube-prometheus
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: garage.rules
+    rules:
+    # A node's admin API stopped answering (process down, host down, tunnel down).
+    - alert: GarageNodeScrapeDown
+      expr: up{job="garage"} == 0
+      for: {{ .Values.garageExternal.alerts.scrapeDownFor | default "10m" }}
+      labels:
+        severity: warning
+      annotations:
+        summary: "Garage metrics unreachable on {{ "{{" }} $labels.host {{ "}}" }}"
+        description: "Prometheus cannot scrape {{ "{{" }} $labels.instance {{ "}}" }}:3903. Check `systemctl is-active garage` (or the compose container on the ASUSTOR) and the wg0/tailscale path."
+        priority: "6"
+
+    # Garage's own verdict: quorum unavailable for some partition.
+    - alert: GarageClusterUnhealthy
+      expr: min by (host) (cluster_healthy{job="garage"}) == 0
+      for: {{ .Values.garageExternal.alerts.unhealthyFor | default "5m" }}
+      labels:
+        severity: critical
+      annotations:
+        summary: "Garage cluster unhealthy as seen from {{ "{{" }} $labels.host {{ "}}" }}"
+        description: "cluster_healthy=0 for {{ "{{" }} $value {{ "}}" }}m: at least one partition has lost write quorum (rf=2, so one storage node is down or partitioned). Run `garage status` and look for FAILED NODES."
+        priority: "9"
+
+    # A storage node is missing from the layout's point of view (quorum still OK).
+    - alert: GarageStorageNodeDisconnected
+      expr: |
+        max by (host) (cluster_storage_nodes{job="garage"} - cluster_storage_nodes_ok{job="garage"}) > 0
+      for: {{ .Values.garageExternal.alerts.disconnectedFor | default "10m" }}
+      labels:
+        severity: warning
+      annotations:
+        summary: "{{ "{{" }} $value {{ "}}" }} Garage storage node(s) disconnected"
+        description: "Seen from {{ "{{" }} $labels.host {{ "}}" }}: not every storage node in the layout is connected. Every write now lands on a single replica until it returns. Known offender: an orphan `nohup garage` on the Synology — check `systemctl is-active garage` on 192.168.50.109 first."
+        priority: "7"
+
+    # Blocks that failed to resync and are being retried with backoff.
+    - alert: GarageResyncErrors
+      expr: block_resync_errored_blocks{job="garage"} > 0
+      for: {{ .Values.garageExternal.alerts.resyncErrorsFor | default "30m" }}
+      labels:
+        severity: warning
+      annotations:
+        summary: "Garage resync errors on {{ "{{" }} $labels.host {{ "}}" }}"
+        description: "{{ "{{" }} $value {{ "}}" }} block(s) on {{ "{{" }} $labels.host {{ "}}" }} cannot be fetched from any replica. `garage block list-errors` shows them; if the other replica's disk is gone the data is lost."
+        priority: "8"
+
+    # Resync backlog not draining (rebalance stuck or a peer too slow).
+    - alert: GarageResyncQueueStuck
+      expr: |
+        block_resync_queue_length{job="garage"} > {{ .Values.garageExternal.alerts.resyncQueueThreshold | default 10000 }}
+        and delta(block_resync_queue_length{job="garage"}[2h]) >= 0
+      for: 2h
+      labels:
+        severity: warning
+      annotations:
+        summary: "Garage resync queue not draining on {{ "{{" }} $labels.host {{ "}}" }}"
+        description: "Resync queue is {{ "{{" }} $value {{ "}}" }} and has not shrunk in 2h. `garage worker list -e` and `garage worker set resync-worker-count`/`resync-tranquility` on that node."
+        priority: "5"
+
+    # Data or metadata volume running out (Garage stops accepting writes at 0).
+    - alert: GarageDiskLow
+      expr: |
+        garage_local_disk_avail{job="garage"} / garage_local_disk_total{job="garage"}
+          < {{ .Values.garageExternal.alerts.diskLowRatio | default 0.10 }}
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Garage {{ "{{" }} $labels.volume {{ "}}" }} volume low on {{ "{{" }} $labels.host {{ "}}" }}"
+        description: "Only {{ "{{" }} $value | humanizePercentage {{ "}}" }} of the {{ "{{" }} $labels.volume {{ "}}" }} volume is free on {{ "{{" }} $labels.host {{ "}}" }}. Lower its layout capacity or free space before writes start failing."
+        priority: "7"
+{{- end }}

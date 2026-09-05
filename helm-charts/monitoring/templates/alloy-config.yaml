@@ -198,6 +198,8 @@ data:
     // --- Garage Metrics (S3-compatible object storage) ---
     // External storage nodes are LMDB (8/26 conversion) so /metrics is O(1);
     // do NOT add a sqlite node here (full table scans block RPC).
+    // 2026-09-05: AX86U left the layout, m720q joined (layout v29); keep in
+    // sync with values.garageExternal.nodes.
     prometheus.scrape "garage" {
       targets         = [
         { "__address__" = "garage.monitoring.svc.cluster.local:3903", "instance" = "k8s-gateway" },
