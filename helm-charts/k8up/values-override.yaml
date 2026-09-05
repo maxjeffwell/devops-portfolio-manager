@@ -9,3 +9,9 @@ resources:
     memory: 128Mi
   limits:
     memory: 256Mi
+
+k8up:
+  # 2026-09-05: single replica, so leader election only adds a failure mode.
+  # On vmi3115606 the lease PUT to the apiserver (kine on vmi2951245) times out
+  # ~10x/day -> "leader election lost" -> operator exits (43 restarts in 4.5 d).
+  enableLeaderElection: false

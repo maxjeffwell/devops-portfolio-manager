@@ -33,4 +33,5 @@ spec:
       - vaultwarden
       - vertex-platform
       # jellyfin removed 2026-06-11 — decommissioned to ASUSTOR (scaled to 0), no pod to fs-backup.
-      - cluster-nfs
+      # cluster-nfs removed 2026-09-05 — namespace no longer exists; it made every run
+      # PartiallyFailed ("fail to get the namespace cluster-nfs").
