@@ -1,0 +1,88 @@
+# Percona Server for MongoDB replica set — spec captured from the live CR 2026-09-05 (unmanaged before).
+# Secrets (users, garage-s3-backup, TLS) are NOT in git; they stay cluster-managed.
+apiVersion: psmdb.percona.com/v1
+kind: PerconaServerMongoDB
+metadata:
+  name: mongodb-educationelly-graphql
+  namespace: percona-mongodb
+spec:
+  backup:
+    enabled: true
+    image: percona/percona-backup-mongodb:2.9.0
+    startingDeadlineSeconds: 120
+    storages:
+      garage-s3:
+        s3:
+          bucket: mongodb-backups
+          credentialsSecret: garage-s3-backup
+          endpointUrl: http://garage.monitoring.svc.cluster.local:3900
+          forcePathStyle: true
+          insecureSkipTLSVerify: true
+          prefix: educationelly-graphql/
+          region: garage
+        type: s3
+    tasks:
+    - compressionType: gzip
+      enabled: true
+      keep: 7
+      name: daily-backup
+      schedule: 0 3 * * *
+      storageName: garage-s3
+  crVersion: 1.22.0
+  image: percona/percona-server-mongodb:6.0.27-21
+  imagePullPolicy: IfNotPresent
+  replsets:
+  - affinity:
+      advanced:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - debian-marmoset
+                - elitedesk
+                - m720q
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: mongod
+                app.kubernetes.io/instance: mongodb-educationelly-graphql
+                app.kubernetes.io/managed-by: percona-server-mongodb-operator
+                app.kubernetes.io/name: percona-server-mongodb
+                app.kubernetes.io/part-of: percona-server-mongodb
+                app.kubernetes.io/replset: rs0
+            topologyKey: kubernetes.io/hostname
+    annotations:
+      backup.velero.io/backup-volumes-excludes: mongod-data
+    name: rs0
+    readinessProbe:
+      timeoutSeconds: 5
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    size: 3
+    storage:
+      engine: wiredTiger
+    volumeSpec:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: openebs-lvmpv
+  unsafeFlags:
+    replsetSize: true
+  users:
+  - db: admin
+    name: root
+    passwordSecretRef:
+      key: root-password
+      name: mongodb-educationelly-graphql-users
+    roles:
+    - db: admin
+      name: root
