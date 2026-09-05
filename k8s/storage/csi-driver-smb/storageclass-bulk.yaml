@@ -1,7 +1,7 @@
 ---
 # Bulk RWX tier: same SMB driver and provisioning pattern as smb-asustor, but
 # backed by the k8s-smb shared folder on /volume1 (md1 RAID1 HDDs, ~2TB free)
-# instead of the 110G Corsair SSD behind USB22. Use for large, throughput-over-
+# instead of the 110G Corsair SSD behind USB3 (ex-USB22). Use for large, throughput-over-
 # latency workloads: model caches, dataset staging, media processing scratch.
 # Same smbcreds; PVCs become subdirectories directly under //…/k8s-smb.
 apiVersion: storage.k8s.io/v1
