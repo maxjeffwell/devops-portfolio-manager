@@ -150,7 +150,7 @@ data:
 
     // --- Host Metrics (unix exporter) ---
     prometheus.exporter.unix "node" {
-      set_collectors = ["cpu", "diskstats", "filesystem", "loadavg", "meminfo", "netdev", "uname"]
+      set_collectors = ["cpu", "diskstats", "filesystem", "hwmon", "loadavg", "meminfo", "netdev", "uname"]
     }
 
     prometheus.scrape "node_metrics" {
