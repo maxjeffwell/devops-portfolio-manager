@@ -21,8 +21,17 @@ spec:
     storageClass: mayastor-2
     size: 5Gi
   affinity:
-    nodeSelector:
-      kubernetes.io/hostname: debian-marmoset
+    # 2026-09-06: debian-marmoset is no longer a Mayastor node (laptop thermal);
+    # the mayastor-2 volume is reachable from either remaining storage node.
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - elitedesk
+            - m720q
   bootstrap:
     initdb:
       database: vaultwarden

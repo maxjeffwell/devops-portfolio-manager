@@ -58,8 +58,8 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - debian-marmoset
             - elitedesk
+            - m720q
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   bootstrap:
