@@ -1,8 +1,9 @@
 ---
-# Bulk RWX tier: same SMB driver and provisioning pattern as smb-asustor, but
-# backed by the k8s-smb shared folder on /volume1 (md1 RAID1 HDDs, ~2TB free)
-# instead of the 110G Corsair SSD behind USB3 (ex-USB22). Use for large, throughput-over-
-# latency workloads: model caches, dataset staging, media processing scratch.
+# Bulk RWX tier over the SMB CSI driver, backed by the k8s-smb shared folder on
+# /volume1 (md1 RAID1 HDDs, ~2TB free). Use for large, throughput-over-latency
+# workloads: model caches, dataset staging, media processing scratch.
+# (The former smb-asustor class on the 120G Corsair USB SSD was retired
+# 2026-09-06 when that drive left the NAS; it never had a claim.)
 # Same smbcreds; PVCs become subdirectories directly under //…/k8s-smb.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -20,8 +21,8 @@ reclaimPolicy: Retain
 volumeBindingMode: Immediate
 allowVolumeExpansion: true
 mountOptions:
-  # Same rationale as smb-asustor (see storageclass.yaml for the full notes):
-  # noserverino is corruption-prevention, cache=strict follows SMB leases,
+  # noserverino is corruption-prevention (SMB server inode numbers are not
+  # stable across the ADM share), cache=strict follows SMB leases,
   # uid/gid+modes because SMB has no server-side uid mapping.
   - noserverino
   - cache=strict
