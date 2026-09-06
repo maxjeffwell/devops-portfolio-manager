@@ -20,6 +20,13 @@ spec:
   template:
     storageLocation: backblaze
     defaultVolumesToFsBackup: true
+    # Move CSI snapshots to the BSL via the node-agent data mover (2026-09-06).
+    # PSMDB pods carry backup.velero.io/backup-volumes-excludes=mongod-data, so
+    # fs-backup skips them and Velero falls back to a CSI snapshot. Without the
+    # data mover that snapshot is a thin LV on the SAME node as the database
+    # (35 of them were sitting on debian-marmoset), i.e. not off-site at all.
+    # With it, the snapshot is uploaded to B2 and the local copy deleted.
+    snapshotMoveData: true
     ttl: 720h
     # Skip raw NFS mounts + csi-s3 volumes. Without this, opt-out fs-backup walks
     # the stremio-nas-addon media shares (movies 302GB + tv 392GB on ASUSTOR .149),
