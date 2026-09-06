@@ -1,0 +1,25 @@
+# elitedesk-nvme-pool — Mayastor DiskPool on elitedesk, USB-attached 512 GB NVMe
+#
+# Backing: LVM logical volume nvme-vg/mayastor-pool-sn730 (whole-disk PV on a
+# WD PC SN730 512 GB NVMe in an RTL9210 USB enclosure on the front USB-C port,
+# linked at 10 Gb/s). Dedicated VG so the openebs-vg thin pool (lvm-localpv)
+# can never land on USB. Drive was m720q garage data-sn730 until 2026-09-06
+# (drained with read_only + repair rebalance before the move).
+#
+# Referenced by dm-uuid: the RTL9210 bridge reports the factory-default USB
+# serial 012345678906, so the USB by-id path is not unique across enclosures.
+#
+# Stress-tested 2026-09-06 on this port: 863 MB/s write, 1000 MB/s read,
+# 58 C peak with thermal pad (threshold 84 C), no bus resets.
+# udev: /etc/udev/rules.d/60-rtl9210-usb.rules (no autosuspend, mq-deadline).
+#
+# Block size 512 (matches the other pools). Standalone manifest, not under ArgoCD.
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: elitedesk-nvme-pool
+  namespace: openebs
+spec:
+  node: elitedesk
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-0hBVk0VWgMMOZDoIbOsaMsQaykCq0tc3q6zSjBsYFosCYvufDd3GO5L5AHLfEBL0

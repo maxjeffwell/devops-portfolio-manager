@@ -1,0 +1,24 @@
+# elitedesk-usb-pool — Mayastor DiskPool on elitedesk, USB-attached 2 TB SATA SSD
+#
+# Backing: LVM logical volume usb-vg/mayastor-pool-2t (whole-disk PV on a
+# Crucial BX500 2 TB, serial 2513E9B2FE4B, in a StarTech ASM1053 USB 3.0
+# enclosure on the front USB-C port). Dedicated VG so the openebs-vg thin pool
+# (lvm-localpv) can never land on USB.
+#
+# Referenced by dm-uuid rather than the USB by-id path: the ASM1053 bridge
+# reports the generic serial AC0000000001, so the USB path is not unique.
+#
+# Stress-tested 2026-09-06: 440 MB/s read (USB 3.0 ceiling), 62 MB/s sustained
+# write (DRAM-less QLC), no bus resets. Treat as the EXPENDABLE replica: a full
+# rebuild onto this pool runs at the write speed above.
+#
+# Block size 512 (matches the other pools). Standalone manifest, not under ArgoCD.
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: elitedesk-usb-pool
+  namespace: openebs
+spec:
+  node: elitedesk
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-oUb155qzvfHzVP2Q1KkCBM54TKeyzOhBoGUAHDdhDp266OfWPxeOCw4cSWqXBJwU
