@@ -71,7 +71,9 @@ tempoMonolithic:
   resources:
     requests:
       cpu: 100m
-      memory: 512Mi
+      # 512Mi request against a measured 2-day peak of 1317Mi (2026-09-07).
+      # Limit stays 2Gi -- peak is only 64% of it, so headroom is fine.
+      memory: 1536Mi
     limits:
       memory: 2Gi
   persistence:
@@ -112,7 +114,11 @@ tempoRedis:
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      # 2026-09-07: measured 2-day peak is only ~113Mi, so the 256Mi request
+      # over-reserved. The LIMIT deliberately stays 1Gi: maxmemory below allows
+      # the dataset to reach 800mb, so any limit under that would turn a normal
+      # cache fill into an OOM kill.
+      memory: 128Mi
     limits:
       memory: 1Gi
   maxmemory: 800mb
@@ -138,9 +144,13 @@ pyroscope:
       # peak is ~154m against a 100m request, so it routinely burns more than it
       # reserves and is first in line to be throttled under CPU pressure.
       cpu: 200m
-      memory: 512Mi
+      # 512Mi request against a measured 2-day peak of 1033Mi (2026-09-07).
+      memory: 1280Mi
     limits:
-      memory: 2Gi
+      # 2Gi -> 1536Mi: peak is ~67% of the new limit, still comfortable, and the
+      # reclaimed 512Mi offsets the prometheus/alloy limit increases so the
+      # node's total memory limits do not creep further past allocatable.
+      memory: 1536Mi
   persistence:
     storageClass: local-path
     size: 20Gi
@@ -207,22 +217,31 @@ kube-prometheus-stack:
               requests:
                 storage: 50Gi
       # Resource limits
+      # 2026-09-07 memory right-sizing. The old 512Mi request was ~7x below the
+      # measured 2-day peak of 3721Mi. Memory eviction is ranked by usage ABOVE
+      # request, so the most important pod on elitedesk was also the first
+      # candidate to be evicted under node memory pressure. Request now tracks
+      # real usage; limit 4Gi -> 5Gi because peak was 91% of the old limit
+      # (offset by trimming mimir 4Gi -> 3Gi, which peaks at only 47%).
       resources:
         requests:
           cpu: 200m
-          memory: 512Mi
+          memory: 3584Mi
         limits:
           cpu: 1000m
-          memory: 4Gi
+          memory: 5Gi
       # Config-reloader sidecar and init container resources (required by monitoring-quota)
       containers:
         - name: config-reloader
+          # Was 25Mi/50Mi: measured peak was 96% of the 50Mi limit, the tightest
+          # headroom of any container on the node. Not OOM-killed yet, but one
+          # config reload away from it.
           resources:
             requests:
               cpu: 10m
-              memory: 25Mi
+              memory: 64Mi
             limits:
-              memory: 50Mi
+              memory: 128Mi
       initContainers:
         - name: init-config-reloader
           resources:
@@ -900,16 +919,20 @@ alloy:
     resources:
       requests:
         cpu: 50m
-        memory: 512Mi
+        # 2026-09-07: 512Mi request vs a measured 2-day peak of 1775Mi, which was
+        # also 86% of the old 2Gi limit -- under-requested AND tight on headroom.
+        memory: 1792Mi
       limits:
-        memory: 2Gi
+        memory: 2560Mi
   configReloader:
+    # Same fix as the prometheus config-reloader: measured peak was 96% of the
+    # 50Mi limit (2026-09-07), the tightest headroom on the node.
     resources:
       requests:
         cpu: 10m
-        memory: 25Mi
+        memory: 64Mi
       limits:
-        memory: 50Mi
+        memory: 128Mi
   controller:
     type: daemonset
     hostPID: true
@@ -1021,12 +1044,15 @@ mimirMonolithic:
   nodeSelector:
     kubernetes.io/hostname: elitedesk
   # Combined resources for all Mimir components in a single process
+  # 2026-09-07: request 512Mi -> 2Gi to match the measured 2-day peak of 1938Mi.
+  # Limit 4Gi -> 3Gi: peak was only 47% of 4Gi, and trimming here offsets the
+  # prometheus limit increase so the node's total memory limits stay ~flat.
   resources:
     requests:
       cpu: 200m
-      memory: 512Mi
+      memory: 2Gi
     limits:
-      memory: 4Gi
+      memory: 3Gi
   persistence:
     storageClass: local-path
     size: 20Gi
