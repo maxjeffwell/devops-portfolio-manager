@@ -27,10 +27,14 @@ service:
     nodePort: 30010
 resources:
   server:
+    # 2026-09-07: cpu 200m -> 100m, measured 2-day peak 17m. Memory left alone
+    # (peak 218Mi vs a 256Mi request) -- that one was already about right.
+    # NOTE: bookmarked-server was deliberately NOT cut the same way; it peaks at
+    # 164m against its 200m request, so it is correctly sized as-is.
     limits:
       memory: 512Mi
     requests:
-      cpu: 200m
+      cpu: 100m
       memory: 256Mi
   client:
     limits:

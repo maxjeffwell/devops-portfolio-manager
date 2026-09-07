@@ -116,12 +116,15 @@ probes:
     successThreshold: 1
     failureThreshold: 30
 
+# 2026-09-07 right-sizing, measured 2-day peaks: cpu 16m against a 200m request,
+# but memory 1629Mi against a 1Gi request and a 2Gi limit -- so cpu was ~12x
+# over-reserved while memory ran at 80% of its own limit. Opposite directions.
 resources:
   requests:
-    cpu: 200m
-    memory: 1Gi
+    cpu: 100m
+    memory: 1664Mi
   limits:
-    memory: 2Gi
+    memory: 2560Mi
 
 # K8up backs this volume up by EXEC, not by mounting it.
 #

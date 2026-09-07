@@ -9,6 +9,16 @@ spec:
   backup:
     enabled: true
     image: percona/percona-backup-mongodb:2.9.0
+    # 2026-09-07: the backup-agent sidecar previously had NO memory limit at all
+    # (operator default is 64Mi request / unlimited), so it could grow without
+    # bound and contributed nothing to the node's limit accounting. Measured
+    # 2-day peak is 255Mi, so request that and cap at 2x.
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 10m
+        memory: 256Mi
     startingDeadlineSeconds: 120
     storages:
       garage-s3:
@@ -60,12 +70,16 @@ spec:
     name: rs0
     readinessProbe:
       timeoutSeconds: 5
+    # 2026-09-07 right-sizing, measured 2-day peaks: cpu 58m against a 250m
+    # request (over-reserved), memory 439Mi against a 256Mi request and a 512Mi
+    # limit -- i.e. mongod was running at 86% of its own memory limit, one of the
+    # tightest on the cluster, while reserving far more cpu than it ever used.
     resources:
       limits:
-        memory: 512Mi
+        memory: 768Mi
       requests:
-        cpu: 250m
-        memory: 256Mi
+        cpu: 150m
+        memory: 512Mi
     size: 3
     storage:
       engine: wiredTiger
