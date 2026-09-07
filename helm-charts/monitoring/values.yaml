@@ -661,14 +661,16 @@ garageHome:
 
 garage:
   enabled: true
-  replicas: 2
+  replicas: 1
   antiAffinity: true
-  # These two pods are the GATEWAY members (zero blocks) of the federated
-  # Garage cluster. hostNetwork + rpc on :3901, so they can only live on nodes
+  # This pod is the GATEWAY member (zero blocks) of the federated Garage
+  # cluster. hostNetwork + rpc on :3901, so it can only live on a node
   # without a native garage (elitedesk/debian-marmoset run one on the host).
+  # Was 2 replicas (vmi2951245 + vmi3115606) until 2026-09-06; vmi3115606 is
+  # being decommissioned and its gateway (30da4663) was removed from the
+  # layout at v31.
   nodeHostnames:
     - vmi2951245
-    - vmi3115606
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
