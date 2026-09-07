@@ -42,7 +42,7 @@ controller:
           - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: NotIn
-                values: [vmi2951245, vmi3115606]
+                values: [vmi2951245]
 
 node:
   logLevel: 2

@@ -79,7 +79,7 @@ affinity:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - vmi3115606
+                - debian-marmoset
 
 # Gate startup on the database being reachable. lunary-backend runs its
 # materialized-view refresh synchronously at boot (index.ts:74) and calls

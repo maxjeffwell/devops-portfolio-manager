@@ -1,7 +1,7 @@
 # node-problem-detector values override
 # Chart: deliveryhero/node-problem-detector 2.3.14 (app v0.8.19)
 #
-# Pins to 3 nodes (debian-marmoset, vmi2951245, vmi3115606); marmoset excluded
+# Runs on every node except marmoset (NotIn below); marmoset excluded
 # per design spec. Custom monitors are mounted inline via the chart's
 # settings.custom_monitor_definitions support — no separate ConfigMap needed.
 
