@@ -133,7 +133,11 @@ pyroscope:
     kubernetes.io/hostname: elitedesk
   resources:
     requests:
-      cpu: 100m
+      # Raised 100m -> 200m 2026-09-07. Unlike most of elitedesk (which is
+      # heavily OVER-requested), pyroscope is UNDER-requested: measured 2-day
+      # peak is ~154m against a 100m request, so it routinely burns more than it
+      # reserves and is first in line to be throttled under CPU pressure.
+      cpu: 200m
       memory: 512Mi
     limits:
       memory: 2Gi
@@ -550,8 +554,15 @@ kube-prometheus-stack:
     enabled: false
 
   kube-state-metrics:
-    nodeSelector:
-      kubernetes.io/hostname: elitedesk
+    # Deliberately NOT pinned to a node. It used to carry
+    # nodeSelector kubernetes.io/hostname: elitedesk, but elitedesk sits at ~99%
+    # of allocatable CPU in *requests* (only ~30% real usage), so KSM had no room
+    # to reschedule there. On the 2026-09-07 debian-marmoset reboot a coredns pod
+    # (system-cluster-critical) landed on elitedesk and PREEMPTED KSM; with the
+    # pin in place the scheduler could not place it anywhere else and cluster-wide
+    # kube_* metrics were gone until the node was manually freed. KSM is a
+    # cluster-scoped API scraper with no affinity to elitedesk, so let the
+    # scheduler place it.
     livenessProbe:
       failureThreshold: 10
       periodSeconds: 15
