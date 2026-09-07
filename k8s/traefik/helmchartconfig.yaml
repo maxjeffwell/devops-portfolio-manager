@@ -53,6 +53,16 @@ spec:
         format: json
         filePath: "/var/log/traefik/access.log"
     deployment:
+      # Single replica pinned to the public-origin VPS (see nodeSelector below).
+      # Was 2 replicas + hostname anti-affinity for the two-VPS era; after the
+      # 2nd VPS left (2026-09-06) the spare replica landed on m720q, which has
+      # no wg0 route to headscale's Endpoints (10.0.0.9:8081 on dm) -> ~50% 504s.
+      replicas: 1
+      strategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
       additionalVolumes:
       - name: access-logs
         hostPath:
@@ -77,3 +87,20 @@ spec:
     - name: crowdsec-lapi-key
       mountPath: /etc/crowdsec
       readOnly: true
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - traefik
+          topologyKey: kubernetes.io/hostname
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+    # Public origin is vmi2951245 only (LAN DNS sends every el-jefe.me name to
+    # Cloudflare/the VPS), and it is the only node with wg0 to dm for headscale.
+    nodeSelector:
+      kubernetes.io/hostname: vmi2951245
