@@ -11,11 +11,17 @@ spec:
     image: percona/percona-backup-mongodb:2.9.0
     # 2026-09-07: the backup-agent sidecar previously had NO memory limit at all
     # (operator default is 64Mi request / unlimited), so it could grow without
-    # bound and contributed nothing to the node's limit accounting. Measured
-    # 2-day peak is 255Mi, so request that and cap at 2x.
+    # bound and contributed nothing to the node's limit accounting.
+    #
+    # Limit raised 512Mi -> 768Mi later the same day. The original 512Mi came
+    # from a 2-day peak of 255Mi, but that window fell BETWEEN backup runs. Over
+    # 7 days the agent peaks at 618-649Mi across the three replica sets while
+    # actually running a backup, so a 512Mi cap would have OOM-killed the next
+    # sizeable one. Request stays 256Mi: that is still typical usage (6h max
+    # 246Mi), and only the limit needs to cover the backup spike.
     resources:
       limits:
-        memory: 512Mi
+        memory: 768Mi
       requests:
         cpu: 10m
         memory: 256Mi
