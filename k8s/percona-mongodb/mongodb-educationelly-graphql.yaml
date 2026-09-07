@@ -41,7 +41,7 @@ spec:
                 values:
                 - debian-marmoset
                 - elitedesk
-                - vmi3115606
+                - m720q
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:

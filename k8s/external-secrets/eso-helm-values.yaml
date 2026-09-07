@@ -6,14 +6,15 @@
 #   helm upgrade --install external-secrets external-secrets/external-secrets \
 #     -n external-secrets -f external-secrets-values.yaml
 
-# Pin all ESO components to data node to reduce load on control-plane VPS
+# Pin all ESO components to one home node (m720q). Was vmi3115606 until
+# 2026-09-06; that VPS is being decommissioned and all workloads move home.
 nodeSelector:
-  kubernetes.io/hostname: vmi3115606
+  kubernetes.io/hostname: m720q
 
 webhook:
   nodeSelector:
-    kubernetes.io/hostname: vmi3115606
+    kubernetes.io/hostname: m720q
 
 certController:
   nodeSelector:
-    kubernetes.io/hostname: vmi3115606
+    kubernetes.io/hostname: m720q

@@ -31,7 +31,7 @@ spec:
                 - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: ["vmi2951245", "vmi3115606"]
+                    values: ["vmi2951245"]
           containers:
           - name: rclone-sync
             image: rclone/rclone:1.69
