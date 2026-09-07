@@ -79,7 +79,11 @@ spec:
         memory: 768Mi
       requests:
         cpu: 150m
-        memory: 512Mi
+        # 448Mi not 512Mi: 2-day AVERAGE across the mongod pods tops out at
+        # 405Mi (peak 439Mi). The 512Mi first used here was peak-plus-padding
+        # and, multiplied across 3 replica sets, helped push m720q to 99.9% of
+        # allocatable memory requests. The 768Mi limit covers the peak.
+        memory: 448Mi
     size: 3
     storage:
       engine: wiredTiger

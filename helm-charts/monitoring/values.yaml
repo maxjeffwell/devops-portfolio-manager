@@ -919,9 +919,15 @@ alloy:
     resources:
       requests:
         cpu: 50m
-        # 2026-09-07: 512Mi request vs a measured 2-day peak of 1775Mi, which was
-        # also 86% of the old 2Gi limit -- under-requested AND tight on headroom.
-        memory: 1792Mi
+        # 2026-09-07: was 512Mi, which was well under real usage. Sized to TYPICAL
+        # usage, not peak, because this is a DaemonSet on heterogeneous nodes:
+        # 2-day averages are 421Mi (marmoset) / 1028Mi (m720q) / 1049Mi
+        # (debian-marmoset) / 1335Mi (elitedesk) / 1600Mi (vmi2951245), with peaks
+        # to 1775Mi. An earlier revision today used the peak (1792Mi) and pushed
+        # m720q -- a 13.8Gi node -- to 99.9% of allocatable in memory requests.
+        # The 2560Mi limit is what covers the peak; the request only needs to
+        # cover steady state.
+        memory: 1280Mi
       limits:
         memory: 2560Mi
   configReloader:
