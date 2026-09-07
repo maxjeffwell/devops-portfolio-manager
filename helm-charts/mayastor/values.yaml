@@ -57,6 +57,11 @@ localpv-provisioner:
 loki:
   enabled: false
 mayastor:
+  agents:
+    core:
+      rebuild:
+        partial:
+          waitPeriod: 30m
   alloy:
     enabled: false
   crds:
@@ -75,7 +80,9 @@ mayastor:
       enabled: false
     nodeSelector:
       kubernetes.io/arch: amd64
-      openebs.io/engine: mayastor
+      # openebs.io/engine deliberately NOT required (9/6): etcd data is a local-path PV
+      # pinned to debian-marmoset, which lost the engine label when its io-engine was
+      # retired. Requiring it left etcd Pending after the 9/6 reboot (control plane down).
     pdb:
       create: false
     persistence:
@@ -96,6 +103,9 @@ mayastor:
       requests:
         cpu: '1'
         hugepages2Mi: 2Gi
+    target:
+      nvmf:
+        iface: bond0
   localpv-provisioner:
     enabled: false
   loki:
