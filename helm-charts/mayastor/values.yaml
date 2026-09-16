@@ -20,8 +20,11 @@
 # The csi-snapshot-controller sidecar is removed by post-render.sh (no chart
 # toggle exists as of umbrella 4.5.1 / mayastor 2.11.1).
 #
-#   helm upgrade mayastor openebs-umbrella/openebs --version 4.4.0 -n openebs \
-#     -f helm-charts/mayastor/values.yaml --post-renderer helm-charts/mayastor/post-render.sh
+#   helm upgrade mayastor openebs/openebs --version 4.6.1 -n openebs -f helm-charts/mayastor/values.yaml
+#
+# 2026-09-15: upgraded 4.4.0 -> 4.6.1 (mayastor 2.10.0 -> 2.12.1). post-render.sh is
+# RETIRED: the chart now has mayastor.csi.controller.snapshotController.enabled=false.
+# io_engine.pool.ioAlerts.stallDeadline pinned to 110s (chart default renders "110s110s").
 #
 # Pinned hand-patched state (else helm reverts it): io_engine.coreList=[1] +
 # cpu 1, etcd.pdb.create=false (zero-budget PDB purge 8/23), localpv-provisioner
@@ -30,6 +33,7 @@
 # follows coreList (2->1); provisioner also gets the chart's 5s NoExecute
 # tolerations appended.
 
+USER-SUPPLIED VALUES: null
 alloy:
   enabled: false
 engines:
@@ -70,6 +74,9 @@ mayastor:
         enabled: false
     enabled: true
   csi:
+    controller:
+      snapshotController:
+        enabled: false
     node:
       initContainers:
         enabled: true
@@ -80,9 +87,6 @@ mayastor:
       enabled: false
     nodeSelector:
       kubernetes.io/arch: amd64
-      # openebs.io/engine deliberately NOT required (9/6): etcd data is a local-path PV
-      # pinned to debian-marmoset, which lost the engine label when its io-engine was
-      # retired. Requiring it left etcd Pending after the 9/6 reboot (control plane down).
     pdb:
       create: false
     persistence:
@@ -96,6 +100,9 @@ mayastor:
     coreList:
     - 1
     envcontext: iova-mode=pa
+    pool:
+      ioAlerts:
+        stallDeadline: 110s
     resources:
       limits:
         cpu: '1'
