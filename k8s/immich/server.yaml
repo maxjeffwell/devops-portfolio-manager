@@ -25,9 +25,10 @@ spec:
         component: server
         portfolio: "true"
       annotations:
-        # Velero: the library is on the NAS (backed up there), photos-external is
-        # read-only source data, tmp is scratch. Nothing in this pod needs kopia.
-        backup.velero.io/backup-volumes-excludes: library,photos-external,tmp
+        # Velero: the library is on the NAS (backed up there), tmp is scratch.
+        # Nothing in this pod needs kopia. (/external/Photos mount removed 2026-09-16:
+        # the folder was a byte-identical duplicate of Immich uploads and was deleted.)
+        backup.velero.io/backup-volumes-excludes: library,tmp
     spec:
       nodeSelector:
         kubernetes.io/hostname: elitedesk
@@ -83,7 +84,6 @@ spec:
               gpu.intel.com/i915: "1"
           volumeMounts:
             - { name: library,         mountPath: /data }
-            - { name: photos-external, mountPath: /external/Photos, readOnly: true }
             - { name: tmp,             mountPath: /tmp }
           startupProbe:
             httpGet: { path: /api/server/ping, port: 2283 }
@@ -98,7 +98,6 @@ spec:
             failureThreshold: 5
       volumes:
         - { name: library,         persistentVolumeClaim: { claimName: immich-library } }
-        - { name: photos-external, persistentVolumeClaim: { claimName: immich-photos-external, readOnly: true } }
         - { name: tmp,             emptyDir: { sizeLimit: 4Gi } }
 ---
 apiVersion: v1
