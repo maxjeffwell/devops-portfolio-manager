@@ -1,0 +1,56 @@
+# Identity used by each home node's NUT SHUTDOWNCMD (cordon + drain before
+# halt) and its uncordon-on-boot unit. Scoped to exactly what `kubectl drain`
+# and `kubectl cordon/uncordon` need; the long-lived token below is copied to
+# each node as /etc/kubernetes/node-powerfail.kubeconfig (root:root 0600).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-powerfail
+  namespace: kube-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node-powerfail-token
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: node-powerfail
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-powerfail
+rules:
+  # cordon / uncordon = patch node.spec.unschedulable
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch"]
+  # drain lists the node's pods, then evicts them
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+  # drain resolves each pod's controller to decide DaemonSet / orphan handling
+  - apiGroups: ["apps"]
+    resources: ["daemonsets", "replicasets", "statefulsets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-powerfail
+subjects:
+  - kind: ServiceAccount
+    name: node-powerfail
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: node-powerfail
+  apiGroup: rbac.authorization.k8s.io
