@@ -1,0 +1,82 @@
+# Egress allowlist: DNS, NFS (ASUSTOR 192.168.50.149), Channels DVR
+# (ASUSTOR 192.168.50.142:8089 — Live TV M3U/XMLTV tuner + HLS pulls),
+# internet HTTPS for TMDB/plugin updates. Any NEW LAN media source needs an
+# explicit /32 rule here.
+# Ingress: Traefik (kube-system) → 8096, Prometheus (monitoring) → 8096.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+spec:
+  podSelector:
+    matchLabels:
+      app: jellyfin
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - port: 8096
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 8096
+          protocol: TCP
+
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+    # NFS to ASUSTOR .149 (NFSv3: portmapper + nfsd + mountd/lockd/statd ranges)
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.149/32
+      ports:
+        - { port: 2049,  protocol: TCP }
+        - { port: 111,   protocol: TCP }
+        - { port: 111,   protocol: UDP }
+        - { port: 32765, protocol: TCP }
+        - { port: 32766, protocol: TCP }
+        - { port: 32767, protocol: TCP }
+        - { port: 32768, protocol: TCP }
+        - { port: 32769, protocol: TCP }
+
+    # Channels DVR on ASUSTOR — Live TV source (M3U, XMLTV, HLS), http-by-IP.
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.142/32
+      ports:
+        - port: 8089
+          protocol: TCP
+
+    # HTTPS to internet (TMDB metadata, plugin updates) — exclude RFC1918
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP

@@ -1,0 +1,159 @@
+# --- Jellyfin state on debian-marmoset (openebs-lvmpv, thin, openebs-vg) ---
+# /config — jellyfin.db, metadata, plugins, logs. ~3.6 GB copied from the
+# ASUSTOR instance on 2026-09-15; 20Gi leaves room for years of metadata.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: openebs-lvmpv
+---
+# /cache — image cache, trickplay, fonts. Regenerable; excluded from Velero.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-cache
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: openebs-lvmpv
+---
+# --- Media: static NFS PVs from ASUSTOR 192.168.50.149 (RTL8157 5GbE), read-only.
+# Capacity on static NFS PVs is metadata only (governs PVC binding, not enforced).
+# nconnect=8 must match the other .149 mounts on the node (channels-dvr uses 8);
+# NFS nconnect is per-server and fixed by the first mount.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-movies
+  labels:
+    app: jellyfin
+    media: movies
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/Movies
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-media-movies
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 2Ti
+  storageClassName: ""
+  volumeName: jellyfin-media-movies
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-tvshows
+  labels:
+    app: jellyfin
+    media: tvshows
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: "/volume1/TV Shows"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-media-tvshows
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 2Ti
+  storageClassName: ""
+  volumeName: jellyfin-media-tvshows
+---
+# Channels DVR's own recordings (/volume1/channels-data, export ro) — browsed
+# read-only as the "Shows2" library at /media/dvr/TV. Channels owns the folder.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-rec-channels
+  labels:
+    app: jellyfin
+    media: recordings-channels
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/channels-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-rec-channels
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 2Ti
+  storageClassName: ""
+  volumeName: jellyfin-rec-channels

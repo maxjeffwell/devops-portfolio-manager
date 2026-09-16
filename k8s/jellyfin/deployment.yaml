@@ -1,0 +1,156 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jellyfin
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+    portfolio: "true"
+spec:
+  # 2026-09-15 — Redeployed on debian-marmoset as the PRIMARY Jellyfin (the
+  # ASUSTOR Docker instance at 192.168.50.142:28096 becomes the standby).
+  # dm's Iris Xe (Alder Lake-P) does QSV via the Intel GPU device plugin.
+  # /config and /cache are openebs-lvmpv on dm's openebs-vg (Mayastor cannot
+  # mount on dm: no csi-node there). Media is read-only NFS from ASUSTOR .149,
+  # mounted at the SAME container paths the ASUSTOR instance uses
+  # (/sharefolder/Movies, "/sharefolder/TV Shows", /media/dvr) so a copied
+  # /config keeps its library paths.
+  replicas: 1
+  strategy:
+    # Recreate avoids RWO PVC dual-attach during rollouts.
+    type: Recreate
+  selector:
+    matchLabels:
+      app: jellyfin
+  template:
+    metadata:
+      labels:
+        app: jellyfin
+        portfolio: "true"
+      annotations:
+        # Opt OUT of kopia FS-backup for replaceable volumes (cluster default is
+        # defaultVolumesToFsBackup=true). KEEP `config` — irreplaceable
+        # library/watch-state metadata.
+        backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,rec-channels,cache,transcodes,tmp,run
+    spec:
+      # DNS served by the cluster-wide NodeLocal DNSCache (k8s/nodelocaldns).
+      dnsPolicy: ClusterFirst
+      nodeSelector:
+        gpu-node: "true"
+      priorityClassName: portfolio-critical
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        # 992 = `render` group on debian-marmoset (owner of /dev/dri/renderD128).
+        supplementalGroups: [992]
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Recover encoding.xml if it's missing or corrupt (Jellyfin silently
+        # falls back to HardwareAccelerationType=none on a bad file), and keep
+        # TranscodingTempPath on the dedicated /transcodes emptyDir.
+        - name: ensure-encoding-config
+          image: busybox:1.36
+          command: ["sh", "-c"]
+          args:
+            - |
+              TARGET=/config/config/encoding.xml
+              mkdir -p /config/config
+              if [ ! -s "$TARGET" ] || ! grep -q '</EncodingOptions>' "$TARGET" 2>/dev/null; then
+                echo "Restoring encoding.xml from ConfigMap (missing or corrupt)"
+                cp /default/encoding.xml "$TARGET"
+              else
+                echo "encoding.xml is present and well-formed; leaving alone"
+              fi
+              if grep -q '<TranscodingTempPath>/cache/transcodes</TranscodingTempPath>' "$TARGET" 2>/dev/null; then
+                echo "Migrating TranscodingTempPath: /cache/transcodes -> /transcodes"
+                sed -i 's|<TranscodingTempPath>/cache/transcodes</TranscodingTempPath>|<TranscodingTempPath>/transcodes</TranscodingTempPath>|' "$TARGET"
+              fi
+              # A config copied from the ASUSTOR Docker instance has an empty
+              # TranscodingTempPath (= Jellyfin default /cache/transcodes). Pin it.
+              if grep -q '<TranscodingTempPath />' "$TARGET" 2>/dev/null; then
+                echo "Setting empty TranscodingTempPath -> /transcodes"
+                sed -i 's|<TranscodingTempPath />|<TranscodingTempPath>/transcodes</TranscodingTempPath>|' "$TARGET"
+              fi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - { name: config, mountPath: /config }
+            - { name: encoding-defaults, mountPath: /default, readOnly: true }
+      containers:
+        - name: jellyfin
+          # Pinned to the version running on the ASUSTOR (12.1.0 on 2026-09-15)
+          # so a copied /config needs no downgrade. Bump deliberately.
+          image: jellyfin/jellyfin:12.1.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8096
+              protocol: TCP
+          env:
+            - { name: TZ, value: America/New_York }
+            - { name: JELLYFIN_PublishedServerUrl, value: https://jellyfin-k8s.el-jefe.me }
+            # NOTE: do not add JELLYFIN_FFmpeg__transcoding_temp_path — Jellyfin
+            # reads EncodingOptions from encoding.xml and ignores env overrides
+            # for that section. The initContainer pins TranscodingTempPath.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+              gpu.intel.com/i915: "1"
+            limits:
+              # dm is a 16 GiB laptop already ~62 % committed; 3Gi keeps ~4Gi
+              # of real headroom while Jellyfin transcodes. QSV does the codec
+              # work, so the CPU limit only bounds a software-fallback transcode.
+              cpu: "4"
+              memory: 3Gi
+              gpu.intel.com/i915: "1"
+          volumeMounts:
+            - { name: config,        mountPath: /config }
+            - { name: cache,         mountPath: /cache }
+            - { name: transcodes,    mountPath: /transcodes }
+            # Library paths identical to the ASUSTOR Docker instance.
+            - { name: media-movies,  mountPath: /sharefolder/Movies,   readOnly: true }
+            - { name: media-tvshows, mountPath: /sharefolder/TV Shows, readOnly: true }
+            - { name: rec-channels,  mountPath: /media/dvr,            readOnly: true }
+            - { name: tmp,           mountPath: /tmp }
+            - { name: run,           mountPath: /var/run }
+          livenessProbe:
+            httpGet: { path: /health, port: 8096 }
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet: { path: /health, port: 8096 }
+            periodSeconds: 10
+          startupProbe:
+            # 10 min budget: first start on a copied 3.6 GB /config runs DB migrations.
+            httpGet: { path: /health, port: 8096 }
+            periodSeconds: 10
+            failureThreshold: 60
+      volumes:
+        - { name: config,        persistentVolumeClaim: { claimName: jellyfin-config } }
+        - { name: cache,         persistentVolumeClaim: { claimName: jellyfin-cache } }
+        - { name: media-movies,  persistentVolumeClaim: { claimName: jellyfin-media-movies,  readOnly: true } }
+        - { name: media-tvshows, persistentVolumeClaim: { claimName: jellyfin-media-tvshows, readOnly: true } }
+        - { name: rec-channels,  persistentVolumeClaim: { claimName: jellyfin-rec-channels,  readOnly: true } }
+        - name: transcodes
+          # Disk-backed emptyDir (root NVMe). NEVER medium: Memory — tmpfs counts
+          # against the 3Gi memory limit and squeezes the heap toward OOM.
+          emptyDir:
+            sizeLimit: 12Gi
+        - { name: tmp, emptyDir: { sizeLimit: 256Mi } }
+        - { name: run, emptyDir: { sizeLimit: 64Mi } }
+        - name: encoding-defaults
+          configMap:
+            name: jellyfin-encoding-defaults
