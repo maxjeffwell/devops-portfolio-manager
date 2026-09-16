@@ -8,7 +8,7 @@ INTERVAL=5
 # ip:export pairs. The export must appear in showmount -e (proves exports are
 # loaded, not just nfsd listening). Falls back to a TCP check on 2049 where
 # showmount is not installed.
-TARGETS="192.168.50.149:/mnt/backups 192.168.50.109:/volume1/k8s-nfs"
+TARGETS=${TARGETS:-"192.168.50.149:/mnt/backups 192.168.50.109:/volume1/k8s-nfs"}
 
 ready() {
   local ip=$1 exp=$2
