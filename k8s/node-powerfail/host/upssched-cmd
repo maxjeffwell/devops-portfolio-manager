@@ -1,0 +1,12 @@
+#!/bin/sh
+# upssched CMDSCRIPT. Runs as user nut; the only privileged action is
+# `upsmon -c fsd` (sudoers: /etc/sudoers.d/nut-fsd), which makes the local
+# upsmon run SHUTDOWNCMD (= nut-powerfail-shutdown.sh) immediately.
+case "$1" in
+  powerfail)
+    logger -t upssched "UPS on battery past the ONBATT timer - initiating FSD (cordon+drain+halt)"
+    echo "UPS on battery too long, shutting down" | wall 2>/dev/null
+    sudo /sbin/upsmon -c fsd
+    ;;
+  *) logger -t upssched "unhandled event: $1" ;;
+esac

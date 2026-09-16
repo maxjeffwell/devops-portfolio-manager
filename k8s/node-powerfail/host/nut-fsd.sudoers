@@ -1,0 +1,1 @@
+nut ALL=(root) NOPASSWD: /sbin/upsmon -c fsd
