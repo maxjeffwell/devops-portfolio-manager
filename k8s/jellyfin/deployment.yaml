@@ -15,7 +15,8 @@ spec:
   # mounted at the SAME container paths the ASUSTOR instance uses
   # (/sharefolder/Movies, "/sharefolder/TV Shows", /media/dvr) so a copied
   # /config keeps its library paths.
-  replicas: 1
+  # TEMP 2026-09-15: replicas 0 while /config is seeded from the ASUSTOR instance.
+  replicas: 0
   strategy:
     # Recreate avoids RWO PVC dual-attach during rollouts.
     type: Recreate
