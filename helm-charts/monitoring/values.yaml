@@ -911,7 +911,9 @@ alloy:
         protocol: TCP
     extraEnv:
       - name: GOMEMLIMIT
-        value: "1800MiB"
+        # Kept ~78% of the memory limit so the Go heap backs off before the
+        # cgroup ceiling. Raised with the limit 2560Mi -> 3072Mi (2026-09-16).
+        value: "2400MiB"
       - name: HOST_IP
         valueFrom:
           fieldRef:
@@ -929,7 +931,13 @@ alloy:
         # cover steady state.
         memory: 1280Mi
       limits:
-        memory: 2560Mi
+        # 2026-09-16: was 2560Mi. elitedesk hit that ceiling 4508 times in 31h
+        # (cgroup memory.events max=4508, peak working set 2327Mi = 91% of the
+        # limit); it survived only via page-cache reclaim, with 23.7k major
+        # faults. Raised to 3072Mi. Limits do not count toward allocatable, so
+        # this costs no scheduling headroom -- unlike the request, which stays
+        # at typical usage for the m720q reason documented above.
+        memory: 3072Mi
   configReloader:
     # Same fix as the prometheus config-reloader: measured peak was 96% of the
     # 50Mi limit (2026-09-07), the tightest headroom on the node.
