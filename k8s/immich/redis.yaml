@@ -1,0 +1,83 @@
+# Valkey (Redis-compatible) job queue for Immich. No persistence: Immich's
+# upstream compose runs it without a volume; queued jobs are re-queued by the
+# server on restart. Image pinned to the tag Immich v3.2.2 ships in its compose.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-redis
+  namespace: immich
+  labels:
+    app: immich
+    component: redis
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich
+      component: redis
+  template:
+    metadata:
+      labels:
+        app: immich
+        component: redis
+        portfolio: "true"
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: elitedesk
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valkey
+          image: docker.io/valkey/valkey:9
+          imagePullPolicy: IfNotPresent
+          args: ["--save", "", "--appendonly", "no"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: redis
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            periodSeconds: 30
+          volumeMounts:
+            - { name: data, mountPath: /data }
+      volumes:
+        - { name: data, emptyDir: { sizeLimit: 256Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-redis
+  namespace: immich
+  labels:
+    app: immich
+    component: redis
+spec:
+  selector:
+    app: immich
+    component: redis
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379

@@ -1,0 +1,139 @@
+# Immich server (API + microservices in one process, the v2+/v3 default).
+# Postgres = CNPG cluster `cnpg-immich` in this namespace (VectorChord
+# image), credentials from the CNPG-generated app secret. /data = NFS library on
+# the ASUSTOR. Pinned to elitedesk so the DB nexus, ML GPU and server share a node.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-server
+  namespace: immich
+  labels:
+    app: immich
+    component: server
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich
+      component: server
+  template:
+    metadata:
+      labels:
+        app: immich
+        component: server
+        portfolio: "true"
+      annotations:
+        # Velero: the library is on the NAS (backed up there), photos-external is
+        # read-only source data, tmp is scratch. Nothing in this pod needs kopia.
+        backup.velero.io/backup-volumes-excludes: library,photos-external,tmp
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: elitedesk
+      priorityClassName: portfolio-critical
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: ghcr.io/immich-app/immich-server:v3.2.2
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - { name: TZ, value: America/New_York }
+            - { name: IMMICH_PORT, value: "2283" }
+            - { name: IMMICH_MEDIA_LOCATION, value: /data }
+            - { name: DB_HOSTNAME, value: cnpg-immich-rw }
+            - { name: DB_PORT, value: "5432" }
+            - { name: DB_VECTOR_EXTENSION, value: vectorchord }
+            - name: DB_USERNAME
+              valueFrom: { secretKeyRef: { name: cnpg-immich-app, key: username } }
+            - name: DB_PASSWORD
+              valueFrom: { secretKeyRef: { name: cnpg-immich-app, key: password } }
+            - name: DB_DATABASE_NAME
+              valueFrom: { secretKeyRef: { name: cnpg-immich-app, key: dbname } }
+            - { name: REDIS_HOSTNAME, value: immich-redis }
+            - { name: REDIS_PORT, value: "6379" }
+            - { name: IMMICH_MACHINE_LEARNING_URL, value: http://immich-ml:3003 }
+          ports:
+            - name: http
+              containerPort: 2283
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 4Gi
+          volumeMounts:
+            - { name: library,         mountPath: /data }
+            - { name: photos-external, mountPath: /external/Photos, readOnly: true }
+            - { name: tmp,             mountPath: /tmp }
+          startupProbe:
+            httpGet: { path: /api/server/ping, port: 2283 }
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /api/server/ping, port: 2283 }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/server/ping, port: 2283 }
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        - { name: library,         persistentVolumeClaim: { claimName: immich-library } }
+        - { name: photos-external, persistentVolumeClaim: { claimName: immich-photos-external, readOnly: true } }
+        - { name: tmp,             emptyDir: { sizeLimit: 4Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-server
+  namespace: immich
+  labels:
+    app: immich
+    component: server
+spec:
+  selector:
+    app: immich
+    component: server
+  ports:
+    - name: http
+      port: 2283
+      targetPort: 2283
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: immich
+  namespace: immich
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - immich.el-jefe.me
+      secretName: immich-tls
+  rules:
+    - host: immich.el-jefe.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: immich-server
+                port:
+                  number: 2283

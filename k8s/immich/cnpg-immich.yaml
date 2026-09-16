@@ -1,0 +1,103 @@
+# Postgres for Immich — CNPG cluster (in the immich namespace so the operator-generated
+# app secret is reachable by the server pod) using the CNPG-compatible VectorChord operand
+# image (Immich v3.2.2 needs Postgres 14–19 with VectorChord >= 0.3 < 2.0).
+# Fresh initdb; `immich` is made SUPERUSER because Immich's built-in DB backup
+# job uses pg_dumpall and its migrations create extensions. vchord.so must be in
+# shared_preload_libraries. Backups: daily volume snapshots like the other CNPG
+# clusters, staggered to 03:25Z so four fences don't collide with the 03:00Z set.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cnpg-immich
+  namespace: immich
+spec:
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:17-0.4.3
+  instances: 1
+  enablePDB: false
+  priorityClassName: portfolio-critical
+  inheritedMetadata:
+    labels:
+      portfolio: "true"
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [elitedesk, m720q]
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [elitedesk]
+    tolerations:
+      - effect: NoSchedule
+        key: nfs
+        value: broken
+  bootstrap:
+    initdb:
+      database: immich
+      owner: immich
+      dataChecksums: true
+      encoding: UTF8
+      postInitSQL:
+        - ALTER ROLE immich SUPERUSER;
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
+        - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
+  postgresql:
+    shared_preload_libraries:
+      - vchord.so
+    parameters:
+      max_connections: "100"
+      shared_buffers: 256MB
+      effective_cache_size: 1GB
+      work_mem: 16MB
+      maintenance_work_mem: 128MB
+  probes:
+    liveness:
+      isolationCheck:
+        connectionTimeout: 5000
+        enabled: true
+        requestTimeout: 5000
+  storage:
+    resizeInUseVolumes: true
+    size: 10Gi
+    storageClass: mayastor-2
+  resources:
+    requests:
+      cpu: 250m
+      memory: 768Mi
+    limits:
+      memory: 2Gi
+  backup:
+    target: prefer-standby
+    volumeSnapshot:
+      className: mayastor-snapclass
+      online: true
+      onlineConfiguration:
+        immediateCheckpoint: false
+        waitForArchive: true
+      snapshotOwnerReference: none
+  monitoring:
+    enablePodMonitor: true
+    disableDefaultQueries: false
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: cnpg-immich-daily
+  namespace: immich
+spec:
+  schedule: "0 25 3 * * *"
+  backupOwnerReference: self
+  immediate: true
+  method: volumeSnapshot
+  cluster:
+    name: cnpg-immich

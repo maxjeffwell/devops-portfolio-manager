@@ -1,0 +1,103 @@
+# Immich machine learning (CLIP smart search, face detection/recognition, OCR)
+# on elitedesk's UHD 630 via OpenVINO. The -openvino image needs /dev/dri, which
+# the Intel GPU device plugin injects for gpu.intel.com/i915; the render group
+# on elitedesk is gid 992. Models download from Hugging Face on first use into
+# /cache (lvm-localpv PVC). Runs as uid 1000 like the server.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: immich-ml
+  namespace: immich
+  labels:
+    app: immich
+    component: ml
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: immich
+      component: ml
+  template:
+    metadata:
+      labels:
+        app: immich
+        component: ml
+        portfolio: "true"
+      annotations:
+        backup.velero.io/backup-volumes-excludes: cache,tmp
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: elitedesk
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        # 992 = `render` group on elitedesk (owner of /dev/dri/renderD128).
+        supplementalGroups: [992]
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ml
+          image: ghcr.io/immich-app/immich-machine-learning:v3.2.2-openvino
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - { name: TZ, value: America/New_York }
+            - { name: MACHINE_LEARNING_CACHE_FOLDER, value: /cache }
+            # One worker: the initial import is a one-time burst, and one worker
+            # keeps peak RAM bounded on a shared node. Raise later if wanted.
+            - { name: MACHINE_LEARNING_WORKERS, value: "1" }
+            - { name: MACHINE_LEARNING_MODEL_TTL, value: "600" }
+          ports:
+            - name: http
+              containerPort: 3003
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+              gpu.intel.com/i915: "1"
+            limits:
+              cpu: "4"
+              # OpenVINO uses more RAM than the CPU path; 4Gi covers CLIP + face models.
+              memory: 4Gi
+              gpu.intel.com/i915: "1"
+          volumeMounts:
+            - { name: cache, mountPath: /cache }
+            - { name: tmp, mountPath: /tmp }
+          startupProbe:
+            httpGet: { path: /ping, port: 3003 }
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet: { path: /ping, port: 3003 }
+            periodSeconds: 15
+          livenessProbe:
+            httpGet: { path: /ping, port: 3003 }
+            periodSeconds: 30
+            failureThreshold: 5
+      volumes:
+        - { name: cache, persistentVolumeClaim: { claimName: immich-ml-cache } }
+        - { name: tmp, emptyDir: { sizeLimit: 2Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: immich-ml
+  namespace: immich
+  labels:
+    app: immich
+    component: ml
+spec:
+  selector:
+    app: immich
+    component: ml
+  ports:
+    - name: http
+      port: 3003
+      targetPort: 3003

@@ -1,0 +1,100 @@
+# --- Immich library (UPLOAD_LOCATION) — ASUSTOR /volume1/Media/Immich over NFS, rw.
+# Export fsid=115 lives in the ASUSTOR S97lvm-nfs boot script (NOT ADM — an ADM
+# NFS edit rewrites /etc/exports and drops every script export). Directory is
+# owned 1000:1000 on the NAS; the server pod runs as uid 1000.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-library
+  labels:
+    app: immich
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/Media/Immich
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: ""
+  volumeName: immich-library
+---
+# --- Existing photo collection (ASUSTOR /volume1/Media/Photos), read-only.
+# Mounted at /external/Photos so it can be added as an Immich EXTERNAL LIBRARY
+# (Administration → External Libraries) without moving files. Export fsid=116.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-photos-external
+  labels:
+    app: immich
+spec:
+  capacity:
+    storage: 1Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/Media/Photos
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-photos-external
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: ""
+  volumeName: immich-photos-external
+---
+# --- ML model cache (CLIP + face models, a few GB). Regenerable; excluded from Velero.
+# openebs-lvmpv is WaitForFirstConsumer, so this binds on elitedesk with the ML pod.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-ml-cache
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: openebs-lvmpv

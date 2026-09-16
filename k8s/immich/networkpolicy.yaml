@@ -1,0 +1,140 @@
+# Default-deny for the immich namespace with explicit allowlists (same posture
+# as jellyfin). Server: ingress from Traefik + monitoring; egress DNS, Postgres
+# (cnpg-immich, same namespace), redis + ML in-namespace, NFS to ASUSTOR .149, and
+# HTTPS to the public internet only (geodata, map tiles, version check).
+# ML: ingress from the server only; egress DNS + public HTTPS (model downloads).
+# Redis: ingress from the server only; no egress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: immich-server
+  namespace: immich
+spec:
+  podSelector:
+    matchLabels:
+      app: immich
+      component: server
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - { port: 2283, protocol: TCP }
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { port: 2283, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              cnpg.io/cluster: cnpg-immich
+      ports:
+        - { port: 5432, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app: immich
+              component: redis
+      ports:
+        - { port: 6379, protocol: TCP }
+    - to:
+        - podSelector:
+            matchLabels:
+              app: immich
+              component: ml
+      ports:
+        - { port: 3003, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.149/32
+      ports:
+        - { port: 2049,  protocol: TCP }
+        - { port: 111,   protocol: TCP }
+        - { port: 111,   protocol: UDP }
+        - { port: 32765, protocol: TCP }
+        - { port: 32766, protocol: TCP }
+        - { port: 32767, protocol: TCP }
+        - { port: 32768, protocol: TCP }
+        - { port: 32769, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - { port: 443, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: immich-ml
+  namespace: immich
+spec:
+  podSelector:
+    matchLabels:
+      app: immich
+      component: ml
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: immich
+              component: server
+      ports:
+        - { port: 3003, protocol: TCP }
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - { port: 443, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: immich-redis
+  namespace: immich
+spec:
+  podSelector:
+    matchLabels:
+      app: immich
+      component: redis
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: immich
+              component: server
+      ports:
+        - { port: 6379, protocol: TCP }
+  egress: []
