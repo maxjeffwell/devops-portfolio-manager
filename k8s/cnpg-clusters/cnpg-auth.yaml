@@ -24,26 +24,30 @@
 # The cnpg-clusters Application syncs with prune: true. Deleting this file
 # therefore deletes the Cluster, and with it the auth database.
 #
-# TWO KNOWN DEFECTS ARE PRESERVED DELIBERATELY, because this commit adopts the
-# cluster as-is and does not change its behaviour:
+# Two items carried over from the migration were reviewed 2026-09-16, one
+# adoption commit later, so the adoption itself stayed a verified no-op. The
+# first was pruned; the second turned out not to be a defect and was kept:
 #
-#  1. bootstrap.pg_basebackup and externalClusters both point at "cnpg-auth-src",
-#     a migration source that no longer exists — the Cluster, the
-#     cnpg-auth-src-rw Service, and both TLS Secrets
-#     (cnpg-auth-src-replication, cnpg-auth-src-ca) are all gone, verified
-#     2026-09-16. This is inert: bootstrap is read only at cluster creation, and
-#     externalClusters is only consulted for replication/restore from that
-#     source. They are kept so the manifest matches the live object exactly and
-#     ArgoCD has nothing to correct. Removing them is safe but is a separate
-#     change that should be made on its own.
+#  1. bootstrap.pg_basebackup and externalClusters both pointed at cnpg-auth-src,
+#     a migration source whose Cluster, cnpg-auth-src-rw Service and both TLS
+#     Secrets were all gone. Pruned. bootstrap now carries initdb with the REAL
+#     database identity -- neondb / neondb_owner / UTF8 / C / C, read from
+#     pg_database -- rather than the webhook's app/app that cnpg-bookmarked was
+#     left with. bootstrap is read only at cluster creation, so this is inert
+#     today but truthful if the cluster is ever recreated from this file. The
+#     CNPG webhook accepted the change in a server-side dry run before commit.
 #
-#  2. enableSuperuserAccess is true and superuserSecret names cnpg-auth-superuser,
-#     which DOES exist — but status.superuserSecretVersion is empty, so the
-#     password was never applied and the postgres role's password is NULL. The
-#     flag advertises superuser access that does not work. cnpg-bookmarked had
-#     the same defect and was switched off after verifying it changed nothing;
-#     the same is probably true here, but flipping it is a behaviour change and
-#     is deliberately NOT bundled into this adoption commit.
+#  2. enableSuperuserAccess is true and superuserSecret names cnpg-auth-superuser.
+#     Deliberately KEPT ON (decision 2026-09-16). This was first flagged as a
+#     defect matching cnpg-bookmarked's ("password never applied") because
+#     status.superuserSecretVersion is empty. That reading was WRONG. The
+#     postgres password IS set -- cloned from cnpg-auth-src by the basebackup --
+#     and it MATCHES the Secret: a TCP scram login with the Secret's password
+#     succeeded. CNPG simply never had to apply it, so it never stamped the
+#     version. Superuser access over TCP works and is retained on purpose for
+#     admin tooling; nothing in-cluster currently uses it (only unix-socket peer
+#     sessions). Do NOT "fix" this by switching the flag off -- CNPG would NULL a
+#     working password.
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -70,30 +74,14 @@ spec:
             - m720q
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
-  # Dead migration source — see defect (1) in the header. Inert, kept verbatim.
+  # Inert (read only at creation) but truthful -- see (1) in the header.
   bootstrap:
-    pg_basebackup:
+    initdb:
       database: neondb
       owner: neondb_owner
-      secret:
-        name: cnpg-auth-app
-      source: cnpg-auth-src
-  externalClusters:
-  - name: cnpg-auth-src
-    connectionParameters:
-      dbname: postgres
-      host: cnpg-auth-src-rw
-      sslmode: verify-ca
-      user: streaming_replica
-    sslCert:
-      key: tls.crt
-      name: cnpg-auth-src-replication
-    sslKey:
-      key: tls.key
-      name: cnpg-auth-src-replication
-    sslRootCert:
-      key: ca.crt
-      name: cnpg-auth-src-ca
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
   storage:
     resizeInUseVolumes: true
     size: 5Gi
@@ -114,7 +102,7 @@ spec:
       name: cnpg-default-monitoring
     disableDefaultQueries: false
     enablePodMonitor: true
-  # See defect (2) in the header: true, but the password was never applied.
+  # Kept on -- see (2) in the header. The password is real and matches the Secret.
   enableSuperuserAccess: true
   superuserSecret:
     name: cnpg-auth-superuser
