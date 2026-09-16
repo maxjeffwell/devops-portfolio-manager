@@ -12,7 +12,7 @@ metadata:
     app: immich
     component: ml
 spec:
-  replicas: 0  # TEMP 2026-09-16: migration from the ASUSTOR Immich
+  replicas: 1
   strategy:
     type: Recreate
   selector:
