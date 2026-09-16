@@ -21,8 +21,10 @@ Plus, per node:
   `NOTIFYCMD /sbin/upssched`, `NOTIFYFLAG ONBATT SYSLOG+EXEC`, `NOTIFYFLAG ONLINE SYSLOG+EXEC`.
 - `systemctl enable k3s-uncordon-onboot.service && systemctl restart nut-monitor`
 
-Timers (2026-09-16): elitedesk 300 s (AVRG900LCD ~20 min), m720q 900 s
-(Synology CST135UC ~77 min). dm keeps its own older copy (pwrstatd-* names).
+Timers (2026-09-16): elitedesk 300 s (AVRG900LCD ~20 min, battery-forced),
+dm 720 s (ST625U ~63 min; older copy of these scripts with pwrstatd-* names),
+m720q 900 s (Synology CST135UC ~77 min). The 3 min dm/m720q offset avoids
+PDB eviction races on shared replicas. M920s: 900 s.
 Flow: ONBATT → timer → `upsmon -c fsd` (sudo as nut) → SHUTDOWNCMD cordons,
 drains (bounded ~150 s), touches /var/lib/nut-drained.flag, halts → next boot
 the oneshot uncordons and clears the flag. LOWBATT remains the backstop.
