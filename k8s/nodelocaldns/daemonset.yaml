@@ -37,7 +37,12 @@ spec:
           resources:
             requests:
               cpu: 25m
-              memory: 5Mi
+              # 2026-09-16: was 5Mi (the upstream default), ~13x under real use.
+              # 7-day peaks: 64.8Mi (elitedesk) / 54.9Mi (debian-marmoset) /
+              # 52.2Mi (m720q) / 44.6Mi (marmoset) / 27.1Mi (vmi2951245).
+              # No memory limit on purpose: an OOMKill here takes out cluster
+              # DNS on that node, and upstream omits one for the same reason.
+              memory: 64Mi
           args:
             - "-localip"
             - "169.254.20.10,10.43.0.10"
