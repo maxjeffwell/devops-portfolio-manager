@@ -1,0 +1,129 @@
+# CNPG cluster for the auth database. Adopted into GitOps 2026-09-16 — it was
+# the only one of the four `default`-namespace clusters still unmanaged, so its
+# settings lived solely in the cluster and would have vanished on any rebuild.
+#
+# !! NO SECRET HERE, ON PURPOSE !!
+# Credentials live in Secret/cnpg-auth-app (owner neondb_owner) and
+# Secret/cnpg-auth-superuser, both hand-created with real passwords and owned by
+# nothing. Same rule as cnpg-bookmarked: do not "complete" this manifest by
+# adding Secrets — syncing a placeholder password would overwrite the live one.
+#
+# Regenerated from the RUNNING cluster, not from its last-applied-configuration
+# annotation, which had drifted badly: that annotation still says
+# storageClass democratic-synology-iscsi-mp and className synology-snapshotclass,
+# but the cluster was migrated to mayastor-2 / mayastor-snapclass like its
+# siblings. Applying the annotation's version would have been a storage change
+# against a live database.
+#
+# As with the other files here, only deliberately-declared fields are listed.
+# The remaining ~16 fields on the live object (logLevel, postgresUID/GID, probes,
+# replicationSlots, the *Delay fields, primaryUpdate*, smartShutdownTimeout,
+# postgresql, failoverDelay, min/maxSyncReplicas) are CloudNativePG webhook
+# defaults, left to the operator so ArgoCD selfHeal does not fight it.
+#
+# The cnpg-clusters Application syncs with prune: true. Deleting this file
+# therefore deletes the Cluster, and with it the auth database.
+#
+# TWO KNOWN DEFECTS ARE PRESERVED DELIBERATELY, because this commit adopts the
+# cluster as-is and does not change its behaviour:
+#
+#  1. bootstrap.pg_basebackup and externalClusters both point at "cnpg-auth-src",
+#     a migration source that no longer exists — the Cluster, the
+#     cnpg-auth-src-rw Service, and both TLS Secrets
+#     (cnpg-auth-src-replication, cnpg-auth-src-ca) are all gone, verified
+#     2026-09-16. This is inert: bootstrap is read only at cluster creation, and
+#     externalClusters is only consulted for replication/restore from that
+#     source. They are kept so the manifest matches the live object exactly and
+#     ArgoCD has nothing to correct. Removing them is safe but is a separate
+#     change that should be made on its own.
+#
+#  2. enableSuperuserAccess is true and superuserSecret names cnpg-auth-superuser,
+#     which DOES exist — but status.superuserSecretVersion is empty, so the
+#     password was never applied and the postgres role's password is NULL. The
+#     flag advertises superuser access that does not work. cnpg-bookmarked had
+#     the same defect and was switched off after verifying it changed nothing;
+#     the same is probably true here, but flipping it is a behaviour change and
+#     is deliberately NOT bundled into this adoption commit.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: cnpg-auth
+  namespace: default
+spec:
+  imageName: ghcr.io/cloudnative-pg/postgresql:17
+  instances: 1
+  enablePDB: false
+  priorityClassName: portfolio-critical
+  inheritedMetadata:
+    labels:
+      portfolio: 'true'
+  affinity:
+    enablePodAntiAffinity: true
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - elitedesk
+            - m720q
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
+  # Dead migration source — see defect (1) in the header. Inert, kept verbatim.
+  bootstrap:
+    pg_basebackup:
+      database: neondb
+      owner: neondb_owner
+      secret:
+        name: cnpg-auth-app
+      source: cnpg-auth-src
+  externalClusters:
+  - name: cnpg-auth-src
+    connectionParameters:
+      dbname: postgres
+      host: cnpg-auth-src-rw
+      sslmode: verify-ca
+      user: streaming_replica
+    sslCert:
+      key: tls.crt
+      name: cnpg-auth-src-replication
+    sslKey:
+      key: tls.key
+      name: cnpg-auth-src-replication
+    sslRootCert:
+      key: ca.crt
+      name: cnpg-auth-src-ca
+  storage:
+    resizeInUseVolumes: true
+    size: 5Gi
+    storageClass: mayastor-2
+  # 2026-09-16: cpu 250m -> 100m. 14-day peak is 27m, so 250m reserved ~9x the
+  # real peak and it was the single largest slice of elitedesk's CPU-request
+  # saturation (95.9% of allocatable while ~26% busy). Memory left at 256Mi:
+  # unlike its siblings, which needed 384Mi, cnpg-auth's 14-day peak is 157Mi.
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  monitoring:
+    customQueriesConfigMap:
+    - key: queries
+      name: cnpg-default-monitoring
+    disableDefaultQueries: false
+    enablePodMonitor: true
+  # See defect (2) in the header: true, but the password was never applied.
+  enableSuperuserAccess: true
+  superuserSecret:
+    name: cnpg-auth-superuser
+  backup:
+    target: prefer-standby
+    volumeSnapshot:
+      className: mayastor-snapclass
+      online: true
+      onlineConfiguration:
+        immediateCheckpoint: false
+        waitForArchive: true
+      snapshotOwnerReference: none
