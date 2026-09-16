@@ -84,7 +84,10 @@ spec:
       limits:
         memory: 768Mi
       requests:
-        cpu: 150m
+        # 2026-09-16: cpu 150m -> 100m. 14-day peak across the mongod pods is
+        # 51m, so 150m x3 replica sets reserved ~440m of elitedesk it never
+        # used. 100m is ~2x peak. Memory untouched.
+        cpu: 100m
         # 448Mi not 512Mi: 2-day AVERAGE across the mongod pods tops out at
         # 405Mi (peak 439Mi). The 512Mi first used here was peak-plus-padding
         # and, multiplied across 3 replica sets, helped push m720q to 99.9% of

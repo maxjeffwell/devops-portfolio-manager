@@ -65,7 +65,8 @@ spec:
             timeoutSeconds: 3
           resources:
             requests:
-              cpu: 100m
+              # 2026-09-16: cpu 100m -> 45m. 14-day peak is 18m.
+              cpu: 45m
               memory: 128Mi
             limits:
               cpu: 250m

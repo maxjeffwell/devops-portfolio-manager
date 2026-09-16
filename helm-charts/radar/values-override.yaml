@@ -5,7 +5,8 @@
 
 resources:
   requests:
-    cpu: 100m
+    # 2026-09-16: cpu 100m -> 25m. 14-day peak is 9m.
+    cpu: 25m
     memory: 256Mi
   limits:
     memory: 512Mi

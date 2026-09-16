@@ -80,7 +80,11 @@ spec:
     limits:
       memory: 512Mi
     requests:
-      cpu: 100m
+      # 2026-09-16: cpu 100m -> 60m. 14-day peak is 27m, so 100m reserved ~3.7x
+      # the real peak. elitedesk sat at 95.9% of allocatable CPU in *requests*
+      # while only ~26% busy, which is what preempted kube-state-metrics on the
+      # 09-07 reboot. 60m is still >2x peak. Memory untouched.
+      cpu: 60m
       memory: 384Mi
   monitoring:
     customQueriesConfigMap:

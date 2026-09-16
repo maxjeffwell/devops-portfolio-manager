@@ -920,7 +920,15 @@ alloy:
             fieldPath: status.hostIP
     resources:
       requests:
-        cpu: 50m
+        # 2026-09-16: cpu 50m -> 200m. alloy was the most under-requested thing
+        # on the cluster: 14-day peaks are 263m (vmi2951245) and 165m
+        # (elitedesk) against a 50m reservation. Sized to cover elitedesk rather
+        # than the VPS peak on purpose -- this is a DaemonSet, so the value
+        # lands on all five nodes, and the VPS has abundant CPU (27.5% of
+        # allocatable requested) while elitedesk does not. There is no CPU
+        # limit, so an under-request never throttled anything; it only
+        # mis-stated the node's real commitment to the scheduler.
+        cpu: 200m
         # 2026-09-07: was 512Mi, which was well under real usage. Sized to TYPICAL
         # usage, not peak, because this is a DaemonSet on heterogeneous nodes:
         # 2-day averages are 421Mi (marmoset) / 1028Mi (m720q) / 1049Mi
