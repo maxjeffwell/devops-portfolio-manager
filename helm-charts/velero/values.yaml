@@ -91,6 +91,21 @@ nodeAgent:
   extraArgs:
     - --node-agent-configmap=velero-node-agent-config
   podVolumePath: /var/lib/kubelet/pods
+  # 2026-09-16: previously had no resources block, so it inherited the
+  # namespace LimitRange default (10m/64Mi) -- 2.6x under its real peak.
+  # Measured 14-day peaks WITH backups running (29 PVBs/day, 98 on 09-13):
+  # memory 164Mi (elitedesk) / 144Mi (debian-marmoset) / 126Mi (m720q) /
+  # 83Mi (vmi2951245); cpu 21.7m peak, mostly under 3m.
+  # Limit is 3x peak so it only fires on genuinely anomalous behaviour. A
+  # limit is acceptable here (unlike nodelocaldns, which has none on purpose)
+  # because an OOMKilled PVB is recoverable via spec.cancel=true, whereas
+  # losing node DNS is not.
+  resources:
+    requests:
+      cpu: 25m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
 
 # Server pinned to elitedesk since 2026-08-18 (kubectl patch; ported to values
 # 2026-09-01 — without this an upgrade would silently unpin it).
