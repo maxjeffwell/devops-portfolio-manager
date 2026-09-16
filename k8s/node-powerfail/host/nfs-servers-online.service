@@ -1,0 +1,11 @@
+[Unit]
+Description=Wait for NAS NFS servers before k3s starts (bounded)
+After=network-online.target
+Wants=network-online.target
+Before=k3s-agent.service k3s.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/nfs-servers-online.sh
+TimeoutStartSec=1000

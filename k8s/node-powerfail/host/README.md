@@ -26,3 +26,20 @@ Timers (2026-09-16): elitedesk 300 s (AVRG900LCD ~20 min), m720q 900 s
 Flow: ONBATT → timer → `upsmon -c fsd` (sudo as nut) → SHUTDOWNCMD cordons,
 drains (bounded ~150 s), touches /var/lib/nut-drained.flag, halts → next boot
 the oneshot uncordons and clears the flag. LOWBATT remains the backstop.
+
+## NFS boot gate (installed 2026-09-16 on dm, elitedesk, m720q)
+
+| File | Destination | Mode |
+|---|---|---|
+| nfs-servers-online.sh | /usr/local/sbin/ | 0755 |
+| nfs-servers-online.service | /etc/systemd/system/ | 0644 |
+| k3s-agent-after-nfs-gate.conf | /etc/systemd/system/k3s-agent.service.d/ | 0644 |
+
+k3s-agent `Wants=`/`After=` the gate; the gate polls `showmount -e` for
+`192.168.50.149:/mnt/backups` and `192.168.50.109:/volume1/k8s-nfs` (TCP 2049
+fallback where nfs-common is absent, e.g. m720q) every 5 s and gives up after
+900 s with a `nfs-gate` WARNING in the journal, so a dead NAS delays k3s by at
+most 15 min. `RemainAfterExit=yes` ⇒ a plain `systemctl restart k3s-agent`
+does not re-run it. Change targets/deadline by editing the script or a
+`Environment=DEADLINE=` drop-in. For the future 3-server layout the unit's
+`Before=` already covers `k3s.service`.
