@@ -157,3 +157,47 @@ spec:
       storage: 2Ti
   storageClassName: ""
   volumeName: jellyfin-rec-channels
+---
+# SABnzbd completed downloads (/volume1/Download/SABnzbd/complete, export ro,
+# fsid=114, persisted by the ASUSTOR S97lvm-nfs boot script — NOT by ADM; an
+# ADM NFS-privilege edit rewrites /etc/exports and drops every script export).
+# Part of the "Shows" library at the ASUSTOR-identical path.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jellyfin-media-sabnzbd
+  labels:
+    app: jellyfin
+    media: sabnzbd-complete
+spec:
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadOnlyMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions:
+    - ro
+    - vers=3
+    - nolock
+    - hard
+    - nconnect=8
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/Download/SABnzbd/complete
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-media-sabnzbd
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 2Ti
+  storageClassName: ""
+  volumeName: jellyfin-media-sabnzbd

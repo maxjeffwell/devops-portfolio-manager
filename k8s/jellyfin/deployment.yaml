@@ -31,7 +31,7 @@ spec:
         # Opt OUT of kopia FS-backup for replaceable volumes (cluster default is
         # defaultVolumesToFsBackup=true). KEEP `config` — irreplaceable
         # library/watch-state metadata.
-        backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,rec-channels,cache,transcodes,tmp,run
+        backup.velero.io/backup-volumes-excludes: media-movies,media-tvshows,rec-channels,media-sabnzbd,cache,transcodes,tmp,run
     spec:
       # DNS served by the cluster-wide NodeLocal DNSCache (k8s/nodelocaldns).
       dnsPolicy: ClusterFirst
@@ -123,6 +123,7 @@ spec:
             - { name: media-movies,  mountPath: /sharefolder/Movies,   readOnly: true }
             - { name: media-tvshows, mountPath: /sharefolder/TV Shows, readOnly: true }
             - { name: rec-channels,  mountPath: /media/dvr,            readOnly: true }
+            - { name: media-sabnzbd, mountPath: /sharefolder/Download/SABnzbd/complete, readOnly: true }
             - { name: tmp,           mountPath: /tmp }
             - { name: run,           mountPath: /var/run }
           livenessProbe:
@@ -144,6 +145,7 @@ spec:
         - { name: media-movies,  persistentVolumeClaim: { claimName: jellyfin-media-movies,  readOnly: true } }
         - { name: media-tvshows, persistentVolumeClaim: { claimName: jellyfin-media-tvshows, readOnly: true } }
         - { name: rec-channels,  persistentVolumeClaim: { claimName: jellyfin-rec-channels,  readOnly: true } }
+        - { name: media-sabnzbd, persistentVolumeClaim: { claimName: jellyfin-media-sabnzbd, readOnly: true } }
         - name: transcodes
           # Disk-backed emptyDir (root NVMe). NEVER medium: Memory — tmpfs counts
           # against the 3Gi memory limit and squeezes the heap toward OOM.
