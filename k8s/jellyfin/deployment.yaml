@@ -84,9 +84,9 @@ spec:
             - { name: encoding-defaults, mountPath: /default, readOnly: true }
       containers:
         - name: jellyfin
-          # Pinned to the version running on the ASUSTOR (12.1.0 on 2026-09-15)
-          # so a copied /config needs no downgrade. Bump deliberately.
-          image: jellyfin/jellyfin:12.1.0
+          # Pinned to the exact dated build the ASUSTOR runs (12.1, 12.1.20260915-010956, digest 78d3ea12…)
+          # so a copied /config needs no downgrade. Jellyfin 12 tags are MAJOR.MINOR or dated builds — no x.y.z. Bump deliberately.
+          image: jellyfin/jellyfin:12.1.20260915-010956
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
