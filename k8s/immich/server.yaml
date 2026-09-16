@@ -37,6 +37,10 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
+        # 992 = `render` group on elitedesk: lets ffmpeg open /dev/dri/renderD128
+        # for QSV video transcoding (Administration → Settings → Video Transcoding →
+        # Hardware acceleration: QSV). Without this every video preview is software.
+        supplementalGroups: [992]
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -70,9 +74,11 @@ spec:
             requests:
               cpu: 500m
               memory: 1Gi
+              gpu.intel.com/i915: "1"
             limits:
               cpu: "4"
               memory: 4Gi
+              gpu.intel.com/i915: "1"
           volumeMounts:
             - { name: library,         mountPath: /data }
             - { name: photos-external, mountPath: /external/Photos, readOnly: true }
