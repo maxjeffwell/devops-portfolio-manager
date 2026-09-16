@@ -48,7 +48,8 @@ spec:
               containerPort: 6379
           resources:
             requests:
-              cpu: 50m
+              # 2026-09-16: cpu 50m -> 35m. 14-day peak is 15m.
+              cpu: 35m
               memory: 64Mi
             limits:
               memory: 256Mi

@@ -121,7 +121,8 @@ probes:
 # over-reserved while memory ran at 80% of its own limit. Opposite directions.
 resources:
   requests:
-    cpu: 100m
+    # 2026-09-16: cpu 100m -> 40m. 14-day peak is 16m.
+    cpu: 40m
     memory: 1664Mi
   limits:
     memory: 2560Mi
