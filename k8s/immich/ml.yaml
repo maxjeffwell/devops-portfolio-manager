@@ -64,8 +64,10 @@ spec:
               gpu.intel.com/i915: "1"
             limits:
               cpu: "4"
-              # OpenVINO uses more RAM than the CPU path; 4Gi covers CLIP + face models.
-              memory: 4Gi
+              # OpenVINO uses more RAM than the CPU path. Measured 9/16: ~3.0Gi steady
+              # with CLIP visual + buffalo_l detect/recognise + OCR loaded; 4Gi got
+              # OOM-killed once, so 6Gi (elitedesk has 15Gi real headroom).
+              memory: 6Gi
               gpu.intel.com/i915: "1"
           volumeMounts:
             - { name: cache, mountPath: /cache }
