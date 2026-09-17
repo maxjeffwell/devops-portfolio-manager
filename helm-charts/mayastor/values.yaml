@@ -26,8 +26,13 @@
 # RETIRED: the chart now has mayastor.csi.controller.snapshotController.enabled=false.
 # io_engine.pool.ioAlerts.stallDeadline pinned to 110s (chart default renders "110s110s").
 #
+# 2026-09-17: io_engine cpu LIMIT 1 -> 2 (request stays 1). The single reactor
+# spins core 1 at 100 %, so gRPC/etcd/NATS helper threads pushed the container
+# over a 1-core CFS quota: 11-15 % of periods throttled = reactor stalls.
+# DaemonSet is OnDelete: pods pick this up only when deleted, ONE NODE AT A TIME.
+#
 # Pinned hand-patched state (else helm reverts it): io_engine.coreList=[1] +
-# cpu 1, etcd.pdb.create=false (zero-budget PDB purge 8/23), localpv-provisioner
+# cpu request 1, etcd.pdb.create=false (zero-budget PDB purge 8/23), localpv-provisioner
 # leader election off + pinned to vmi2951245, hostpathClass off (SC deleted).
 # Known chart-driven residuals accepted 8/25: csi-node --nvme-nr-io-queues
 # follows coreList (2->1); provisioner also gets the chart's 5s NoExecute
@@ -105,7 +110,7 @@ mayastor:
         stallDeadline: 110s
     resources:
       limits:
-        cpu: '1'
+        cpu: '2'
         hugepages2Mi: 2Gi
       requests:
         cpu: '1'
