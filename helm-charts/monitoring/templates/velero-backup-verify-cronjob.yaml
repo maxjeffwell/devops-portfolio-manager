@@ -32,7 +32,7 @@ spec:
               set -e
               apk add -q --no-cache curl jq >/dev/null
               cd /tmp
-              VELERO_VERSION={{ .Values.veleroBackupVerify.veleroVersion | default "v1.17.1" }}
+              VELERO_VERSION={{ .Values.veleroBackupVerify.veleroVersion | default "v1.18.0" }}
               curl -sL "https://github.com/vmware-tanzu/velero/releases/download/${VELERO_VERSION}/velero-${VELERO_VERSION}-linux-amd64.tar.gz" | tar xz
               mv "velero-${VELERO_VERSION}-linux-amd64/velero" /usr/local/bin/
               chmod +x /usr/local/bin/velero
@@ -66,9 +66,11 @@ spec:
               echo "Backup details:"
               velero backup describe "$LATEST_BACKUP" --details | grep -E "Phase:|Started:|Completed:|Items Backed Up:|Errors:|Warnings:"
 
-              # Verify backup age (should be less than 48 hours old)
-              BACKUP_TIME=$(velero backup get "$LATEST_BACKUP" -o json | jq -r '.status.completionTimestamp')
-              BACKUP_AGE_HOURS=$(( ($(date +%s) - $(date -d "$BACKUP_TIME" +%s)) / 3600 ))
+              # Verify backup age (should be less than 48 hours old).
+              # BusyBox `date -d` cannot parse ISO 8601, so let jq convert the
+              # timestamp to epoch seconds (fromdateiso8601).
+              BACKUP_EPOCH=$(velero backup get "$LATEST_BACKUP" -o json | jq -r '.status.completionTimestamp | fromdateiso8601')
+              BACKUP_AGE_HOURS=$(( ($(date +%s) - BACKUP_EPOCH) / 3600 ))
 
               if [ "$BACKUP_AGE_HOURS" -gt 48 ]; then
                 echo "WARNING: Latest backup is $BACKUP_AGE_HOURS hours old (>48h)"

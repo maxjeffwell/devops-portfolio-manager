@@ -37,6 +37,8 @@ veleroBackupVerify:
   enabled: true
   # Run weekly on Sundays at 4 AM UTC
   schedule: "0 4 * * 0"
+  # CLI version downloaded by the job; keep in step with the velero server image
+  veleroVersion: "v1.18.0"
 
 # Gotify Bridge (AlertManager → Gotify notification relay)
 gotifyBridge:
