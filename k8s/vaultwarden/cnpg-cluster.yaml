@@ -20,6 +20,18 @@ spec:
   storage:
     storageClass: mayastor-2
     size: 5Gi
+  # 2026-09-21 right-sizing. Without this block the namespace LimitRange
+  # (default-requests) injected cpu 10m / memory 64Mi, but the postgres
+  # container's 30-day peak working set is 132Mi (p50 83Mi), so the request
+  # sat below steady-state usage and the pod was first in line for eviction
+  # under node memory pressure. 14-day cpu peak is 9m. Limit matches the
+  # other cnpg clusters.
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 20m
+      memory: 192Mi
   affinity:
     # 2026-09-06: debian-marmoset is no longer a Mayastor node (laptop thermal);
     # the mayastor-2 volume is reachable from either remaining storage node.
