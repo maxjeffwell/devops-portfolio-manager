@@ -211,6 +211,9 @@ mongodb:
 ingress:
   enabled: true
   host: educationelly-k8s.el-jefe.me
+  # canonical name, repointed 2026-09-22 from the retired ASUSTOR "marmoset" cloudflared tunnel
+  extraHosts:
+    - educationelly.el-jefe.me
   apiPaths:
     - /api
     - /health

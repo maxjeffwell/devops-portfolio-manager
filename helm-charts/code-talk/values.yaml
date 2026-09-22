@@ -183,6 +183,9 @@ affinity:
 ingress:
   enabled: true
   host: code-talk-k8s.el-jefe.me
+  # canonical name, repointed 2026-09-22 from the retired ASUSTOR "marmoset" cloudflared tunnel
+  extraHosts:
+    - code-talk.el-jefe.me
   serverPaths:
     - /graphql
     - /api

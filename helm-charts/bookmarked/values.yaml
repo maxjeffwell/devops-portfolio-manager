@@ -65,6 +65,9 @@ service:
 ingress:
   enabled: true
   host: bookmarked-k8s.el-jefe.me
+  # canonical name, repointed 2026-09-22 from the retired ASUSTOR "marmoset" cloudflared tunnel
+  extraHosts:
+    - bookmarked.el-jefe.me
 
 resources:
   server:

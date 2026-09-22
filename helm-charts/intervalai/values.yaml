@@ -67,14 +67,18 @@ service:
     nodePort: 30787
 
 ingress:
-  enabled: false
-  className: "nginx"
+  # 2026-09-22: chart-managed ingress replaces the hand-applied `intervalai-ingress`
+  # (kubectl, not in git). Canonical name repointed from the retired ASUSTOR "marmoset"
+  # cloudflared tunnel to the VPS Traefik, same as the -k8s name.
+  enabled: true
+  className: traefik
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
   hosts:
-    - host: intervalai.el-jefe.me
-      paths:
+    - host: intervalai-k8s.el-jefe.me
+      paths: &intervalaiPaths
         - path: /api
           pathType: Prefix
           backend:
@@ -87,11 +91,13 @@ ingress:
             service:
               name: intervalai-client
               port: 80
+    - host: intervalai.el-jefe.me
+      paths: *intervalaiPaths
   tls:
-    - secretName: intervalai-tls
-      hosts:
+    - hosts:
+        - intervalai-k8s.el-jefe.me
         - intervalai.el-jefe.me
-
+      secretName: intervalai-tls
 resources:
   server:
     limits:

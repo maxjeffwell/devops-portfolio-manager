@@ -70,6 +70,9 @@ securityContext:
 ingress:
   enabled: true
   host: firebook-k8s.el-jefe.me
+  # canonical name, repointed 2026-09-22 from the retired ASUSTOR "marmoset" cloudflared tunnel
+  extraHosts:
+    - firebook.el-jefe.me
 
 topologySpreadConstraints:
   enabled: true
