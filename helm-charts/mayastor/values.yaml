@@ -26,6 +26,8 @@
 # RETIRED: the chart now has mayastor.csi.controller.snapshotController.enabled=false.
 # io_engine.pool.ioAlerts.stallDeadline pinned to 110s (chart default renders "110s110s").
 #
+# 2026-09-22: api-rest memory 32Mi/64Mi -> 64Mi/128Mi (helm rev 12); Deployment-only change.
+#
 # 2026-09-17: io_engine cpu LIMIT 1 -> 2 (request stays 1). The single reactor
 # spins core 1 at 100 %, so gRPC/etcd/NATS helper threads pushed the container
 # over a 1-core CFS quota: 11-15 % of periods throttled = reactor stalls.
@@ -73,6 +75,19 @@ mayastor:
           waitPeriod: 30m
   alloy:
     enabled: false
+  apis:
+    rest:
+      # 2026-09-22: chart default is 32Mi request / 64Mi limit. api-rest sits
+      # flat at 50-58Mi (30-day max 58Mi, no growth), i.e. 1.6x its request and
+      # 6Mi under its limit, so any burst would OOM-kill it. cpu untouched
+      # (1m used of 50m). Deployment change only: no io-engine impact.
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
   crds:
     csi:
       volumeSnapshots:
