@@ -8,7 +8,12 @@ metadata:
 spec:
   backup:
     enabled: true
-    image: percona/percona-backup-mongodb:2.9.0
+    # 2026-09-21: 2.9.0 -> 2.12.0 (operator 1.22.0 default). The 2.9.0 agent
+    # (aws-sdk-go v1) leaked one ESTABLISHED HTTP connection per storage HEAD
+    # check and never closed it: ~5-6k sockets per agent, ~100k on the
+    # monitoring/garage-0 gateway, which is what drove its RSS to ~1.9 GiB.
+    # PBM >= 2.10.0 uses aws-sdk-go-v2 for S3.
+    image: percona/percona-backup-mongodb:2.12.0
     # 2026-09-07: the backup-agent sidecar previously had NO memory limit at all
     # (operator default is 64Mi request / unlimited), so it could grow without
     # bound and contributed nothing to the node's limit accounting.
