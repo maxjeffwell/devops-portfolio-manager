@@ -30,7 +30,10 @@ spec:
             - -c
             - |
               set -e
-              apk add -q --no-cache curl jq >/dev/null
+              # kubectl is needed for the namespace cleanup at the end; without it
+              # the `kubectl delete namespace` silently no-ops and the restored
+              # copy of `default` is left running.
+              apk add -q --no-cache curl jq kubectl >/dev/null
               cd /tmp
               VELERO_VERSION={{ .Values.veleroBackupVerify.veleroVersion | default "v1.18.0" }}
               curl -sL "https://github.com/vmware-tanzu/velero/releases/download/${VELERO_VERSION}/velero-${VELERO_VERSION}-linux-amd64.tar.gz" | tar xz
@@ -83,21 +86,34 @@ spec:
               echo "Creating test restore..."
               TEST_RESTORE="verify-$(date +%Y%m%d%H%M%S)"
 
+              # The restore is a live copy of `default`, so leave out everything
+              # that ACTS on its own once created: CronJobs would fire on schedule
+              # (the restore takes ~30 min), ACME orders/challenges re-request
+              # certs, and CNPG Cluster CRs make the operator build duplicate
+              # database clusters with fresh PVCs.
               velero restore create "$TEST_RESTORE" \
                 --from-backup "$LATEST_BACKUP" \
                 --include-namespaces default \
                 --namespace-mappings default:velero-test-restore \
+                --exclude-resources cronjobs.batch,orders.acme.cert-manager.io,challenges.acme.cert-manager.io,certificaterequests.cert-manager.io,clusters.postgresql.cnpg.io,backups.postgresql.cnpg.io,scheduledbackups.postgresql.cnpg.io \
                 --wait
 
               # Check restore status
               RESTORE_STATUS=$(velero restore get "$TEST_RESTORE" -o json | jq -r '.status.phase')
+
+              # Capture the restore's own error/warning summary in THIS log before
+              # the restore object (and its files in object storage) are deleted.
+              echo ""
+              echo "Restore summary:"
+              velero restore describe "$TEST_RESTORE" --details 2>/dev/null | grep -E "Phase:|Total items|Items restored|Errors:|Warnings:" || true
+              velero restore logs "$TEST_RESTORE" 2>/dev/null | grep -E 'level=(error|warn)' | sed -E 's/.*msg="([^"]*)".*/\1/' | sort | uniq -c | sort -rn | head -40 || true
 
               if [ "$RESTORE_STATUS" = "Completed" ] || [ "$RESTORE_STATUS" = "PartiallyFailed" ]; then
                 echo "✓ Test restore completed with status: $RESTORE_STATUS"
 
                 # Clean up test namespace
                 echo "Cleaning up test namespace..."
-                kubectl delete namespace velero-test-restore --wait=false 2>/dev/null || true
+                kubectl delete namespace velero-test-restore --wait=false
 
                 # Delete the restore object
                 velero restore delete "$TEST_RESTORE" --confirm
