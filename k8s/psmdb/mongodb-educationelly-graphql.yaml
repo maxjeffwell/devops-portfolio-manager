@@ -38,7 +38,15 @@ spec:
           credentialsSecret: garage-s3-backup
           endpointUrl: http://garage.monitoring.svc.cluster.local:3900
           forcePathStyle: true
-          insecureSkipTLSVerify: true
+          # 2026-09-22: MUST stay false. The endpoint is plain http so TLS
+          # verification never happens, but pbm-agent builds a brand-new S3
+          # client for every 15 s storage heartbeat, and with this flag true it
+          # wraps a fresh http.Transport that has no idle timeout and is never
+          # closed: one leaked ESTABLISHED socket per check, forever. With the
+          # flag false PBM uses a bare http.Client on Go's shared
+          # DefaultTransport (pooled, 90 s idle timeout). Seen on both PBM 2.9.0
+          # and 2.12.0; ~100k leaked sockets on garage-0 by 2026-09-21.
+          insecureSkipTLSVerify: false
           prefix: educationelly-graphql/
           region: garage
         type: s3
