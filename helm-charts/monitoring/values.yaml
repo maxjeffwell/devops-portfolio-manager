@@ -6,9 +6,9 @@ veleroSchedules:
   csiSnapshotTimeout: "20m"
   # Volume-level opt-out policy (ConfigMap in the velero namespace, owned by the
   # `backups` ArgoCD app). Skips raw NFS mounts + csi-s3 volumes. Required: with
-  # opt-out fs-backup on, Velero otherwise walks the stremio-nas-addon media
-  # shares (movies 302GB + tv 392GB on ASUSTOR .149). Those cannot finish in the
-  # 4h window and orphan InProgress PVBs that permanently hold node-agent
+  # opt-out fs-backup on, Velero otherwise walks any large NAS media share
+  # mounted into a pod (hundreds of GB on ASUSTOR .149). Those cannot finish in
+  # the 4h window and orphan InProgress PVBs that permanently hold node-agent
   # data-path slots (loadConcurrency=3), starving every later backup on that node.
   resourcePolicyConfigMap: nas-local-volume-policy
   excludedNamespaces:
