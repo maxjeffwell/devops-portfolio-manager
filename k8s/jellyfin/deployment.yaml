@@ -105,14 +105,17 @@ spec:
             # for that section. The initContainer pins TranscodingTempPath.
           resources:
             requests:
-              cpu: 500m
+              # A full-QSV transcode still draws ~0.9 core (demux, HLS muxing,
+              # the .NET server), so reserve a whole core for CFS weight.
+              cpu: "1"
               memory: 1Gi
               gpu.intel.com/i915: "1"
             limits:
               # dm is a 16 GiB laptop already ~62 % committed; 3Gi keeps ~4Gi
               # of real headroom while Jellyfin transcodes. QSV does the codec
-              # work, so the CPU limit only bounds a software-fallback transcode.
-              cpu: "4"
+              # work, so the CPU limit only bounds a software-fallback transcode
+              # (tone mapping, subtitle burn-in); 8 of dm's 16 cores for that.
+              cpu: "8"
               memory: 3Gi
               gpu.intel.com/i915: "1"
           volumeMounts:
