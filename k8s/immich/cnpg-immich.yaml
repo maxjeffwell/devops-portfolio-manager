@@ -12,11 +12,12 @@ metadata:
   namespace: immich
 spec:
   imageName: ghcr.io/tensorchord/cloudnative-vectorchord:17-0.4.3
-  # 2026-09-25: TEMPORARILY 2 to migrate the data volume off elitedesk-usb-pool.
-  # Instance 2's PVC is created under the re-created mayastor-2 class (tier=internal
-  # pool affinity), then instance 2 is promoted and this goes back to 1, which
-  # removes instance 1 and its usb-pool-backed volume.
-  instances: 2
+  # 2026-09-25: the surviving instance is cnpg-immich-2. Instances went 1 -> 2 -> 1
+  # to migrate the data volume off elitedesk-usb-pool: instance 2's PVC was
+  # created under the re-created mayastor-2 class (tier=internal pool affinity),
+  # instance 2 was promoted, and scaling back removed instance 1 and its
+  # usb-pool-backed volume.
+  instances: 1
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
