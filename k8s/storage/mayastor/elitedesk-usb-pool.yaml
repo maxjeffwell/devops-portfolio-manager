@@ -12,6 +12,14 @@
 # write (DRAM-less QLC), no bus resets. Treat as the EXPENDABLE replica: a full
 # rebuild onto this pool runs at the write speed above.
 #
+# tier=usb (2026-09-25): NOT a default target for mayastor-2 any more — that
+# class requires tier=internal. Before the label, Mayastor's most-free-space
+# scheduler sent every new elitedesk replica here (1.8 TiB free beats the
+# SN730's ~380 GiB). The pool stays in service (user decision 2026-09-22) and
+# is reachable by any StorageClass that sets poolAffinityTopologyLabel to
+# tier: usb. Applied live with
+#   kubectl mayastor label pool elitedesk-usb-pool tier=usb -n openebs
+#
 # Block size 512 (matches the other pools). Standalone manifest, not under ArgoCD.
 apiVersion: openebs.io/v1beta3
 kind: DiskPool
@@ -22,3 +30,6 @@ spec:
   node: elitedesk
   disks:
   - /dev/disk/by-id/dm-uuid-LVM-oUb155qzvfHzVP2Q1KkCBM54TKeyzOhBoGUAHDdhDp266OfWPxeOCw4cSWqXBJwU
+  topology:
+    labelled:
+      tier: usb

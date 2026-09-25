@@ -1,14 +1,27 @@
 # mayastor-2 StorageClass
-# OpenEBS Mayastor (NVMe-oF/TCP) with synchronous 2-way replication between
-# debian-marmoset and marmoset. Survives single-node failure.
+# OpenEBS Mayastor (NVMe-oF/TCP) with synchronous 2-way replication.
+# Survives single-node failure.
 #
-# Backing pools (see sibling DiskPool manifests):
-#   - debian-marmoset-pool (LVM-backed at /dev/openebs-vg/mayastor-pool, ~60 GiB)
-#   - marmoset-pool        (AIO file at /var/local/mayastor/io-engine/marmoset-pool.img, ~60 GiB)
+# Backing pools as of 2026-09-25 (see sibling DiskPool manifests):
+#   - m720q-pool          tier=internal  (Samsung 970 EVO Plus NVMe, LVM, 500 GiB)
+#   - elitedesk-nvme-pool tier=internal  (WD SN730 NVMe, LVM, ~477 GiB)
+#   - elitedesk-usb-pool  tier=usb       (Crucial BX500 2 TB over USB, ~1.8 TiB)
 #
-# Effective replicated capacity = smaller pool's free space.
-# Block sizes must match across both pools (currently 512 — debian-marmoset's
-# LV is 512-byte logical; marmoset's pool URI explicitly sets ?blk_size=512).
+# poolAffinityTopologyLabel restricts replica placement to pools labelled
+# tier=internal. Without it Mayastor's scheduler picks the pool with the MOST
+# FREE SPACE, and elitedesk-usb-pool (1.8 TiB) wins over elitedesk-nvme-pool
+# (~380 GiB) every time — which is how cnpg-immich's elitedesk replica ended up
+# on the USB pool on 2026-09-16, the day after every other volume had been
+# moved to the SN730. The USB pool stays in service (user decision 2026-09-22)
+# and is addressable by a StorageClass that asks for tier=usb.
+#
+# StorageClass parameters are immutable: changing this file means
+# `kubectl delete sc mayastor-2 && kubectl apply -f` this file. Existing PVs
+# keep working; only PVC creation during the gap would fail.
+#
+# 🪤 Volume topology is captured at CREATE time. Volumes created before
+# 2026-09-25 carry no pool affinity, so scaling their replica count does NOT
+# honour this label — they still go to the most-free pool.
 #
 # Standalone manifest for reference/re-creation. Not under ArgoCD —
 # kubectl-apply by hand. Companion to k8s/storage/openebs-zfs/ pattern.
@@ -18,14 +31,16 @@ metadata:
   name: mayastor-2
   annotations:
     description: |
-      Mayastor 2-replica — replicates synchronously between marmoset and
-      debian-marmoset via NVMe-oF/TCP on port 4420.
+      Mayastor 2-replica — replicates synchronously between m720q and
+      elitedesk via NVMe-oF/TCP on port 4420, restricted to tier=internal pools.
 provisioner: io.openebs.csi-mayastor
 parameters:
   ioTimeout: "30"
   protocol: nvmf
   repl: "2"
   thin: "false"
+  poolAffinityTopologyLabel: |
+    tier: internal
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 allowVolumeExpansion: true

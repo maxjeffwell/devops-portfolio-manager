@@ -13,6 +13,16 @@
 # 58 C peak with thermal pad (threshold 84 C), no bus resets.
 # udev: /etc/udev/rules.d/60-rtl9210-usb.rules (no autosuspend, mq-deadline).
 #
+# 2026-09-07 UPDATE: the SN730 is no longer in the USB enclosure. It sits in
+# the WLAN M.2 slot via a Sintech A+E→M-key adapter as native PCIe x1
+# (nvme1n1); the pool was imported untouched. The USB history above is kept
+# for the dm-uuid rationale only.
+#
+# tier=internal (2026-09-25): default replica target for mayastor-2 via
+# poolAffinityTopologyLabel, together with m720q-pool. Applied live with
+#   kubectl mayastor label pool elitedesk-nvme-pool tier=internal -n openebs
+# and mirrored here so a re-created pool gets it at creation time.
+#
 # Block size 512 (matches the other pools). Standalone manifest, not under ArgoCD.
 apiVersion: openebs.io/v1beta3
 kind: DiskPool
@@ -23,3 +33,6 @@ spec:
   node: elitedesk
   disks:
   - /dev/disk/by-id/dm-uuid-LVM-0hBVk0VWgMMOZDoIbOsaMsQaykCq0tc3q6zSjBsYFosCYvufDd3GO5L5AHLfEBL0
+  topology:
+    labelled:
+      tier: internal

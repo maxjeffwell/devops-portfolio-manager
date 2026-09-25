@@ -1,0 +1,26 @@
+# m720q-pool DiskPool
+# Mayastor pool on m720q's internal Samsung 970 EVO Plus 1 TB NVMe
+# (LV openebs-vg/mayastor-pool, 500 GiB, on /dev/nvme0n1p3).
+# Created live 2026-09-05 during the AX86U→m720q migration; recorded in git
+# 2026-09-25 when pool topology labels were introduced.
+#
+# tier=internal: this pool, together with elitedesk-nvme-pool, is the default
+# replica target for the mayastor-2 StorageClass (poolAffinityTopologyLabel).
+# elitedesk-usb-pool carries tier=usb and is reached only by a StorageClass
+# that asks for it. The label was applied live with
+#   kubectl mayastor label pool m720q-pool tier=internal -n openebs
+# and is mirrored here so a re-created pool gets it at creation time.
+#
+# Standalone manifest — not under ArgoCD, kubectl-apply by hand.
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: m720q-pool
+  namespace: openebs
+spec:
+  node: m720q
+  disks:
+    - /dev/disk/by-id/dm-uuid-LVM-jfpZicAytwHb0fbtUMzcSkDYFo17cjrf4r0Nzu4JNdgGgD71RE6B9gyCr80KWeoA
+  topology:
+    labelled:
+      tier: internal
