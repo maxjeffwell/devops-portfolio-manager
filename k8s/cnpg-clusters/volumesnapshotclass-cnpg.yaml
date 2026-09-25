@@ -1,0 +1,11 @@
+# CNPG-only snapshot class (2026-09-25). Same Mayastor driver as mayastor-snapclass
+# but deletionPolicy Delete: when cnpg-snapshot-pruner deletes a VolumeSnapshot, the
+# Mayastor snapshot is freed too. mayastor-snapclass (Retain, velero-labelled) left
+# one orphan backend snapshot per cluster per day (68 found 9/25). Deliberately NOT
+# velero-labelled — Velero keeps using mayastor-snapclass.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: mayastor-snapclass-cnpg
+driver: io.openebs.csi-mayastor
+deletionPolicy: Delete

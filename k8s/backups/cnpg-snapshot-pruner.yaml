@@ -29,6 +29,31 @@ subjects:
   name: cnpg-snapshot-pruner
   namespace: default
 ---
+# 2026-09-25: cnpg-immich (namespace immich) was never pruned.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cnpg-snapshot-pruner
+  namespace: immich
+rules:
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots"]
+  verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cnpg-snapshot-pruner
+  namespace: immich
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cnpg-snapshot-pruner
+subjects:
+- kind: ServiceAccount
+  name: cnpg-snapshot-pruner
+  namespace: default
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -83,9 +108,14 @@ spec:
               TMP=$(mktemp)
               TOTAL=0
               FAILED=0
-              for cluster in cnpg-auth cnpg-codetalk cnpg-lunary cnpg-bookmarked; do
-                echo "--- ${cluster} ---"
-                if ! kubectl get volumesnapshot -n default -l "cnpg.io/cluster=${cluster}" \
+              # namespace/cluster pairs. Deleting a VolumeSnapshot frees the Mayastor
+              # snapshot only because the CNPG clusters use mayastor-snapclass-cnpg
+              # (deletionPolicy Delete) since 2026-09-25; with the old Retain class
+              # every pruned snapshot left an orphan backend snapshot behind.
+              for pair in default/cnpg-auth default/cnpg-codetalk default/cnpg-lunary default/cnpg-bookmarked immich/cnpg-immich; do
+                ns="${pair%%/*}"; cluster="${pair#*/}"
+                echo "--- ${ns}/${cluster} ---"
+                if ! kubectl get volumesnapshot -n "$ns" -l "cnpg.io/cluster=${cluster}" \
                      -o jsonpath='{range .items[*]}{.metadata.name}|{.metadata.creationTimestamp}{"\n"}{end}' > "$TMP"; then
                   echo "  ERROR: list failed for ${cluster}"
                   FAILED=$((FAILED + 1))
@@ -95,7 +125,7 @@ spec:
                   [ -z "$name" ] && continue
                   created_epoch=$(date -u -D "%Y-%m-%dT%H:%M:%SZ" -d "$created" +%s 2>/dev/null) || continue
                   if [ "$created_epoch" -lt "$CUTOFF" ]; then
-                    if kubectl delete volumesnapshot -n default "$name" --wait=false >/dev/null; then
+                    if kubectl delete volumesnapshot -n "$ns" "$name" --wait=false >/dev/null; then
                       echo "  deleted: $name"
                       TOTAL=$((TOTAL + 1))
                     else
