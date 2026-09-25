@@ -42,9 +42,9 @@ spec:
         app: influxdb
     spec:
       nodeSelector:
-        # 2026-09-25: was node-role.kubernetes.io/control-plane; vmi2951245 is an agent
-        # now and its data PVC is local (openebs-lvmpv) there, so pin by hostname.
-        kubernetes.io/hostname: vmi2951245
+        # 2026-09-25: data PVC (openebs-lvmpv, local) moved vmi2951245 -> m720q
+        # (VPS retirement), so pin by hostname to where the volume lives.
+        kubernetes.io/hostname: m720q
       containers:
         - name: influxdb
           image: influxdb:2.7-alpine
