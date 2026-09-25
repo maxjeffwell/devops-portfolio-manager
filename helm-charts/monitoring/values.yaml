@@ -702,9 +702,11 @@ garage:
   # without a native garage (elitedesk/debian-marmoset run one on the host).
   # Was 2 replicas (vmi2951245 + vmi3115606) until 2026-09-06; vmi3115606 is
   # being decommissioned and its gateway (30da4663) was removed from the
-  # layout at v31.
+  # layout at v31. 2026-09-25: moved vmi2951245 -> m920s (VPS retirement);
+  # m920s has no native garage yet — a future native member there must use
+  # a different rpc port (e.g. :3902) because this gateway holds :3901.
   nodeHostnames:
-    - vmi2951245
+    - m920s
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
@@ -719,9 +721,10 @@ garage:
     limits:
       memory: 2Gi
   persistence:
-    # 2026-08-23: local-path so replicas can run off the control-plane VPS
-    # (its PreferNoSchedule taint + antiAffinity spread them elsewhere).
-    storageClass: local-path
+    # 2026-09-25: mayastor-sata (single replica on the m920s BX300 pool) so the
+    # gateway's node key + metadata cache follow the pod instead of being
+    # pinned to one node's local-path directory.
+    storageClass: mayastor-sata
     size: 10Gi
   ingress:
     enabled: true
