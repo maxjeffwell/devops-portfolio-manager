@@ -28,8 +28,8 @@ spec:
         spec:
           restartPolicy: OnFailure
           nodeSelector:
-            # 2026-09-25: was node-role.kubernetes.io/control-plane (vmi2951245 is an agent now)
-            kubernetes.io/hostname: vmi2951245
+            # 2026-09-25: influxdb moved to m720q (vmi2951245 being retired); run next to it
+            kubernetes.io/hostname: m720q
           containers:
           - name: backup
             # Prebuilt image with influx + aws CLIs baked in (no runtime apk).
