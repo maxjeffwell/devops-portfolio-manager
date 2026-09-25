@@ -1149,7 +1149,12 @@ garageExternal:
     - name: elitedesk
       address: 10.0.0.10:3903
       zone: elitedesk
-    # VPS gateway pods (sqlite, zero blocks) via the in-cluster Service.
+    # 2026-09-25: native member on m920s (Corsair 120G). Admin on :3913 because
+    # the k8s gateway pod (hostNetwork) holds :3903 on the same host.
+    - name: m920s
+      address: 100.64.0.2:3913
+      zone: m920s
+    # k8s gateway pod (sqlite, zero blocks; on m920s since 2026-09-25) via the in-cluster Service.
     - name: k8s-gateway
       address: garage.monitoring.svc.cluster.local:3903
       zone: k8s
