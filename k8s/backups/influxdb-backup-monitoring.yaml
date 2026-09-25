@@ -28,7 +28,8 @@ spec:
         spec:
           restartPolicy: OnFailure
           nodeSelector:
-            node-role.kubernetes.io/control-plane: "true"
+            # 2026-09-25: was node-role.kubernetes.io/control-plane (vmi2951245 is an agent now)
+            kubernetes.io/hostname: vmi2951245
           containers:
           - name: backup
             # Prebuilt image with influx + aws CLIs baked in (no runtime apk).
