@@ -53,16 +53,12 @@ spec:
         format: json
         filePath: "/var/log/traefik/access.log"
     deployment:
-      # Single replica pinned to the public-origin VPS (see nodeSelector below).
-      # Was 2 replicas + hostname anti-affinity for the two-VPS era; after the
-      # 2nd VPS left (2026-09-06) the spare replica landed on m720q, which has
-      # no wg0 route to headscale's Endpoints (10.0.0.9:8081 on dm) -> ~50% 504s.
-      replicas: 1
-      strategy:
-        type: RollingUpdate
-        rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+      # 2 replicas on the edge node (2026-09-25): zero-downtime rollouts and a PDB
+      # that permits one disruption. Both stay on role=edge via nodeSelector, so the
+      # old failure (spare replica on m720q, no wg0 route to headscale's
+      # Endpoints 10.0.0.9:8081 -> ~50% 504s) cannot recur. Anti-affinity is
+      # only *preferred*, so replicas spread if a second edge node ever exists.
+      replicas: 2
       additionalVolumes:
       - name: access-logs
         hostPath:
@@ -74,7 +70,14 @@ spec:
       initContainers:
       - name: fix-log-permissions
         image: busybox:1.37
-        command: ["sh", "-c", "chown 65532:65532 /var/log/traefik"]
+        # Per-pod log dir (main container mounts it via subPathExpr) must be
+        # writable by uid 65532; kubelet would create it root-owned.
+        command: ["sh", "-c", "mkdir -p /var/log/traefik/$POD_NAME && chown 65532:65532 /var/log/traefik /var/log/traefik/$POD_NAME"]
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         securityContext:
           runAsUser: 0
           runAsNonRoot: false
@@ -84,19 +87,38 @@ spec:
     additionalVolumeMounts:
     - name: access-logs
       mountPath: /var/log/traefik
+      # One file per replica on the host: /var/log/traefik/<pod>/access.log
+      # (crowdsec globs /var/log/traefik/*/access.log). POD_NAME is set by the chart.
+      subPathExpr: $(POD_NAME)
     - name: crowdsec-lapi-key
       mountPath: /etc/crowdsec
       readOnly: true
     affinity:
       podAntiAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-            matchExpressions:
-            - key: app.kubernetes.io/name
-              operator: In
-              values:
-              - traefik
-          topologyKey: kubernetes.io/hostname
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                - traefik
+            topologyKey: kubernetes.io/hostname
+    # Public entry point gets reserved capacity (actual ~7m CPU / ~100Mi).
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+    # Chart key is top-level `updateStrategy` (a `deployment.strategy` key here was
+    # silently ignored). Surge first => zero-downtime rollouts with 2 replicas.
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
     podDisruptionBudget:
       enabled: true
       minAvailable: 1

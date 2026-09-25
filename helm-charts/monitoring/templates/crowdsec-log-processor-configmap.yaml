@@ -8,7 +8,14 @@ data:
   acquis.yaml: |
     source: file
     filenames:
+      # Per-pod logs (Traefik mounts the hostPath with subPathExpr=$(POD_NAME),
+      # 2 replicas since 2026-09-25). The flat path is kept for any leftover file.
+      - /var/log/traefik/*/access.log
       - /var/log/traefik/access.log
+    # Each Traefik rollout creates new per-pod directories; inotify only sees new
+    # files in directories that already existed at startup, so poll the glob.
+    discovery_poll_enable: true
+    discovery_poll_interval: 30s
     labels:
       type: traefik
   00-traefik-xff-rightmost.yaml: |
