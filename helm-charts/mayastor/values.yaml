@@ -127,9 +127,21 @@ mayastor:
       limits:
         cpu: '2'
         hugepages2Mi: 2Gi
+        # Chart default; kept explicit because the request below now differs.
+        memory: 1Gi
       requests:
         cpu: '1'
         hugepages2Mi: 2Gi
+        # 2026-09-24: was 1Gi (chart default, equal to the limit). The io-engine
+        # data path lives in the 2Gi hugepages accounted separately; the memory
+        # cgroup working set is ~130Mi (7-day avg 63-130Mi on elitedesk/m720q).
+        # 1Gi over-reserved ~960Mi on each of the two storage nodes. 256Mi keeps
+        # usage under request so the pod stays low in the eviction order; the
+        # 1Gi limit still covers any burst. DaemonSet is OnDelete: apply with
+        # helm, then delete io-engine pods ONE node at a time, waiting for the
+        # pool to re-import (>1 min past the REST API's stale "Online") before
+        # touching the second node. helm rev 13.
+        memory: 256Mi
     target:
       nvmf:
         iface: bond0
