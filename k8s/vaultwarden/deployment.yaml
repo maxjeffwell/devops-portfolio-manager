@@ -17,11 +17,12 @@ spec:
       labels:
         app: vaultwarden
     spec:
-      # debian-marmoset: co-located with the CNPG DB, reaches B2 (for Velero
-      # offsite of /data), and runs the Velero node-agent. vmi2951245 was
-      # rejected — no outbound route to Backblaze B2.
+      # 2026-09-25: m920s (was debian-marmoset, a laptop that reboots). m920s
+      # reaches B2 and runs the Velero node-agent; the CNPG DB lives on
+      # elitedesk/m720q over mayastor-2 anyway. vmi2951245 was rejected — no
+      # outbound route to Backblaze B2.
       nodeSelector:
-        kubernetes.io/hostname: debian-marmoset
+        kubernetes.io/hostname: m920s
       initContainers:
         - name: wait-for-db
           image: ghcr.io/cloudnative-pg/postgresql:17
