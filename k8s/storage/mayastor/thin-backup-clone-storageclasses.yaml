@@ -1,0 +1,88 @@
+# Thin twins of the Mayastor StorageClasses, used ONLY by Velero's data mover
+# (node-agent-config backupPVC in helm-charts/velero/values.yaml). Mayastor refuses to
+# create a volume from a snapshot unless the target class is thin
+# (ClonedSnapshotVolumeThin), and every live Mayastor class is thick, so snapshot-
+# move-data backups of Mayastor PVCs always failed. Params mirror the originals
+# (repl, pool affinity, protocol) except thin: "true". Verified 2026-09-25 with
+# repl-1 (mayastor-sata) and repl-2 (mayastor-2) snapshot clones.
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-1-thin
+  labels:
+    homelab/purpose: velero-backup-clone
+  annotations:
+    homelab/note: thin twin of mayastor-1; Mayastor requires snapshot clones to be
+      thin. Used only by Velero backupPVC.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: '30'
+  protocol: nvmf
+  repl: '1'
+  thin: 'true'
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-2-thin
+  labels:
+    homelab/purpose: velero-backup-clone
+  annotations:
+    homelab/note: thin twin of mayastor-2; Mayastor requires snapshot clones to be
+      thin. Used only by Velero backupPVC.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: '30'
+  poolAffinityTopologyLabel: 'tier: internal
+
+    '
+  protocol: nvmf
+  repl: '2'
+  thin: 'true'
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-sata-thin
+  labels:
+    homelab/purpose: velero-backup-clone
+  annotations:
+    homelab/note: thin twin of mayastor-sata; Mayastor requires snapshot clones to
+      be thin. Used only by Velero backupPVC.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: '30'
+  poolAffinityTopologyLabel: 'tier: sata
+
+    '
+  protocol: nvmf
+  repl: '1'
+  thin: 'true'
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-single-replica-thin
+  labels:
+    homelab/purpose: velero-backup-clone
+  annotations:
+    homelab/note: thin twin of mayastor-single-replica; Mayastor requires snapshot
+      clones to be thin. Used only by Velero backupPVC.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  protocol: nvmf
+  repl: '1'
+  thin: 'true'
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true

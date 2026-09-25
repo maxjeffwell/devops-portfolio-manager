@@ -25,8 +25,41 @@ configMaps:
       # for rediness of pod" (2026-08-24 diagnosis). 8 slots clears the queue.
       # The node-agent reads this ONLY at startup — restart the DaemonSet pod
       # after changing it.
+      #
+      # loadAffinity = where data-mover (DataUpload/DataDownload) expose pods may
+      # run, per source StorageClass. They mount a clone of the snapshot, so they
+      # MUST land on a node that runs that volume's CSI node plugin; otherwise the
+      # upload fails with "timeout on preparing data upload" (weekly-offsite
+      # PartiallyFailed 9/13 and 9/20). First fixed 9/15 from a side file on dm
+      # that never reached this file, so a later upgrade dropped it — keep it HERE.
+      # Label-based where possible so node changes don't break it:
+      #  - democratic-csi node plugin: debian-marmoset + m720q only (hostnames)
+      #  - Mayastor: nodes labelled openebs.io/csi-node=mayastor (same label the
+      #    Mayastor PVs require)
+      #  - everything else: worker-role nodes (excludes edge VPS + GPU marmoset)
+      #
+      # backupPVC = StorageClass for the temporary clone the data mover mounts.
+      # Mayastor only clones snapshots into THIN classes (ClonedSnapshotVolumeThin)
+      # and all live Mayastor classes are thick, so map each to its thin twin
+      # (k8s/storage/mayastor/thin-backup-clone-storageclasses.yaml).
       node-agent-config.json: |
-        {"loadConcurrency":{"globalConfig":3,"perNodeConfig":[{"nodeSelector":{"matchLabels":{"kubernetes.io/hostname":"debian-marmoset"}},"number":8}]}}
+        {
+          "loadConcurrency": {"globalConfig": 3, "perNodeConfig": [{"nodeSelector": {"matchLabels": {"kubernetes.io/hostname": "debian-marmoset"}}, "number": 8}]},
+          "loadAffinity": [
+            {"storageClass": "democratic-synology-iscsi-mp", "nodeSelector": {"matchExpressions": [{"key": "kubernetes.io/hostname", "operator": "In", "values": ["debian-marmoset", "m720q"]}]}},
+            {"storageClass": "mayastor-1", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
+            {"storageClass": "mayastor-2", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
+            {"storageClass": "mayastor-sata", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
+            {"storageClass": "mayastor-single-replica", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
+            {"nodeSelector": {"matchExpressions": [{"key": "node-role.kubernetes.io/worker", "operator": "Exists"}]}}
+          ],
+          "backupPVC": {
+            "mayastor-1": {"storageClass": "mayastor-1-thin"},
+            "mayastor-2": {"storageClass": "mayastor-2-thin"},
+            "mayastor-sata": {"storageClass": "mayastor-sata-thin"},
+            "mayastor-single-replica": {"storageClass": "mayastor-single-replica-thin"}
+          }
+        }
 
 configuration:
   backupStorageLocation:
@@ -123,3 +156,7 @@ resources:
 
 snapshotsEnabled: true
 upgradeCRDs: false
+
+# 2026-09-22: Velero 1.18.3 (fixes orphan vsc-* 45-min readyToUse poll) on chart 12.0.0 (app 1.18.0).
+image:
+  tag: v1.18.3
