@@ -20,7 +20,9 @@
 
 manager:
   nodeSelector:
-    kubernetes.io/hostname: vmi2951245
+    # 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
+    # (the VPS is an agent), so 'next to the control plane' means m920s.
+    kubernetes.io/hostname: m920s
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
