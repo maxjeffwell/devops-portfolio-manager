@@ -19,6 +19,14 @@ spec:
     # tailnet address of vmi2951245 (advertise-address since 2026-05-05)
     - ipBlock:
         cidr: 100.64.0.1/32
+    # 2026-09-25: m920s, m720q, elitedesk are k3s servers too; the kubernetes
+    # service load-balances across all apiservers.
+    - ipBlock:
+        cidr: 100.64.0.2/32
+    - ipBlock:
+        cidr: 100.64.0.11/32
+    - ipBlock:
+        cidr: 100.64.0.8/32
     # legacy wg0 address, kept for transition
     - ipBlock:
         cidr: 10.0.0.1/32

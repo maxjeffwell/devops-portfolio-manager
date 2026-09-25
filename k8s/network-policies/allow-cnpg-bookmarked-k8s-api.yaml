@@ -43,6 +43,14 @@ spec:
         cidr: 10.43.0.1/32
     - ipBlock:
         cidr: 100.64.0.1/32
+    # 2026-09-25: m920s, m720q, elitedesk are k3s servers too; the kubernetes
+    # service load-balances across all apiservers.
+    - ipBlock:
+        cidr: 100.64.0.2/32
+    - ipBlock:
+        cidr: 100.64.0.11/32
+    - ipBlock:
+        cidr: 100.64.0.8/32
     - ipBlock:
         cidr: 86.48.29.183/32
   # Streaming replication to other instances of this same cluster.
