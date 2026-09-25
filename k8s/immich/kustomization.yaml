@@ -4,6 +4,7 @@ namespace: immich
 resources:
   - namespace.yaml
   - gpu-plugin-elitedesk.yaml
+  - gpu-plugin-m920s.yaml
   - storage.yaml
   - cnpg-immich.yaml
   - networkpolicy.yaml

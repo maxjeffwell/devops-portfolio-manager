@@ -1,0 +1,14 @@
+# Third Intel GPU device plugin instance, for m920s's UHD 630 (Coffee Lake,
+# i7-8700). Added 2026-09-25 when channels-dvr (requests gpu.intel.com/i915
+# for transcoding) moved off debian-marmoset to m920s. Selects by hostname so
+# it never overlaps the dm (gpu-node=true) or elitedesk instances.
+# 4 shares of the one iGPU.
+apiVersion: deviceplugin.intel.com/v1
+kind: GpuDevicePlugin
+metadata:
+  name: gpudeviceplugin-m920s
+spec:
+  image: intel/intel-gpu-plugin:0.35.0
+  sharedDevNum: 4
+  nodeSelector:
+    kubernetes.io/hostname: m920s
