@@ -105,14 +105,18 @@ mayastor:
     enabled: true
     localpvScConfig:
       enabled: false
+    # 2026-09-25: etcd moved debian-marmoset (laptop, local-path) -> m920s on an
+    # lvm-localpv thin LV in vg0. NEVER put this on a Mayastor class: it is the
+    # control plane for every Mayastor volume (circular dependency).
     nodeSelector:
       kubernetes.io/arch: amd64
+      kubernetes.io/hostname: m920s
     pdb:
       create: false
     persistence:
       enabled: true
       size: 2Gi
-      storageClass: local-path
+      storageClass: openebs-lvmpv-vg0
     replicaCount: 1
   eventing:
     enabled: true
