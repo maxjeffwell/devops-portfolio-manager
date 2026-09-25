@@ -68,11 +68,22 @@ driver:
       volume: /volume1
 
 node:
-  # Pilot scope: only debian-marmoset. If broadening, also update the
-  # consumer nodeSelector on every PVC consumer (cnpg-auth, cnpg-bookmarked,
-  # cnpg-codetalk, cnpg-lunary in portfolio-orchestration-platform/k8s/databases/).
-  nodeSelector:
-    kubernetes.io/hostname: debian-marmoset
+  # 2026-09-24: broadened from the debian-marmoset-only pilot to m720q as well.
+  # A node can host the plugin only if it has open-iscsi + multipath-tools
+  # installed with /etc/iscsi/iscsid.conf and /etc/multipath.conf mirrored
+  # from debian-marmoset. Consumers of the SC may pin to either node; do NOT
+  # add a node here before its host stack is in place.
+  nodeSelector: {}
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - debian-marmoset
+                  - m720q
   tolerations: []
   driver:
     extraEnv:
