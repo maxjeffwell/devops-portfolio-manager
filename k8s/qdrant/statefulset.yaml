@@ -30,7 +30,10 @@ spec:
         portfolio: "true"
     spec:
       nodeSelector:
-        kubernetes.io/hostname: debian-marmoset
+        # 2026-09-24: moved off debian-marmoset (89 % memory requests) to m720q
+        # (32 GB). Requires the democratic-csi node plugin on the target node;
+        # see k8s/storage/democratic-csi/synology-iscsi-mp-values.yaml.
+        kubernetes.io/hostname: m720q
       priorityClassName: portfolio-critical
       restartPolicy: Always
       schedulerName: default-scheduler
