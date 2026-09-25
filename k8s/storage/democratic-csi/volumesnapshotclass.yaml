@@ -1,0 +1,11 @@
+# democratic-csi (Synology iSCSI, multipath) snapshot class. Hand-applied (not part of the
+# democratic-csi Helm release). Velero label added 2026-09-25 so Velero selects this class
+# explicitly for org.democratic-csi.synology-iscsi-mp volumes instead of by fallback.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: democratic-csi-mp-snapclass
+  labels:
+    velero.io/csi-volumesnapshot-class: 'true'
+driver: org.democratic-csi.synology-iscsi-mp
+deletionPolicy: Delete
