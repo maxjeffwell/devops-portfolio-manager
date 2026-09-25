@@ -24,7 +24,7 @@
 # honour this label — they still go to the most-free pool.
 #
 # Standalone manifest for reference/re-creation. Not under ArgoCD —
-# kubectl-apply by hand. Companion to k8s/storage/openebs-zfs/ pattern.
+# kubectl-apply by hand.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:

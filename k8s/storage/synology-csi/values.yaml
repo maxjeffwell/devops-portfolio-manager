@@ -21,3 +21,7 @@ storageClasses:
       dsm: "10.0.0.5"
       fsType: btrfs
       location: /volume1
+
+# 2026-09-25: synology-snapshotclass carries the Velero label velero.io/csi-volumesnapshot-class=true,
+# added with `kubectl label` because this chart has no labels value for the snapshot class.
+# Helm three-way merge keeps it on upgrade; re-add it if the release is ever reinstalled.
