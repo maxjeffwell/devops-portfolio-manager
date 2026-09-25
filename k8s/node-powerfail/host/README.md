@@ -14,7 +14,9 @@ no YAML). Pair with the ServiceAccount in `../rbac.yaml`.
 Plus, per node:
 
 - `/etc/kubernetes/node-powerfail.kubeconfig` (root 0600): server
-  `https://100.64.0.1:6443`, CA + token from Secret `kube-system/node-powerfail-token`.
+  `https://127.0.0.1:6443` (every node here is a k3s server with a local API since
+  2026-09-25; the old `100.64.0.1` VPS target was retired), CA + token from Secret
+  `kube-system/node-powerfail-token`.
 - `/etc/nut/upssched.conf`: `AT ONBATT * START-TIMER powerfail <seconds>` /
   `AT ONLINE * CANCEL-TIMER powerfail`, CMDSCRIPT = upssched-cmd.
 - `/etc/nut/upsmon.conf`: `SHUTDOWNCMD "/usr/local/sbin/nut-powerfail-shutdown.sh"`,
@@ -24,7 +26,9 @@ Plus, per node:
 Timers (2026-09-16): elitedesk 300 s (AVRG900LCD ~20 min, battery-forced),
 dm 720 s (ST625U ~63 min; older copy of these scripts with pwrstatd-* names),
 m720q 900 s (Synology CST135UC ~77 min). The 3 min dm/m720q offset avoids
-PDB eviction races on shared replicas. M920s: 900 s.
+PDB eviction races on shared replicas. M920s (installed 2026-09-25): 600 s,
+secondary of `ASUSTOR-UPS@192.168.50.142` (APC Back-UPS XS 1500M) as user
+`maxjeffwell` (ADM-managed upsd.users) — drains while 2 of 3 etcd servers are up.
 Flow: ONBATT → timer → `upsmon -c fsd` (sudo as nut) → SHUTDOWNCMD cordons,
 drains (bounded ~150 s), touches /var/lib/nut-drained.flag, halts → next boot
 the oneshot uncordons and clears the flag. LOWBATT remains the backstop.

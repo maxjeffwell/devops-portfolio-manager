@@ -1,6 +1,6 @@
 [Unit]
 Description=Uncordon k3s node after UPS-triggered drain
-After=k3s-agent.service network-online.target tailscaled.service
+After=k3s.service k3s-agent.service network-online.target tailscaled.service
 Wants=network-online.target
 ConditionPathExists=/var/lib/nut-drained.flag
 
