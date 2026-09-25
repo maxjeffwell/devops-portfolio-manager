@@ -208,6 +208,8 @@ data:
         { "__address__" = "10.0.0.9:3903", "instance" = "debian-marmoset" },
         { "__address__" = "10.0.0.10:3903", "instance" = "elitedesk" },
         { "__address__" = "10.0.0.5:3903", "instance" = "synology" },
+        // m920s native member: admin on :3913 (k8s gateway pod holds :3903 there).
+        { "__address__" = "100.64.0.2:3913", "instance" = "m920s" },
       ]
       forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "30s"
