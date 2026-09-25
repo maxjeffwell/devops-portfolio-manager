@@ -100,7 +100,10 @@ spec:
     podDisruptionBudget:
       enabled: true
       minAvailable: 1
-    # Public origin is vmi2951245 only (LAN DNS sends every el-jefe.me name to
+    # Public origin is the edge VPS only (LAN DNS sends every el-jefe.me name to
     # Cloudflare/the VPS), and it is the only node with wg0 to dm for headscale.
+    # Pinned by role label (not hostname) so a VPS swap is a relabel; the edge
+    # node's public IP lives only in DNS record edge.el-jefe.me. 2026-09-25:
+    # vmi2951245 -> vmi3610371.
     nodeSelector:
-      kubernetes.io/hostname: vmi2951245
+      role: edge

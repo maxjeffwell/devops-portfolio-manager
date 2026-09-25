@@ -16,7 +16,7 @@ spec:
         app: xray
     spec:
       nodeSelector:
-        kubernetes.io/hostname: {{ .Values.nodeAffinity.preferredNode }}
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
       initContainers:
         - name: config-generator
           image: busybox:latest

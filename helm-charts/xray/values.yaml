@@ -21,8 +21,9 @@ resources:
   limits:
     memory: 128Mi
 
-nodeAffinity:
-  preferredNode: vmi2951245
+# Runs on the public edge node (role label, not hostname, so a VPS swap is a relabel).
+nodeSelector:
+  role: edge
 
 externalSecrets:
   enabled: true

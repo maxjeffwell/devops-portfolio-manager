@@ -20,10 +20,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: role
                 operator: In
                 values:
-                - vmi2951245
+                - edge
       containers:
       - name: crowdsec
         image: "{{ .Values.crowdsec.logProcessor.image.repository }}:{{ .Values.crowdsec.logProcessor.image.tag }}"
