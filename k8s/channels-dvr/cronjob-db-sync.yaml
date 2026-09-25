@@ -28,7 +28,7 @@ spec:
           restartPolicy: Never
           # Must run where the RWO data LV lives.
           nodeSelector:
-            kubernetes.io/hostname: debian-marmoset
+            kubernetes.io/hostname: m920s
           containers:
             - name: sync
               image: busybox:1.36

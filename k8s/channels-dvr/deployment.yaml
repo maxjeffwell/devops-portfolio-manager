@@ -1,9 +1,10 @@
 # Channels DVR WARM STANDBY for the primary on the ASUSTOR (192.168.50.142:8089).
-# Pinned to debian-marmoset: TVE (Spectrum) authenticates against the home
-# egress IP, so this can never run on the cloud nodes.
+# Pinned to m920s (2026-09-25; was debian-marmoset): TVE (Spectrum)
+# authenticates against the home egress IP, so this can never run on the
+# cloud nodes. hostPort 8089 now answers at 192.168.50.155 / 100.64.0.2.
 #
 # Pod network + container hostPort 8089: LAN clients still reach it at
-# 192.168.50.152:8089 (tailnet: 100.64.0.12:8089) because portmap binds the
+# 192.168.50.155:8089 (tailnet: 100.64.0.2:8089) because portmap binds the
 # node port and DNATs to the pod — but unlike hostNetwork, traffic traverses
 # the pod veth so networkpolicy.yaml is actually enforced. Trade-off: no
 # bonjour/mDNS discovery; Channels clients add the server by ip:port manually.
@@ -45,7 +46,7 @@ spec:
         backup.velero.io/backup-volumes-excludes: primary,recordings
     spec:
       nodeSelector:
-        kubernetes.io/hostname: debian-marmoset
+        kubernetes.io/hostname: m920s
       containers:
         - name: channels-dvr
           # :tve, not :latest — the default image is Alpine WITHOUT Chrome;
