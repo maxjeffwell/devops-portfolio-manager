@@ -1,0 +1,18 @@
+# ClusterSecretStore doppler-secret-store. Exported from the LIVE spec 2026-09-26 (was hand-applied;
+# the old copies in k8s/external-secrets were stale). Verified with an empty kubectl diff.
+# !! Every ExternalSecret in the cluster reads through this store -- do not delete this file.
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: doppler-secret-store
+  annotations:
+    force-reconcile: '1779685491'
+spec:
+  provider:
+    doppler:
+      auth:
+        secretRef:
+          dopplerToken:
+            key: dopplerToken
+            name: doppler-token-auth
+            namespace: external-secrets
