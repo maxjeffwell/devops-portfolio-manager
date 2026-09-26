@@ -1,0 +1,38 @@
+# Owns devops-portfolio-manager/k8s/rbac: ServiceAccounts + cluster RBAC for
+# workloads whose own charts/apps do not create them -- the devops-portfolio-api
+# (podrick) helm-viewer RBAC and the graphql-gateway gateway-sa reader RBAC.
+# Created 2026-09-26; every object was hand-applied and showed an empty
+# `kubectl diff` before adoption.
+#
+# prune: true -- removing a file here deletes that ServiceAccount/ClusterRole,
+# which breaks the workload using it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-rbac
+  namespace: argocd
+  labels:
+    app: platform-rbac
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/rbac
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

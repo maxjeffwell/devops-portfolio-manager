@@ -1,0 +1,20 @@
+# keel Service (the keel Deployment is a Helm release; this Service was hand-applied).
+# Exported from the live cluster 2026-09-26; empty kubectl diff.
+apiVersion: v1
+kind: Service
+metadata:
+  name: keel
+  namespace: keel
+  labels:
+    app: keel
+spec:
+  type: ClusterIP
+  selector:
+    app: keel
+    release: keel
+  ports:
+  - name: http
+    port: 9300
+    protocol: TCP
+    targetPort: 9300
+  sessionAffinity: None
