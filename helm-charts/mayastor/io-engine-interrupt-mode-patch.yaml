@@ -1,0 +1,30 @@
+# Per-node SPDK interrupt mode for io-engine (experimental in mayastor 2.12).
+#
+# The chart toggle (io_engine.interruptMode.enabled) is DaemonSet-wide. We only
+# want it on elitedesk + m720q, so the container command is wrapped: the shell
+# exports the two env vars the chart would set, keyed on the node name, then
+# execs io-engine with the chart's args unchanged.
+#
+# NOT part of the Helm release. `helm upgrade` resets the command to
+# ["io-engine"]; that fails safe (plain polling) once pods restart. Re-apply
+# after every upgrade:
+#   kubectl -n openebs patch ds mayastor-io-engine --type strategic \
+#     --patch-file helm-charts/mayastor/io-engine-interrupt-mode-patch.yaml
+# DaemonSet is OnDelete: delete one io-engine pod at a time and wait for all
+# nexus children Online before the next (see restart trap notes).
+spec:
+  template:
+    spec:
+      containers:
+        - name: io-engine
+          command:
+            - sh
+            - -c
+            - |
+              case "$MY_NODE_NAME" in
+                elitedesk|m720q)
+                  export ENABLE_INTERRUPT_MODE=true NVME_IOQ_POLL_PERIOD=100us
+                  echo "interrupt mode ON for $MY_NODE_NAME" ;;
+              esac
+              exec io-engine "$@"
+            - io-engine
