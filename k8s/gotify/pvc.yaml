@@ -1,0 +1,17 @@
+# Gotify data volume.
+# Regenerated from the live object 2026-09-26 (the previous version was stale:
+# it named gotify-synology on the retired synology-iscsi class; the live PVC is gotify-democratic-mp). Verified with an empty kubectl diff.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: gotify
+  name: gotify-democratic-mp
+  namespace: monitoring
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: democratic-synology-iscsi-mp

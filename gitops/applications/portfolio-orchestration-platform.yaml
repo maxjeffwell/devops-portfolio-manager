@@ -31,7 +31,10 @@ spec:
         - /spec/replicas
   syncPolicy:
     automated:
-      prune: true
+      # TEMPORARY 2026-09-26: prune off while non-POP objects move out to
+      # devops-portfolio-manager, so removing their files here cannot delete them
+      # before their new owner adopts them. Restore to true when done.
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true

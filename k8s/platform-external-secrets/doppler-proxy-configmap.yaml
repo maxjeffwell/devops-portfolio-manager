@@ -1,0 +1,38 @@
+# HAProxy TCP Proxy for Doppler API
+# Purpose: Mitigates Contabo-Cloudflare peering issues causing
+#          intermittent TCP SYN blackholes (~10-20% connection failures).
+#          HAProxy retries on a different Cloudflare edge IP within 2s
+#          instead of ESO waiting 30s for Go's default timeout.
+#
+# Backends: Cloudflare edge IPs for api.doppler.com (172.66.43.202, 172.66.40.54)
+# Mode: TCP passthrough — TLS goes end-to-end, no certs needed here.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doppler-proxy-config
+  namespace: external-secrets
+data:
+  haproxy.cfg: |
+    global
+        log stdout format raw local0 info
+        maxconn 256
+
+    defaults
+        mode tcp
+        log global
+        timeout connect 2s
+        timeout client 30s
+        timeout server 30s
+        retries 3
+        option redispatch
+
+    frontend doppler_api
+        bind *:443
+        default_backend doppler_backends
+
+    backend doppler_backends
+        balance roundrobin
+        option tcp-check
+        server cf1 172.66.43.202:443 check inter 10s fall 3 rise 2
+        server cf2 172.66.40.54:443 check inter 10s fall 3 rise 2

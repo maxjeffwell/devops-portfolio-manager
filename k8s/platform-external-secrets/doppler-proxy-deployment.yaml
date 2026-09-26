@@ -1,0 +1,71 @@
+# HAProxy Deployment + Service for Doppler API TCP proxy
+# Routes ESO traffic through a local proxy that retries on
+# connection failure, working around Contabo-Cloudflare peering drops.
+#
+# CoreDNS rewrites api.doppler.com → doppler-proxy.external-secrets.svc
+# so ESO transparently routes through this proxy.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doppler-proxy
+  namespace: external-secrets
+  labels:
+    app: doppler-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: doppler-proxy
+  template:
+    metadata:
+      labels:
+        app: doppler-proxy
+    spec:
+      containers:
+        - name: haproxy
+          image: haproxy:2.9-alpine
+          ports:
+            - containerPort: 443
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /usr/local/etc/haproxy/haproxy.cfg
+              subPath: haproxy.cfg
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
+          livenessProbe:
+            tcpSocket:
+              port: 443
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          readinessProbe:
+            tcpSocket:
+              port: 443
+            initialDelaySeconds: 2
+            periodSeconds: 10
+      volumes:
+        - name: config
+          configMap:
+            name: doppler-proxy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doppler-proxy
+  namespace: external-secrets
+  labels:
+    app: doppler-proxy
+spec:
+  selector:
+    app: doppler-proxy
+  ports:
+    - port: 443
+      targetPort: 443
+      protocol: TCP

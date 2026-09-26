@@ -1,0 +1,159 @@
+# OpenEBS LVM snapshot-content janitor
+#
+# WHY THIS EXISTS
+# openebs/lvm-driver (through at least v1.9.0) violates the CSI idempotency
+# contract for DeleteSnapshot: when the backing LVMSnapshot CR is already gone,
+# lvm.DeleteSnapshot() returns the Kubernetes NotFound error verbatim instead of
+# treating "already absent" as success. The controller wraps it as codes.Internal,
+# so the external-snapshotter retries forever and the VolumeSnapshotContent's
+# `volumesnapshotcontent-bound-protection` finalizer is never released. The result
+# is a slow accumulation of wedged VolumeSnapshotContents (one per CNPG snapshot
+# retention cycle) whose backend storage was freed long ago — pure dead bookkeeping.
+#
+# WHAT IT DOES
+# Every 15 minutes, find VolumeSnapshotContents that are (a) on the openebs LVM
+# driver and (b) being deleted (deletionTimestamp set). For each, derive the
+# LVMSnapshot CR name from the snapshot handle (pvc-XXX@snapshot-YYY -> snapshot-YYY)
+# and check whether that CR still exists in the openebs namespace.
+#   - CR present  -> a real deletion is in progress; LEAVE IT ALONE.
+#   - CR absent (confirmed NotFound) -> backend freed; clear the dead finalizer.
+# Any ambiguous lookup error (not a clean NotFound) is treated conservatively as
+# "present" and skipped, so a flaky API server never causes a wrongful clear.
+#
+# This is symptom remediation, not a root-cause fix. The real fix is a one-line
+# idempotency guard upstream in lvm.DeleteSnapshot; revisit if a released version
+# carries it (then this CronJob can be deleted).
+#
+# Applied manually (k8s/storage is not in the ArgoCD-synced k8s/deployments path),
+# consistent with how the OpenEBS LVM stack is managed (Helm + k8s/scripts).
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs-snapshot-janitor
+  namespace: openebs
+  labels:
+    app: openebs-snapshot-janitor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openebs-snapshot-janitor
+  labels:
+    app: openebs-snapshot-janitor
+rules:
+  # VolumeSnapshotContent is cluster-scoped: list to find candidates, patch to clear finalizers.
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list", "patch"]
+  # LVMSnapshot is the source of truth for whether the backend snapshot still exists.
+  - apiGroups: ["local.openebs.io"]
+    resources: ["lvmsnapshots"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openebs-snapshot-janitor
+  labels:
+    app: openebs-snapshot-janitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openebs-snapshot-janitor
+subjects:
+  - kind: ServiceAccount
+    name: openebs-snapshot-janitor
+    namespace: openebs
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: openebs-snapshot-janitor
+  namespace: openebs
+  labels:
+    app: openebs-snapshot-janitor
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      backoffLimit: 1
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: openebs-snapshot-janitor
+        spec:
+          serviceAccountName: openebs-snapshot-janitor
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: janitor
+              image: alpine/k8s:1.34.3
+              imagePullPolicy: IfNotPresent
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  DRIVER="local.csi.openebs.io"
+                  SNAP_NS="openebs"            # LVMSnapshot CRs live here (driver LvmNamespace)
+                  cleared=0; skipped=0; checked=0
+
+                  # Candidates: VolumeSnapshotContents on the openebs LVM driver that are
+                  # being deleted. Emit "name<TAB>snapshotHandle" per line.
+                  kubectl get volumesnapshotcontents -o go-template='{{range .items}}{{if .metadata.deletionTimestamp}}{{if eq .spec.driver "local.csi.openebs.io"}}{{.metadata.name}}{{"\t"}}{{.status.snapshotHandle}}{{"\n"}}{{end}}{{end}}{{end}}' > /tmp/cands || true
+
+                  while IFS="$(printf '\t')" read -r name handle; do
+                    [ -z "${name:-}" ] && continue
+                    checked=$((checked + 1))
+                    # handle = pvc-XXX@snapshot-YYY  ->  LVMSnapshot CR name = snapshot-YYY
+                    snap="${handle##*@}"
+                    if [ -z "$snap" ] || [ "$snap" = "$handle" ]; then
+                      echo "SKIP  $name : unparseable handle '$handle'"
+                      skipped=$((skipped + 1)); continue
+                    fi
+
+                    # Authoritative safety gate: only clear when the LVMSnapshot CR is
+                    # provably absent (clean NotFound). Treat any other error as present.
+                    if out=$(kubectl get lvmsnapshot.local.openebs.io "$snap" -n "$SNAP_NS" 2>&1); then
+                      echo "SKIP  $name : LVMSnapshot $snap still present (deletion in progress)"
+                      skipped=$((skipped + 1))
+                    elif printf '%s' "$out" | grep -qiE "not ?found"; then
+                      echo "CLEAR $name : LVMSnapshot $snap absent -> backend freed, removing finalizer"
+                      kubectl patch volumesnapshotcontent "$name" --type=merge -p '{"metadata":{"finalizers":[]}}'
+                      cleared=$((cleared + 1))
+                    else
+                      echo "SKIP  $name : ambiguous lvmsnapshot lookup, not clearing -> $out"
+                      skipped=$((skipped + 1))
+                    fi
+                  done < /tmp/cands
+
+                  echo "janitor summary: checked=$checked cleared=$cleared skipped=$skipped"
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 25m
+                  memory: 48Mi
+          volumes:
+            - name: tmp
+              emptyDir: {}

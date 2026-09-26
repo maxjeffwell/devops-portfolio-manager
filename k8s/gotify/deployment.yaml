@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotify
+  namespace: monitoring
+  labels:
+    app: gotify
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gotify
+  template:
+    metadata:
+      labels:
+        app: gotify
+    spec:
+      containers:
+        - name: gotify
+          image: gotify/server
+          env:
+            - name: TZ
+              value: "UTC"
+            - name: GOTIFY_DEFAULTUSER_PASS
+              value: "admin"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: gotify-data
+              mountPath: "/app/data"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: gotify-data
+          persistentVolumeClaim:
+            claimName: gotify-democratic-mp
