@@ -55,7 +55,13 @@ metadata:
   namespace: default
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:17
-  instances: 1
+  # 2026-09-26: 1 -> 2. cnpg-auth has the widest blast radius of the portfolio
+  # DBs (portfolio-api, devops-portfolio, vertex-platform, bookmarked sessions),
+  # so a single-pod restart took them all down together. The old blocker (the
+  # democratic-csi iSCSI node plugin ran on one node only) went away with the
+  # move to Mayastor. enablePDB stays false: with a PDB, draining the primary's
+  # node blocks until a manual `kubectl cnpg promote`.
+  instances: 2
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
@@ -63,6 +69,9 @@ spec:
       portfolio: 'true'
   affinity:
     enablePodAntiAffinity: true
+    # m920s added 2026-09-26 and preferred: it has the CPU-request headroom
+    # (~36% vs 84% elitedesk / 91% m720q) and keeps the standby off the
+    # primary's node without crowding m720q.
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -72,6 +81,15 @@ spec:
             values:
             - elitedesk
             - m720q
+            - m920s
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - m920s
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   # Inert (read only at creation) but truthful -- see (1) in the header.
@@ -82,10 +100,14 @@ spec:
       encoding: UTF8
       localeCType: C
       localeCollate: C
+  # storageClass only applies to PVCs created after the change: the existing
+  # primary PVC stays on mayastor-2 (NVMe), the 2026-09-26 standby -- and any
+  # instance recreated later -- lands on mayastor-2-sata (m920s BX300 +
+  # elitedesk USB BX500). NVMe is scarce; CNPG replication is the second copy.
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: mayastor-2
+    storageClass: mayastor-2-sata
   # 2026-09-16: cpu 250m -> 100m. 14-day peak is 27m, so 250m reserved ~9x the
   # real peak and it was the single largest slice of elitedesk's CPU-request
   # saturation (95.9% of allocatable while ~26% busy). Memory left at 256Mi:

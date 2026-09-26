@@ -6,19 +6,22 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  # Single Postgres instance pinned to debian-marmoset because:
-  #  - vmi2951245 has NO outbound connectivity to Backblaze B2 (TCP connect
-  #    times out), so WAL archiving must run from debian-marmoset, which reaches
-  #    B2 fine; and the openebs-zfs pool only exists on vmi2951245 anyway.
-  # Storage = mayastor-2 (NVMe-oF/TCP, replica=2 across debian-marmoset↔marmoset):
-  # the single instance's data is replicated at the storage layer, so it survives
-  # a debian-marmoset disk/node loss — storage-level redundancy under WAL PITR→B2.
+  # 2026-09-26: 1 -> 2 instances (primary + streaming standby on another node),
+  # so a node drain or pod restart fails over in seconds instead of taking the
+  # vault offline. WAL PITR -> B2 via the barman-cloud plugin is unchanged; the
+  # plugin archives from whichever instance is primary.
+  # enablePDB stays false: with a PDB, draining the primary's node blocks until
+  # a manual `kubectl cnpg promote`.
   enablePDB: false
-  instances: 1
+  instances: 2
   imageName: ghcr.io/cloudnative-pg/postgresql:17
   primaryUpdateStrategy: unsupervised
+  # storageClass only applies to PVCs created after the change: the existing
+  # primary PVC stays on mayastor-2 (NVMe), the 2026-09-26 standby -- and any
+  # instance recreated later -- lands on mayastor-2-sata (m920s BX300 +
+  # elitedesk USB BX500). NVMe is scarce; CNPG replication is the second copy.
   storage:
-    storageClass: mayastor-2
+    storageClass: mayastor-2-sata
     size: 5Gi
   # 2026-09-21 right-sizing. Without this block the namespace LimitRange
   # (default-requests) injected cpu 10m / memory 64Mi, but the postgres
@@ -33,8 +36,13 @@ spec:
       cpu: 20m
       memory: 192Mi
   affinity:
-    # 2026-09-06: debian-marmoset is no longer a Mayastor node (laptop thermal);
-    # the mayastor-2 volume is reachable from either remaining storage node.
+    # 2026-09-06: debian-marmoset is no longer a Mayastor node (laptop thermal).
+    # 2026-09-26: m920s added and preferred (most CPU-request headroom), and
+    # anti-affinity made required so the two instances never share a node --
+    # the CNPG default is preferred, which would allow it.
+    enablePodAntiAffinity: true
+    podAntiAffinityType: required
+    topologyKey: kubernetes.io/hostname
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -44,6 +52,15 @@ spec:
             values:
             - elitedesk
             - m720q
+            - m920s
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - m920s
   bootstrap:
     initdb:
       database: vaultwarden
