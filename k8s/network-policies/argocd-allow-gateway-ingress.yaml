@@ -1,0 +1,27 @@
+# NetworkPolicy argocd/allow-gateway-ingress. Exported from the LIVE spec
+# 2026-09-26 -- it was hand-applied from the POP repo (unsynced) and missed by
+# earlier scans that skipped the argocd namespace. Empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-ingress
+  namespace: argocd
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: default
+      podSelector:
+        matchLabels:
+          app: graphql-gateway
+    ports:
+    - port: 8080
+      protocol: TCP
+    - port: 80
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+  policyTypes:
+  - Ingress
