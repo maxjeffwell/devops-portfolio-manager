@@ -11,8 +11,9 @@ spec:
     - repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
       targetRevision: main
       path: k8s/deployments
-    # Platform-level ingress + services that no app helm chart owns
-    # (shared/legacy hostnames, argocd/keel/traefik-dashboard ingresses).
+    # POP's own ingresses (pop-portfolio.el-jefe.me, portfolio-api). Still also
+    # holds 4 pre-existing non-POP ingresses (ai-gateway, argocd, keel,
+    # traefik-dashboard) -- candidates to move out like the 2026-09-26 batch.
     - repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
       targetRevision: main
       path: k8s/ingress
@@ -31,10 +32,7 @@ spec:
         - /spec/replicas
   syncPolicy:
     automated:
-      # TEMPORARY 2026-09-26: prune off while non-POP objects move out to
-      # devops-portfolio-manager, so removing their files here cannot delete them
-      # before their new owner adopts them. Restore to true when done.
-      prune: false
+      prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
