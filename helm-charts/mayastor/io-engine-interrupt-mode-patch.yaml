@@ -1,7 +1,7 @@
 # Per-node SPDK interrupt mode for io-engine (experimental in mayastor 2.12).
 #
 # The chart toggle (io_engine.interruptMode.enabled) is DaemonSet-wide. We only
-# want it on elitedesk + m720q, so the container command is wrapped: the shell
+# want it on elitedesk + m720q + m920s, so the container command is wrapped: the shell
 # exports the two env vars the chart would set, keyed on the node name, then
 # execs io-engine with the chart's args unchanged.
 #
@@ -22,7 +22,7 @@ spec:
             - -c
             - |
               case "$MY_NODE_NAME" in
-                elitedesk|m720q)
+                elitedesk|m720q|m920s)
                   export ENABLE_INTERRUPT_MODE=true NVME_IOQ_POLL_PERIOD=100us
                   echo "interrupt mode ON for $MY_NODE_NAME" ;;
               esac
