@@ -18,11 +18,16 @@
 # Tailscale-to-control-plane micro-blips. Pinned to vmi2951245 (the API
 # server node) 2026-05-25. Stratified pattern matches cnpg + nfs-subdir-*.
 
+#
+# 2026-09-26: the operator-0.35.0 chart only templates a TOP-LEVEL
+# `nodeSelector` and has NO affinity value — `manager.nodeSelector` below was
+# never rendered. The live Deployment carries a kubectl-patched affinity:
+# REQUIRED control-plane (the 3 home servers), PREFERRED m920s (was a hard
+# m920s pin until the 9/26 m920s power-off stranded it for an hour). Helm's
+# 3-way merge keeps that live affinity across upgrades; re-apply with:
+#   kubectl -n kube-system patch deploy inteldeviceplugins-controller-manager \
+#     --patch-file helm-charts/intel-device-plugins/affinity-patch.yaml
 manager:
-  nodeSelector:
-    # 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
-    # (the VPS is an agent), so 'next to the control plane' means m920s.
-    kubernetes.io/hostname: m920s
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists

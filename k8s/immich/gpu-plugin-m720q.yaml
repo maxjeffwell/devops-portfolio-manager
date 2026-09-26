@@ -1,0 +1,14 @@
+# Fourth Intel GPU device plugin instance, for m720q's UHD 630 (Coffee Lake).
+# Added 2026-09-26 so channels-dvr (requests gpu.intel.com/i915 for
+# transcoding) can fail over to m720q when m920s is down. Selects by hostname
+# so it never overlaps the dm (gpu-node=true), elitedesk or m920s instances.
+# 4 shares of the one iGPU.
+apiVersion: deviceplugin.intel.com/v1
+kind: GpuDevicePlugin
+metadata:
+  name: gpudeviceplugin-m720q
+spec:
+  image: intel/intel-gpu-plugin:0.35.0
+  sharedDevNum: 4
+  nodeSelector:
+    kubernetes.io/hostname: m720q

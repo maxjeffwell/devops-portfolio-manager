@@ -59,10 +59,25 @@ localpv-provisioner:
     enabled: false
   localpv:
     enableLeaderElection: false
-    nodeSelector:
-      # 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
-      # (the VPS is an agent), so 'next to the control plane' means m920s.
-      kubernetes.io/hostname: m920s
+    # 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
+    # (the VPS is an agent), so 'next to the control plane' means m920s.
+    # 2026-09-26: hard pin -> soft preference (any control-plane node, prefer
+    # m920s) after the 9/26 m920s power-off stranded it for an hour. Applied
+    # live via kubectl patch; this value makes the next helm upgrade match.
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values: [m920s]
     tolerations:
     - effect: PreferNoSchedule
       key: node-role.kubernetes.io/control-plane

@@ -1,0 +1,26 @@
+# Strategic-merge patch: drop the hard m920s hostname pin, require any
+# control-plane node (the 3 home k3s servers), prefer m920s.
+# 2026-09-26: applied live to controllers whose m920s pin lives outside helm
+# values: inteldeviceplugins-controller-manager, argocd-repo-server,
+# cert-manager{,-cainjector,-webhook}, metrics-server (and cnpg /
+# mayastor-localpv-provisioner, whose values.yaml now render the same).
+#   kubectl -n <ns> patch deploy <name> --patch-file <this file>
+spec:
+  template:
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: null
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: [m920s]

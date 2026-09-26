@@ -5,6 +5,7 @@ resources:
   - namespace.yaml
   - gpu-plugin-elitedesk.yaml
   - gpu-plugin-m920s.yaml
+  - gpu-plugin-m720q.yaml
   - storage.yaml
   - cnpg-immich.yaml
   - networkpolicy.yaml

@@ -12,10 +12,26 @@
 # restarts; the operator does leader-election (frequent API writes) so it
 # was an unlucky-victim of that issue. Pinned 2026-05-25.
 
-nodeSelector:
-  # 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
-  # (the VPS is an agent), so 'next to the control plane' means m920s.
-  kubernetes.io/hostname: m920s
+# 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
+# (the VPS is an agent), so 'next to the control plane' means m920s.
+# 2026-09-26: hard pin -> soft preference. The hard pin left the operator down
+# for the whole 9/26 m920s power-off (no failover handling for an hour).
+# REQUIRED: any control-plane node (the 3 home servers, never the edge VPS);
+# PREFERRED: m920s.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [m920s]
 
 tolerations:
   - key: node-role.kubernetes.io/control-plane

@@ -26,9 +26,16 @@ spec:
             app: channels-dvr-db-sync
         spec:
           restartPolicy: Never
-          # Must run where the RWO data LV lives.
-          nodeSelector:
-            kubernetes.io/hostname: m920s
+          # Must share a node with the channels-dvr pod: the data PVC is RWO,
+          # which only permits multiple pods on the SAME node. Follows the pod
+          # instead of pinning a hostname (channels-dvr can fail over).
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app: channels-dvr
+                  topologyKey: kubernetes.io/hostname
           containers:
             - name: sync
               image: busybox:1.36
