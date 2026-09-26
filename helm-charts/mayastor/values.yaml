@@ -89,7 +89,12 @@ mayastor:
     core:
       rebuild:
         partial:
-          waitPeriod: 30m
+          # 2026-09-26: 30m -> 90m. The 9/26 m920s hardware work kept its
+          # replicas away ~62 min, past 30m, forcing FULL rebuilds; 90m covers
+          # typical maintenance so returning replicas only catch up (partial
+          # rebuild). Trade-off: volumes run single-replica up to 90m before
+          # a replacement replica is built elsewhere.
+          waitPeriod: 90m
   alloy:
     enabled: false
   apis:
