@@ -1,0 +1,39 @@
+# Owns the shared AI gateway and LiteLLM (repo maxjeffwell/shared-ai-gateway,
+# k8s/). Created 2026-09-26: both were hand-applied with `kubectl apply`; the
+# repo was brought in line with live the same day (e0b3230, dcc69c9) and every
+# object in k8s/ showed an empty `kubectl diff` before adoption.
+#
+# Images: shared-ai-gateway runs :latest and is rolled with
+# `kubectl rollout restart` (restartedAt is not in git, so selfHeal leaves it
+# alone); litellm is digest-pinned in git. The repo's CI only builds images.
+#
+# prune: true -- removing a manifest from k8s/ deletes that object.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shared-ai-gateway
+  namespace: argocd
+  labels:
+    app: shared-ai-gateway
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/shared-ai-gateway.git
+    targetRevision: main
+    path: k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

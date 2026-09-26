@@ -1,0 +1,39 @@
+# Owns the plain manifests in devops-portfolio-manager/k8s/monitoring: the
+# InfluxDB stack (ExternalSecret, StatefulSet, Service), the mimir WireGuard
+# NodePort, the traefik-metrics Service and two ServiceMonitors. The
+# kube-prometheus stack itself is a separate plain Helm release and is NOT
+# part of this app. Created 2026-09-26: all 7 objects were hand-applied and
+# showed an empty `kubectl diff` before adoption.
+#
+# prune: true -- removing influxdb.yaml would delete the InfluxDB StatefulSet
+# (its PVC is retained by the StatefulSet's default policy, but check first).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-manifests
+  namespace: argocd
+  labels:
+    app: monitoring-manifests
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
