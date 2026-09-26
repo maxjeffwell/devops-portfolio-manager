@@ -1,0 +1,149 @@
+# k3s side of Headscale. Exported from the live cluster 2026-09-26 (it existed
+# only in the cluster, from hand `kubectl apply`s).
+#
+# !! Headscale ITSELF IS NOT HERE. It runs natively on dm (debian-marmoset) as a
+# systemd service, listening on 10.0.0.9:8080 (wg0). It was moved out of k3s on
+# 2026-08-08 to break the headscale <-> k3s circular outage of 2026-07-11 --
+# do not move it back in.
+#
+# What lives here: the headplane web UI, a SELECTORLESS `headscale` Service
+# with a manual Endpoints pointing at dm, and the two Ingresses for
+# headscale.el-jefe.me.
+#
+# !! The `headscale` Service must NOT get a selector. The old last-applied
+# config still carried `app: headscale` from the in-cluster days; with a
+# selector, the endpoints controller replaces 10.0.0.9 with (nonexistent)
+# pods and the whole tailnet loses its control server.
+#
+# Not synced by ArgoCD on purpose; apply by hand. headplane's config is the
+# Secret headplane-config, which is NOT stored here.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: headplane
+  name: headplane
+  namespace: headscale
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: headplane
+  template:
+    metadata:
+      labels:
+        app: headplane
+    spec:
+      containers:
+      - image: ghcr.io/tale/headplane:0.7.0
+        name: headplane
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - mountPath: /etc/headplane
+          name: config
+          readOnly: true
+        - mountPath: /var/lib/headplane
+          name: data
+      volumes:
+      - name: config
+        secret:
+          secretName: headplane-config
+      - emptyDir: {}
+        name: data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headplane
+  namespace: headscale
+spec:
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: headplane
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: headscale
+  namespace: headscale
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: headscale
+  namespace: headscale
+subsets:
+- addresses:
+  - ip: 10.0.0.9
+  ports:
+  - name: http
+    port: 8081
+    protocol: TCP
+  - name: metrics
+    port: 9099
+    protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+  name: headplane
+  namespace: headscale
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: headscale.el-jefe.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: headplane
+            port:
+              number: 3000
+        path: /admin
+        pathType: Prefix
+  tls:
+  - hosts:
+    - headscale.el-jefe.me
+    secretName: headscale-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: 'true'
+  name: headscale
+  namespace: headscale
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: headscale.el-jefe.me
+    http:
+      paths:
+      - backend:
+          service:
+            name: headscale
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - headscale.el-jefe.me
+    secretName: headscale-tls
