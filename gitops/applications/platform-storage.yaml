@@ -1,0 +1,36 @@
+# Owns portfolio-orchestration-platform/k8s/storage: the openebs snapshot-janitor CronJob and its RBAC.
+# Created 2026-09-26: all objects were hand-applied; stale files were
+# regenerated from live first and every object showed an empty `kubectl diff`
+# (apart from harmless additions in git, which the first sync applies).
+#
+# prune: true -- removing the file deletes the CronJob and its ClusterRole.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-storage
+  namespace: argocd
+  labels:
+    app: platform-storage
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    targetRevision: main
+    path: k8s/storage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openebs
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

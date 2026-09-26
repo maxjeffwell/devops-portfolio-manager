@@ -1,0 +1,36 @@
+# Owns portfolio-orchestration-platform/k8s/gotify: Gotify (Deployment, Services incl. the alertmanager-bridge NodePort, PVC gotify-democratic-mp).
+# Created 2026-09-26: all objects were hand-applied; stale files were
+# regenerated from live first and every object showed an empty `kubectl diff`
+# (apart from harmless additions in git, which the first sync applies).
+#
+# prune: true -- removing pvc.yaml would delete Gotify's data volume.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gotify
+  namespace: argocd
+  labels:
+    app: gotify
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    targetRevision: main
+    path: k8s/gotify
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,54 @@
+# (File named platform-eso.yaml because .gitignore blocks *secret*.yaml -- a
+# guardrail against committing real Secrets. This file contains none.)
+# Owns the ExternalSecrets (and the Doppler haproxy proxy) in
+# portfolio-orchestration-platform/k8s/external-secrets. Created 2026-09-26:
+# all objects were hand-applied; stale files were regenerated from live first
+# (198f04b) and every included object showed an empty `kubectl diff`.
+#
+# EXCLUDED on purpose: gotify-alertmanager-external-secret.yaml. The live Secret
+# monitoring/gotify-alertmanager-token was made by hand (2026-02-07) and feeds
+# the alertmanager -> gotify bridge; adopting the ExternalSecret would overwrite
+# it with Doppler's value. Include it only after confirming the values match.
+#
+# prune: true -- removing an ExternalSecret file deletes the ExternalSecret and
+# (with ESO's default creationPolicy Owner) the Secret it manages.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-external-secrets
+  namespace: argocd
+  labels:
+    app: platform-external-secrets
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    targetRevision: main
+    path: k8s/external-secrets
+    directory:
+      exclude: gotify-alertmanager-external-secret.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  ignoreDifferences:
+    # ESO injects defaults on every data entry (same as the vaultwarden app).
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
