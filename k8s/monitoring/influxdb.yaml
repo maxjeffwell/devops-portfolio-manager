@@ -118,33 +118,5 @@ spec:
       targetPort: 8086
       name: http
   type: ClusterIP
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: influxdb-ingress
-  namespace: monitoring
-  labels:
-    app: influxdb
-    portfolio: "true"
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-spec:
-  ingressClassName: traefik
-  rules:
-    - host: influxdb.el-jefe.me
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: influxdb
-                port:
-                  number: 8086
-  tls:
-    - hosts:
-        - influxdb.el-jefe.me
-      secretName: influxdb-tls
+# The influxdb-ingress Ingress moved 2026-09-26 to
+# portfolio-orchestration-platform/k8s/ingress/influxdb-ingress.yaml (ArgoCD).
