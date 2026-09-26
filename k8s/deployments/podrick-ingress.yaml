@@ -54,3 +54,24 @@ spec:
           port: 5001
   tls:
     secretName: podrick-tls
+---
+# podrick-api: /api -> devops-portfolio-api:5001 WITHOUT prefix strip (the API serves
+# /api/*). Older sibling of podrick-api-route (/devops-api, stripped). Adopted from
+# the live cluster 2026-09-26; possibly redundant -- remove only after confirming
+# nothing calls https://podrick.el-jefe.me/api/.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: podrick-api
+  namespace: default
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`podrick.el-jefe.me`) && PathPrefix(`/api`)
+    services:
+    - name: devops-portfolio-api
+      port: 5001
+  tls:
+    secretName: podrick-tls
