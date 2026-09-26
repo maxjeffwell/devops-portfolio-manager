@@ -1,0 +1,21 @@
+# NetworkPolicy default/allow-neon-to-garage. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-neon-to-garage
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 3900
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: neon-cluster
+  policyTypes:
+  - Egress

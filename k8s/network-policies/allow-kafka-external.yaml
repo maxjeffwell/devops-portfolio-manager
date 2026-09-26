@@ -1,0 +1,20 @@
+# NetworkPolicy default/allow-kafka-external. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-kafka-external
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 9092
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+  podSelector:
+    matchLabels:
+      platform: vertex
+  policyTypes:
+  - Egress

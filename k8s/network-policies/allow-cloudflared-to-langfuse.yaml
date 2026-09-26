@@ -1,0 +1,21 @@
+# NetworkPolicy default/allow-cloudflared-to-langfuse. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-cloudflared-to-langfuse
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 3000
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: langfuse
+  podSelector:
+    matchLabels:
+      app: cloudflared-ai-gateway
+  policyTypes:
+  - Egress

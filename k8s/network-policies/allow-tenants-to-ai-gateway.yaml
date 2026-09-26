@@ -1,0 +1,24 @@
+# NetworkPolicy default/allow-tenants-to-ai-gateway. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-tenants-to-ai-gateway
+  namespace: default
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/managed-by
+          operator: In
+          values:
+          - multi-tenant-platform
+    ports:
+    - port: 8002
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: shared-ai-gateway
+  policyTypes:
+  - Ingress

@@ -1,0 +1,21 @@
+# NetworkPolicy default/allow-portfolio-api-to-gateway. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-portfolio-api-to-gateway
+  namespace: default
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: portfolio-api
+    ports:
+    - port: 8002
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: shared-ai-gateway
+  policyTypes:
+  - Ingress

@@ -1,0 +1,32 @@
+# NetworkPolicy default/allow-tenantflow-k8s-api. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-tenantflow-k8s-api
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 6443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 86.48.29.183/32
+  - ports:
+    - port: 443
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.43.0.1/32
+  - ports:
+    - port: 9090
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.43.135.56/32
+  podSelector:
+    matchLabels:
+      app: tenantflow
+  policyTypes:
+  - Egress

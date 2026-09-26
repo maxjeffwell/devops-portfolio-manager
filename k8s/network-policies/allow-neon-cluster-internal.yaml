@@ -1,0 +1,48 @@
+# NetworkPolicy default/allow-neon-cluster-internal. Exported from the LIVE spec
+# 2026-09-26 (not last-applied: a 2026-06-04 kubectl patch added the Garage S3
+# egress rule, tcp/3900 to 100.64.0.0/10). Verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-neon-cluster-internal
+  namespace: default
+spec:
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: neon-cluster
+  - ports:
+    - port: 443
+      protocol: TCP
+    - port: 6443
+      protocol: TCP
+  - ports:
+    - port: 3900
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.0.0.0/24
+  - ports:
+    - port: 3900
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.43.207.237/32
+  - ports:
+    - port: 3900
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 100.64.0.0/10
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: neon-cluster
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: neon-cluster
+  policyTypes:
+  - Ingress
+  - Egress
