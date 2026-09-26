@@ -14,6 +14,13 @@ spec:
   # a manual `kubectl cnpg promote`.
   enablePDB: false
   instances: 2
+  # 2026-09-26: switchover instead of the default in-place restart. Any
+  # pod-spec change (affinity, resources, image) otherwise restarts the primary
+  # in place -- up to ~3 min here, waiting out smartShutdownTimeout on pooled
+  # clients. With a standby, CNPG promotes it first: seconds of disruption.
+  # The primary then STAYS on the promoted instance (the SATA-backed standby)
+  # until the next switchover.
+  primaryUpdateMethod: switchover
   imageName: ghcr.io/cloudnative-pg/postgresql:17
   primaryUpdateStrategy: unsupervised
   # storageClass only applies to PVCs created after the change: the existing

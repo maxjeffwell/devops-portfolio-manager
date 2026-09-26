@@ -17,7 +17,7 @@
 #
 # As with the other files here, only deliberately-declared fields are listed.
 # The remaining ~16 fields on the live object (logLevel, postgresUID/GID, probes,
-# replicationSlots, the *Delay fields, primaryUpdate*, smartShutdownTimeout,
+# replicationSlots, the *Delay fields, primaryUpdateStrategy, smartShutdownTimeout,
 # postgresql, failoverDelay, min/maxSyncReplicas) are CloudNativePG webhook
 # defaults, left to the operator so ArgoCD selfHeal does not fight it.
 #
@@ -62,6 +62,13 @@ spec:
   # move to Mayastor. enablePDB stays false: with a PDB, draining the primary's
   # node blocks until a manual `kubectl cnpg promote`.
   instances: 2
+  # 2026-09-26: switchover instead of the default in-place restart. Any
+  # pod-spec change (affinity, resources, image) otherwise restarts the primary
+  # in place -- up to ~3 min here, waiting out smartShutdownTimeout on pooled
+  # clients. With a standby, CNPG promotes it first: seconds of disruption.
+  # The primary then STAYS on the promoted instance (the SATA-backed standby)
+  # until the next switchover.
+  primaryUpdateMethod: switchover
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
