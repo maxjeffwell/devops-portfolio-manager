@@ -1,15 +1,17 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: vaultwarden-data
+  name: vaultwarden-data-r2
   namespace: vaultwarden
 spec:
   accessModes:
     - ReadWriteOnce
-  # 2026-09-25: moved off the debian-marmoset laptop (local-path) to the m920s
-  # SATA Mayastor pool. Single replica; the DB is on mayastor-2, this is
-  # attachments/icons and is covered by the Velero + export tracks.
-  storageClassName: mayastor-sata
+  # 2026-09-26: 2 replicas on the internal NVMe pools (mayastor-2), replacing
+  # the single-replica vaultwarden-data on the m920s SATA pool (BX300). Holds
+  # rsa_key.pem (token signing), config.json and the icon cache; the DB is on
+  # CNPG (also mayastor-2). New claim name because storageClassName is
+  # immutable; data copied with per-file sha256 verification.
+  storageClassName: mayastor-2
   resources:
     requests:
       storage: 2Gi
