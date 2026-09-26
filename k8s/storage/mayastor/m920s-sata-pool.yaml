@@ -1,0 +1,19 @@
+# m920s-sata-pool: Crucial BX300 120 GB (internal SATA, /dev/sdb -> mayastor-sata-vg)
+# on m920s. Added to git 2026-09-26 (was created by hand 2026-09-25).
+# Labels: tier=sata (targeted by mayastor-sata, single replica) and media=sata
+# (shared with elitedesk-usb-pool; targeted by mayastor-2-sata[-thin]). Label
+# changes must ALSO be pushed to the control plane:
+#   kubectl mayastor label pool m920s-sata-pool media=sata -n openebs
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: m920s-sata-pool
+  namespace: openebs
+spec:
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-SjqK4fyddkkDWb20DzO3LRgMdDeXWmhxioT90jj3G1kTI0b2A4YBFeu1W0fJr6Z5
+  node: m920s
+  topology:
+    labelled:
+      media: sata
+      tier: sata

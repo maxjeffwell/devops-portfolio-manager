@@ -1,0 +1,61 @@
+# mayastor-2-sata / mayastor-2-sata-thin StorageClasses (2026-09-26)
+# OpenEBS Mayastor (NVMe-oF/TCP), synchronous 2-way replication on the SATA
+# pools, so bulk, dormant and low-performance volumes get a second copy
+# WITHOUT spending NVMe (NVMe capacity is scarce and no more is coming).
+#
+# Pools matched by `media: sata` (a second label added 2026-09-26 with
+# `kubectl mayastor label pool <pool> media=sata -n openebs`, mirrored on the
+# DiskPool CRs; the existing tier labels are unchanged):
+#   - m920s-sata-pool     tier=sata  media=sata  (Crucial BX300 120 GB, m920s)
+#   - elitedesk-usb-pool  tier=usb   media=sata  (Crucial BX500 2 TB over USB, elitedesk)
+# The two pools are on different nodes, so each volume gets one replica on each
+# and survives a single disk or node loss.
+#
+# Keep NVMe (mayastor-2, tier=internal) for latency-sensitive data: CNPG,
+# Neon, Mayastor's own etcd. Use -thin for dormant or mostly-empty volumes
+# (only written blocks consume pool space).
+#
+# StorageClass parameters are immutable: to change one, delete the SC and
+# re-apply. Existing PVs keep working. Not under ArgoCD; kubectl-apply by hand.
+# Velero: both classes have loadAffinity + backupPVC entries in
+# helm-charts/velero/values.yaml.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-2-sata
+  annotations:
+    description: |
+      Mayastor 2-replica on the SATA pools (m920s BX300 + elitedesk USB BX500),
+      restricted to pools labelled media=sata. Thick provisioned.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: "30"
+  protocol: nvmf
+  repl: "2"
+  thin: "false"
+  poolAffinityTopologyLabel: |
+    media: sata
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-2-sata-thin
+  annotations:
+    description: |
+      Mayastor 2-replica on the SATA pools (m920s BX300 + elitedesk USB BX500),
+      restricted to pools labelled media=sata. Thin provisioned: only written
+      blocks consume pool space.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: "30"
+  protocol: nvmf
+  repl: "2"
+  thin: "true"
+  poolAffinityTopologyLabel: |
+    media: sata
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true

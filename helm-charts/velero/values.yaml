@@ -50,6 +50,8 @@ configMaps:
             {"storageClass": "mayastor-1", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
             {"storageClass": "mayastor-2", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
             {"storageClass": "mayastor-sata", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
+            {"storageClass": "mayastor-2-sata", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
+            {"storageClass": "mayastor-2-sata-thin", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
             {"storageClass": "mayastor-single-replica", "nodeSelector": {"matchLabels": {"openebs.io/csi-node": "mayastor"}}},
             {"nodeSelector": {"matchExpressions": [{"key": "node-role.kubernetes.io/worker", "operator": "Exists"}]}}
           ],
@@ -57,6 +59,8 @@ configMaps:
             "mayastor-1": {"storageClass": "mayastor-1-thin"},
             "mayastor-2": {"storageClass": "mayastor-2-thin"},
             "mayastor-sata": {"storageClass": "mayastor-sata-thin"},
+            "mayastor-2-sata": {"storageClass": "mayastor-2-sata-thin"},
+            "mayastor-2-sata-thin": {"storageClass": "mayastor-2-sata-thin"},
             "mayastor-single-replica": {"storageClass": "mayastor-single-replica-thin"}
           }
         }

@@ -33,3 +33,5 @@ spec:
   topology:
     labelled:
       tier: usb
+      # 2026-09-26: shared label so mayastor-2-sata[-thin] can target both SATA pools
+      media: sata
