@@ -5,10 +5,9 @@
 # all objects were hand-applied; stale files were regenerated from live first
 # (198f04b) and every included object showed an empty `kubectl diff`.
 #
-# EXCLUDED on purpose: gotify-alertmanager-external-secret.yaml. The live Secret
-# monitoring/gotify-alertmanager-token was made by hand (2026-02-07) and feeds
-# the alertmanager -> gotify bridge; adopting the ExternalSecret would overwrite
-# it with Doppler's value. Include it only after confirming the values match.
+# gotify-alertmanager-external-secret.yaml was excluded at first (its live
+# Secret was hand-made on 2026-02-07); included 2026-09-26 after its remoteRef
+# was pointed at KEEL_GOTIFY_TOKEN, whose value is sha256-identical to it.
 #
 # prune: true -- removing an ExternalSecret file deletes the ExternalSecret and
 # (with ESO's default creationPolicy Owner) the Secret it manages.
@@ -26,8 +25,6 @@ spec:
     repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
     targetRevision: main
     path: k8s/external-secrets
-    directory:
-      exclude: gotify-alertmanager-external-secret.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default
