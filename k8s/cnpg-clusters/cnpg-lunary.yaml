@@ -8,7 +8,12 @@ metadata:
   namespace: default
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:17
-  instances: 1
+  # 2026-09-26: 1 -> 2, same pattern as cnpg-auth / cnpg-vaultwarden.
+  # lunary-backend is the one consumer that historically fell over on DB blips,
+  # so a standby to fail over to is worth more here than on the other
+  # portfolio DBs. enablePDB stays false: with a PDB, draining the primary's
+  # node blocks until a manual `kubectl cnpg promote`.
+  instances: 2
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
@@ -16,6 +21,8 @@ spec:
       portfolio: 'true'
   affinity:
     enablePodAntiAffinity: true
+    # m920s added 2026-09-26 and preferred: it has the CPU-request headroom
+    # and keeps the standby off the primary's node without crowding m720q.
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
@@ -25,6 +32,15 @@ spec:
             values:
             - elitedesk
             - m720q
+            - m920s
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 50
+        preference:
+          matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - m920s
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   bootstrap:
@@ -54,10 +70,14 @@ spec:
         connectionTimeout: 5000
         enabled: true
         requestTimeout: 5000
+  # storageClass only applies to PVCs created after the change: the existing
+  # primary PVC stays on mayastor-2 (NVMe), the 2026-09-26 standby -- and any
+  # instance recreated later -- lands on mayastor-2-sata (m920s BX300 +
+  # elitedesk USB BX500). NVMe is scarce; CNPG replication is the second copy.
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: mayastor-2
+    storageClass: mayastor-2-sata
   # 2026-09-07 right-sizing. Measured 2-day peaks across the cnpg clusters:
   # cpu 23m against a 250m request, memory 319Mi against a 256Mi request. So the
   # cpu reservation was ~10x too big while memory was slightly too small.
