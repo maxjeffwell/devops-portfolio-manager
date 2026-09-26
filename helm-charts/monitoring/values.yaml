@@ -724,6 +724,12 @@ garage:
     # 2026-09-25: mayastor-sata (single replica on the m920s BX300 pool) so the
     # gateway's node key + metadata cache follow the pod instead of being
     # pinned to one node's local-path directory.
+    # 2026-09-26: the LIVE claim data-garage-0 was recreated on mayastor-2-thin
+    # (2 replicas; the BX300 was a single point of failure), same name, all 14
+    # meta files sha256-verified, same node id c7ed8fce. This value is left at
+    # mayastor-sata ON PURPOSE: StatefulSet volumeClaimTemplates are
+    # immutable, so changing it here would make the next `helm upgrade` of
+    # the prometheus release fail. The existing claim is reused as-is.
     storageClass: mayastor-sata
     size: 10Gi
   ingress:
