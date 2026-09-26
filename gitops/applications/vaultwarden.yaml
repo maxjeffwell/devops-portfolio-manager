@@ -26,13 +26,15 @@ spec:
     # alone doesn't catch them (the operator writes via Update, not server-side
     # Apply, which ArgoCD's managed-fields ignore keys off of), so the actual
     # defaulted paths are listed explicitly. Verified Synced with this set.
+    # 2026-09-26: .spec.affinity.podAntiAffinityType removed -- git now declares
+    # it (required), so it is no longer an operator default and must stay under
+    # selfHeal.
     - group: postgresql.cnpg.io
       kind: Cluster
       managedFieldsManagers:
         - manager
       jqPathExpressions:
         - .spec.storage.resizeInUseVolumes
-        - .spec.affinity.podAntiAffinityType
         - .spec.bootstrap.initdb.encoding
         - .spec.bootstrap.initdb.localeCType
         - .spec.bootstrap.initdb.localeCollate
