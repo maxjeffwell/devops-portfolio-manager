@@ -2,7 +2,9 @@
 # only in the cluster, from hand `kubectl apply`s).
 #
 # !! Headscale ITSELF IS NOT HERE. It runs natively on dm (debian-marmoset) as a
-# systemd service, listening on 10.0.0.9:8080 (wg0). It was moved out of k3s on
+# systemd service, listening on :8081 (reached via wg0 10.0.0.9:8081; metrics
+# 10.0.0.9:9099). The Service says port 8080, but for a selectorless Service
+# the Endpoints port (8081) is what traffic actually uses. It was moved out of k3s on
 # 2026-08-08 to break the headscale <-> k3s circular outage of 2026-07-11 --
 # do not move it back in.
 #
