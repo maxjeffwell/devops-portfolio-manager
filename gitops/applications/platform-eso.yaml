@@ -1,7 +1,7 @@
 # (File named platform-eso.yaml because .gitignore blocks *secret*.yaml -- a
 # guardrail against committing real Secrets. This file contains none.)
 # Owns the ExternalSecrets (and the Doppler haproxy proxy) in
-# portfolio-orchestration-platform/k8s/external-secrets. Created 2026-09-26:
+# devops-portfolio-manager/k8s/platform-external-secrets. Created 2026-09-26:
 # all objects were hand-applied; stale files were regenerated from live first
 # (198f04b) and every included object showed an empty `kubectl diff`.
 #
@@ -11,6 +11,8 @@
 #
 # prune: true -- removing an ExternalSecret file deletes the ExternalSecret and
 # (with ESO's default creationPolicy Owner) the Secret it manages.
+# Moved 2026-09-26 from the portfolio-orchestration-platform repo (POP is an
+# app, not an infra repo); same app name, so object ownership did not change.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -22,9 +24,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
     targetRevision: main
-    path: k8s/external-secrets
+    path: k8s/platform-external-secrets
   destination:
     server: https://kubernetes.default.svc
     namespace: default

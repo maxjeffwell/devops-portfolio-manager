@@ -1,9 +1,11 @@
-# Owns portfolio-orchestration-platform/k8s/storage: the openebs snapshot-janitor CronJob and its RBAC.
+# Owns devops-portfolio-manager/k8s/storage/openebs-snapshot-janitor: the openebs snapshot-janitor CronJob and its RBAC.
 # Created 2026-09-26: all objects were hand-applied; stale files were
 # regenerated from live first and every object showed an empty `kubectl diff`
 # (apart from harmless additions in git, which the first sync applies).
 #
 # prune: true -- removing the file deletes the CronJob and its ClusterRole.
+# Moved 2026-09-26 from the portfolio-orchestration-platform repo (POP is an
+# app, not an infra repo); same app name, so object ownership did not change.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -15,9 +17,9 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
     targetRevision: main
-    path: k8s/storage
+    path: k8s/storage/openebs-snapshot-janitor
   destination:
     server: https://kubernetes.default.svc
     namespace: openebs
