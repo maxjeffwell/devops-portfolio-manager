@@ -18,6 +18,12 @@ metadata:
 provisioner: io.openebs.csi-mayastor
 parameters:
   ioTimeout: '30'
+  # 2026-09-26: mirrors mayastor-1 (tier: internal). mayastor-single-replica-thin
+  # below deliberately has NO affinity -- its source, the helm-managed
+  # mayastor-single-replica, has none either.
+  poolAffinityTopologyLabel: 'tier: internal
+
+    '
   protocol: nvmf
   repl: '1'
   thin: 'true'

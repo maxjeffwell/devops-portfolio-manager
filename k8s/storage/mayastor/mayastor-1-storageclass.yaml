@@ -1,0 +1,42 @@
+# mayastor-1 StorageClass
+# OpenEBS Mayastor (NVMe-oF/TCP), single replica, restricted to tier=internal
+# (NVMe) pools. Used by the self-hosted Neon cluster (pageserver + safekeeper
+# PVCs) -- latency-sensitive, so it stays on NVMe; bulk / dormant repl-1 data
+# belongs on mayastor-sata instead.
+#
+# 2026-09-26: poolAffinityTopologyLabel added (the 2026-09-24 follow-up from
+# the mayastor-2 fix). Without it Mayastor's scheduler picks the pool with the
+# MOST FREE SPACE, which is elitedesk-usb-pool (1.8 TiB) -- the same drift that
+# put cnpg-immich's replica on USB. See mayastor-2-storageclass.yaml.
+#
+# The Velero clone twin mayastor-1-thin (thin-backup-clone-storageclasses.yaml)
+# MUST carry the same affinity: snapshot clones land where the source can.
+#
+# StorageClass parameters are immutable: changing this file means
+# `kubectl delete sc mayastor-1 && kubectl apply -f` this file. Existing PVs
+# keep working; only PVC creation during the gap would fail.
+#
+# 🪤 Volume topology is captured at CREATE time. The Neon PVs created before
+# 2026-09-26 carry no pool affinity (they currently hold 2 replicas each, on
+# elitedesk-nvme-pool + m720q-pool); only new volumes honour this label.
+#
+# Not under ArgoCD -- kubectl-apply by hand.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-1
+  annotations:
+    description: |
+      Mayastor 1-replica on NVMe (tier=internal pools). Thick provisioned.
+      Neon pageserver/safekeeper.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: "30"
+  protocol: nvmf
+  repl: "1"
+  thin: "false"
+  poolAffinityTopologyLabel: |
+    tier: internal
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
