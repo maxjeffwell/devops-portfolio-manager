@@ -7,18 +7,19 @@
 # annotations, and this volume needs `k8up.io/backup: "false"`.
 #
 # 🔑 Why that annotation: k8up's PVC backup method mounts the PV a SECOND time
-# on the node. The openebs LVM CSI driver refuses that — `verifyMount: device
-# already mounted` — so a PVC-level backup of this volume can never succeed
-# while the app is running. It is backed up instead by the
+# on the node. The original openebs LVM volume refused that (`verifyMount:
+# device already mounted`), so the volume is backed up instead by the
 # k8up.io/backupcommand annotation on the pod (see
 # helm-charts/stirling-pdf/values-override.yaml), which streams a tar of
-# /configs out of the running container and needs no mount at all.
-# The qdrant and cluster-nfs schedules do not hit this because their volumes
-# are iSCSI-backed, whose drivers permit the second mount.
+# /configs out of the running container and needs no mount at all. Kept on
+# local-path too: exec backups work the same regardless of storage driver.
 #
-# Spec matches the chart-generated PVC exactly so ArgoCD adopts the existing
-# volume in place rather than provisioning a new one. The PV reclaim policy is
-# Retain, so the data survives even if this object is ever recreated.
+# 2026-09-26: moved from openebs-lvmpv on elitedesk to local-path on the edge
+# node (vmi3610371), which has no LVM volume group. local-path pins the PV to
+# whichever node first mounts it; the data was restored into it with a helper
+# pod on the edge node before the app started. The old elitedesk LV
+# (pvc-d1e0e989-f4e4-4b23-b853-c09cd3b12021, reclaim Retain) was left in place
+# as a fallback.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -30,8 +31,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
-  storageClassName: openebs-lvmpv
+  storageClassName: local-path
   resources:
     requests:
       storage: 2Gi
-  volumeName: pvc-d1e0e989-f4e4-4b23-b853-c09cd3b12021

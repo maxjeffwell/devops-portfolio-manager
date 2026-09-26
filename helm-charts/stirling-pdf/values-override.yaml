@@ -51,13 +51,14 @@ envsFrom:
   - secretRef:
       name: stirling-pdf-admin
 
-# node-local LVM on elitedesk's VG, which pairs with the nodeSelector pin below.
-# 2Gi covers the H2 database, settings.yml and custom files with room to spare.
+# local-path on the edge node (2026-09-26; was openebs-lvmpv on elitedesk), which
+# pairs with the nodeSelector pin below. 2Gi covers the H2 database, settings.yml
+# and custom files with room to spare.
 persistence:
   enabled: true
   accessMode: ReadWriteOnce
   size: 2Gi
-  storageClass: openebs-lvmpv
+  storageClass: local-path
   path: /configs
   # The PVC is declared in k8s/stirling-pdf/pvc.yaml instead of by the chart,
   # because it needs a `k8up.io/backup: "false"` annotation and the chart's PVC
@@ -146,5 +147,13 @@ podAnnotations:
   k8up.io/backupcommand: "tar cf - -C / configs"
   k8up.io/file-extension: ".tar"
 
+# Edge node next to Traefik: uploads land on the public node and the 1.6Gi
+# request comes off the home etcd servers. Must match the node holding the
+# local-path volume.
 nodeSelector:
-  kubernetes.io/hostname: elitedesk
+  role: edge
+tolerations:
+  - key: role
+    operator: Equal
+    value: edge
+    effect: PreferNoSchedule
