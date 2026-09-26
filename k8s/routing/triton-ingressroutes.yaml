@@ -1,0 +1,39 @@
+# Triton IngressRoutes (grpc + http). Moved 2026-09-26 from the POP repo.
+# NOTE: the triton Deployments themselves still live in POP's k8s/deployments.
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: triton-grpc
+  namespace: default
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`triton-grpc.el-jefe.me`)
+    services:
+    - name: triton-service
+      port: 8001
+      scheme: h2c
+      strategy: RoundRobin
+  tls:
+    secretName: triton-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: triton-http
+  namespace: default
+spec:
+  entryPoints:
+  - websecure
+  routes:
+  - kind: Rule
+    match: Host(`triton.el-jefe.me`)
+    services:
+    - name: triton-service
+      port: 8000
+      strategy: RoundRobin
+  tls:
+    secretName: triton-tls

@@ -1,0 +1,38 @@
+# Owns devops-portfolio-manager/k8s/routing: Traefik routes (and their
+# Middlewares) for workloads whose own charts/apps do not define them --
+# today the educationelly-graphql API route and the two Triton IngressRoutes.
+# Created 2026-09-26 when these moved out of the portfolio-orchestration-
+# platform repo (POP is an app, not an infra repo). Every object showed an
+# empty `kubectl diff` before adoption.
+#
+# prune: true -- removing a file here deletes that route.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-routing
+  namespace: argocd
+  labels:
+    app: platform-routing
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/routing
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # allowEmpty deliberately omitted (see cnpg-clusters.yaml).
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

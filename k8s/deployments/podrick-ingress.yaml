@@ -75,3 +75,56 @@ spec:
       port: 5001
   tls:
     secretName: podrick-tls
+---
+# devops-api route (Ingress + its 2 Middlewares). Moved 2026-09-26 from the
+# portfolio-orchestration-platform repo; was hand-applied before that.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devops-api-ingress
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,default-devops-api-cors@kubernetescrd,default-devops-api-stripprefix@kubernetescrd
+    traefik.ingress.kubernetes.io/router.priority: '200'
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: podrick.el-jefe.me
+    http:
+      paths:
+      - path: /devops-api
+        pathType: Prefix
+        backend:
+          service:
+            name: devops-portfolio-api
+            port:
+              number: 5001
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: devops-api-cors
+  namespace: default
+spec:
+  headers:
+    accessControlAllowOriginList:
+    - https://el-jefe.me
+    accessControlAllowMethods:
+    - GET
+    - POST
+    - OPTIONS
+    accessControlAllowHeaders:
+    - Content-Type
+    - Authorization
+    accessControlMaxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: devops-api-stripprefix
+  namespace: default
+spec:
+  stripPrefix:
+    prefixes:
+    - /devops-api

@@ -1,0 +1,26 @@
+# gotify Ingress. Moved 2026-09-26 from the POP repo's k8s/ingress.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gotify-ingress
+  namespace: monitoring
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: gotify.el-jefe.me
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gotify
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - gotify.el-jefe.me
+    secretName: gotify-tls
