@@ -146,7 +146,12 @@ mayastor:
         # Chart default; kept explicit because the request below now differs.
         memory: 1Gi
       requests:
-        cpu: '1'
+        # 2026-09-26: was '1'. With SPDK interrupt mode on (see
+        # io-engine-interrupt-mode-patch.yaml) the reactor idles at ~350-550m
+        # instead of spinning a full core. Heavy I/O still pushes it back to ~1
+        # core, which the 2-core limit covers. Not lower: the request is also
+        # the pod's CPU weight on its pinned core 1 under contention.
+        cpu: 600m
         hugepages2Mi: 2Gi
         # 2026-09-24: was 1Gi (chart default, equal to the limit). The io-engine
         # data path lives in the 2Gi hugepages accounted separately; the memory
