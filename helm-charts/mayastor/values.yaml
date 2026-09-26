@@ -110,16 +110,26 @@ mayastor:
     # 2026-09-25: etcd moved debian-marmoset (laptop, local-path) -> m920s on an
     # lvm-localpv thin LV in vg0. NEVER put this on a Mayastor class: it is the
     # control plane for every Mayastor volume (circular dependency).
+    #
+    # 2026-09-26: 1 -> 3 members, one per io-engine node (chart default
+    # podAntiAffinityPreset: hard). A single member was a SPOF: with it down, no
+    # nexus failover, replica rebuild or provisioning. vg0 exists only on m920s,
+    # so members 1 and 2 use PVCs PRE-CREATED on openebs-lvmpv (openebs-vg on
+    # elitedesk/m720q): see etcd-member-pvcs.yaml. The STS template SC stays vg0
+    # (volumeClaimTemplates are immutable); pod-0's PV pins it to m920s.
+    # Scale-up was applied with --set mayastor.etcd.updateStrategy.type=OnDelete
+    # so pod-0 did not restart while members 1/2 joined (a join during a pod-0
+    # restart would bootstrap a NEW empty cluster).
     nodeSelector:
       kubernetes.io/arch: amd64
-      kubernetes.io/hostname: m920s
+      openebs.io/engine: mayastor
     pdb:
       create: false
     persistence:
       enabled: true
       size: 2Gi
       storageClass: openebs-lvmpv-vg0
-    replicaCount: 1
+    replicaCount: 3
   eventing:
     enabled: true
   io_engine:

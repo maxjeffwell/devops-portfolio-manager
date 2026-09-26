@@ -1,0 +1,35 @@
+# Pre-created PVCs for Mayastor etcd members 1 and 2 (applied by hand with
+# kubectl, not part of the Helm release). The StatefulSet's volumeClaimTemplate
+# uses openebs-lvmpv-vg0, and vg0 exists only on m920s. A PVC that already
+# exists under the template's name is adopted by the StatefulSet as-is, so these
+# land on openebs-vg (elitedesk/m720q). WaitForFirstConsumer: each binds on
+# whichever node its pod is scheduled to.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-mayastor-etcd-1
+  namespace: openebs
+  labels:
+    app.kubernetes.io/instance: mayastor
+    app.kubernetes.io/name: etcd
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: openebs-lvmpv
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-mayastor-etcd-2
+  namespace: openebs
+  labels:
+    app.kubernetes.io/instance: mayastor
+    app.kubernetes.io/name: etcd
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: openebs-lvmpv
+  resources:
+    requests:
+      storage: 2Gi
