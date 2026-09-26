@@ -91,7 +91,7 @@ spec:
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: channels-dvr-data
+            claimName: channels-dvr-data-r2
         - name: recordings
           persistentVolumeClaim:
             claimName: channels-dvr-recordings-nfs

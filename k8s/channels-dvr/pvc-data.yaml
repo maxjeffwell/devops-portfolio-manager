@@ -3,17 +3,21 @@
 # local-path pinned to the debian-marmoset laptop. The claim size is now
 # real (Mayastor is thick). Recordings do NOT go here — /recordings is a
 # separate PVC added as an extra disk in the Channels UI.
+# 2026-09-26: -> channels-dvr-data-r2 on mayastor-2 (2 replicas on the NVMe
+# pools). The BX300 held three single-replica volumes. New claim name because
+# storageClassName is immutable; 1764 files / 2.03 GB copied with per-file
+# sha256 verification.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: channels-dvr-data
+  name: channels-dvr-data-r2
   namespace: channels-dvr
   labels:
     app: channels-dvr
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: mayastor-sata
+  storageClassName: mayastor-2
   resources:
     requests:
       storage: 15Gi

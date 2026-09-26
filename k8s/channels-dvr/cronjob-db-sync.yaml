@@ -77,4 +77,4 @@ spec:
                 readOnly: true
             - name: data
               persistentVolumeClaim:
-                claimName: channels-dvr-data
+                claimName: channels-dvr-data-r2
