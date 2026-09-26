@@ -118,7 +118,13 @@ spec:
               app: {{ include "portfolio-common.name" $ }}-{{ $component }}
       {{- end }}
       {{- end }}
-      {{- include "portfolio-common.nodeSelector" $ | nindent 6 }}
-      {{- include "portfolio-common.affinity" $ | nindent 6 }}
-      {{- include "portfolio-common.tolerations" $ | nindent 6 }}
+      {{- /* Per-component scheduling (e.g. nodeSelectorClient) overrides the chart-wide value when the key is present, even if empty */}}
+      {{- range $field := list "nodeSelector" "affinity" "tolerations" }}
+      {{- $componentKey := printf "%s%s" $field (title $component) }}
+      {{- $value := ternary (index $.Values $componentKey) (index $.Values $field) (hasKey $.Values $componentKey) }}
+      {{- with $value }}
+      {{ $field }}:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
 {{- end }}

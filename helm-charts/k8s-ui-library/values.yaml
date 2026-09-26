@@ -63,6 +63,16 @@ topologySpreadConstraints:
   topologyKey: kubernetes.io/hostname
   whenUnsatisfiable: ScheduleAnyway
 
+# Static client runs on the edge node next to Traefik
+nodeSelectorClient:
+  role: edge
+tolerationsClient:
+  - key: role
+    operator: Equal
+    value: edge
+    effect: PreferNoSchedule
+affinityClient: {}
+
 nodeSelector: {}
 
 affinity:

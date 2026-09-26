@@ -22,12 +22,13 @@ spec:
         kubectl.kubernetes.io/restartedAt: "2024-12-09T00:35:00Z"
     spec:
       nodeSelector:
-        # 2026-09-25: vmi2951245 -> m920s. The API servers are now the home k3s servers
-        # (the VPS is an agent), so 'next to the control plane' means m920s.
-        kubernetes.io/hostname: m920s
+        # 2026-09-26: static frontend runs on the edge node next to Traefik,
+        # freeing memory on the home etcd servers.
+        role: edge
       tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
+      - key: role
+        operator: Equal
+        value: edge
         effect: PreferNoSchedule
       containers:
       - name: dashboard

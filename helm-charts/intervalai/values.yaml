@@ -127,6 +127,16 @@ topologySpreadConstraints:
   enabled: true
   maxSkew: 1
 
+# Static client runs on the edge node next to Traefik (no DB traffic); server stays home near MongoDB
+nodeSelectorClient:
+  role: edge
+tolerationsClient:
+  - key: role
+    operator: Equal
+    value: edge
+    effect: PreferNoSchedule
+affinityClient: {}
+
 nodeSelector: {}
 
 tolerations: []
