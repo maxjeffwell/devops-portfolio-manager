@@ -75,11 +75,31 @@ spec:
                   --low-level-retries=10
               done
 
+              # Neon pageserver remote storage (whole bucket). This IS the durable
+              # copy of every Neon tenant/timeline/branch — pageserver + safekeeper
+              # disks are caches/WAL buffers. velero-key has READ-only on it
+              # (granted 2026-09-27; the pageservers write with mimir-key).
+              # Layer files are immutable, so copying a live bucket is safe apart
+              # from a small index_part-vs-layer race that the next run fixes.
+              echo "[$(date -u)] --- syncing bucket: ${NEON_BUCKET} ---"
+              rclone sync \
+                "garage:${NEON_BUCKET}" \
+                "b2:${OFFSITE_BUCKET}/${NEON_BUCKET}" \
+                --transfers=4 \
+                --checkers=8 \
+                --stats=30s \
+                --stats-one-line \
+                --bwlimit=20M \
+                --retries=3 \
+                --low-level-retries=10
+
               echo "[$(date -u)] Off-site sync complete"
               rclone size "b2:${OFFSITE_BUCKET}" || true
             env:
             - name: SOURCE_BUCKET
               value: "app-dumps"
+            - name: NEON_BUCKET
+              value: "neon-storage"
             - name: OFFSITE_BUCKET
               value: "garage-offsite"   # create on B2 first; lifecycle: 90d
             - name: GARAGE_ENDPOINT

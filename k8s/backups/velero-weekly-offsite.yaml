@@ -46,3 +46,7 @@ spec:
       - microservices
       - vertex-platform
       - vaultwarden
+      # tenantflow-neon + tenantflow-neon-tenant-map ConfigMap (maps app tenants
+      # to the Neon tenant IDs stored in neon-storage, synced by
+      # garage-offsite-sync). Neon PVCs hold ~150 MB total (2026-09-27).
+      - neon
