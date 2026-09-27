@@ -71,8 +71,10 @@ tempoMonolithic:
     repository: grafana/tempo
     tag: "2.7.2"
   priorityClassName: monitoring
+  # 2026-09-27: moved off elitedesk (spread the monitoring stack across nodes).
+  # The PV is lvm-localpv on m720q, so the pod must stay on that node.
   nodeSelector:
-    kubernetes.io/hostname: elitedesk
+    kubernetes.io/hostname: m720q
   resources:
     requests:
       cpu: 100m
@@ -82,7 +84,7 @@ tempoMonolithic:
     limits:
       memory: 2Gi
   persistence:
-    storageClass: local-path
+    storageClass: openebs-lvmpv
     size: 20Gi
   storage:
     credentialsSecret: garage-tempo-credentials
@@ -1079,8 +1081,10 @@ mimirMonolithic:
     repository: grafana/mimir
     tag: "3.0.1"
   priorityClassName: monitoring
+  # 2026-09-27: moved off elitedesk (spread the monitoring stack across nodes).
+  # The PV is lvm-localpv in m920s vg0, so the pod must stay on that node.
   nodeSelector:
-    kubernetes.io/hostname: elitedesk
+    kubernetes.io/hostname: m920s
   # Combined resources for all Mimir components in a single process
   # 2026-09-07: request 512Mi -> 2Gi to match the measured 2-day peak of 1938Mi.
   # Limit 4Gi -> 3Gi: peak was only 47% of 4Gi, and trimming here offsets the
@@ -1092,7 +1096,7 @@ mimirMonolithic:
     limits:
       memory: 3Gi
   persistence:
-    storageClass: local-path
+    storageClass: openebs-lvmpv-vg0
     size: 20Gi
   storage:
     credentialsSecret: garage-mimir-credentials
