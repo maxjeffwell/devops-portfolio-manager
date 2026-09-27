@@ -20,6 +20,13 @@
 # pod on the edge node before the app started. The old elitedesk LV
 # (pvc-d1e0e989-f4e4-4b23-b853-c09cd3b12021, reclaim Retain) was left in place
 # as a fallback.
+#
+# 2026-09-27: local-path -> openebs-lvmpv, still on the edge node. The edge node
+# now has LVM VG openebs-vg on a 20G file-backed loop device
+# (/var/lib/openebs-loop/openebs-vg.img, attached at boot by
+# openebs-vg-loop.service before k3s-agent), so the volume gets capacity
+# enforcement + CSI snapshots like the home nodes. Data copied with the app
+# stopped (sha256 verified); the old local-path PV was kept (Retain) as fallback.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -31,7 +38,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   volumeMode: Filesystem
-  storageClassName: local-path
+  storageClassName: openebs-lvmpv
   resources:
     requests:
       storage: 2Gi

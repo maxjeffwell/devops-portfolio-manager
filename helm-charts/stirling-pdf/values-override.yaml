@@ -51,14 +51,16 @@ envsFrom:
   - secretRef:
       name: stirling-pdf-admin
 
-# local-path on the edge node (2026-09-26; was openebs-lvmpv on elitedesk), which
-# pairs with the nodeSelector pin below. 2Gi covers the H2 database, settings.yml
-# and custom files with room to spare.
+# openebs-lvmpv on the edge node (2026-09-27; local-path there since 2026-09-26,
+# openebs-lvmpv on elitedesk before that). The edge node's openebs-vg is a
+# file-backed loop device -- see k8s/stirling-pdf/pvc.yaml. Pairs with the
+# nodeSelector pin below. 2Gi covers the H2 database, settings.yml and custom
+# files with room to spare.
 persistence:
   enabled: true
   accessMode: ReadWriteOnce
   size: 2Gi
-  storageClass: local-path
+  storageClass: openebs-lvmpv
   path: /configs
   # The PVC is declared in k8s/stirling-pdf/pvc.yaml instead of by the chart,
   # because it needs a `k8up.io/backup: "false"` annotation and the chart's PVC
