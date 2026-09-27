@@ -95,7 +95,12 @@ spec:
     # tightest on the cluster, while reserving far more cpu than it ever used.
     resources:
       limits:
-        memory: 768Mi
+        # 2026-09-27: 768Mi -> 2Gi. The operator sizes WiredTiger's cache from
+        # this LIMIT (~50% of limit-1GiB, floor 0.25GB): at 768Mi it was pinned
+        # at the 0.25GB floor. 2Gi -> ~0.5GB cache, and headroom over the 14d
+        # peak (634Mi = 83% of the old limit). Request unchanged, so no
+        # scheduling impact.
+        memory: 2Gi
       requests:
         # 2026-09-16: cpu 150m -> 100m. 14-day peak across the mongod pods is
         # 51m, so 150m x3 replica sets reserved ~440m of elitedesk it never
