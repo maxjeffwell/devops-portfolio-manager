@@ -1,0 +1,111 @@
+# Percona Server MongoDB Operator Deployment (v1.22.0).
+# Installed 2026-04-07 from Percona's bundle.yaml; the CRDs, RBAC and ServiceAccount
+# still come from that bundle and are NOT managed here. This Deployment was
+# adopted into git on 2026-09-27 so the tuning below survives:
+#   - MAX_CONCURRENT_RECONCILES 1 -> 3: one worker was busy ~99% of wall time
+#     (avg reconcile 8.2s, 3 clusters serialized); now ~2.5s.
+#   - requests cpu 250m / memory 128Mi (was the LimitRange default 10m/64Mi
+#     against ~228m / ~107Mi of real use).
+#   - soft nodeAffinity -> debian-marmoset (CPU headroom; elitedesk was at 87%).
+# 🪤 On an operator upgrade, update the image here instead of re-applying the
+# bundle Deployment, or the tuning above is lost.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: percona-server-mongodb-operator
+  namespace: percona-mongodb
+  labels:
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/instance: percona-server-mongodb-operator
+    app.kubernetes.io/name: percona-server-mongodb-operator
+    app.kubernetes.io/part-of: percona-server-mongodb-operator
+    name: percona-server-mongodb-operator
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: percona-server-mongodb-operator
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: operator
+        app.kubernetes.io/instance: percona-server-mongodb-operator
+        app.kubernetes.io/name: percona-server-mongodb-operator
+        app.kubernetes.io/part-of: percona-server-mongodb-operator
+        name: percona-server-mongodb-operator
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - debian-marmoset
+            weight: 100
+      containers:
+      - args:
+        - --leader-elect=false
+        command:
+        - percona-server-mongodb-operator
+        env:
+        - name: LOG_STRUCTURED
+          value: 'false'
+        - name: LOG_LEVEL
+          value: INFO
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: percona-server-mongodb-operator
+        - name: RESYNC_PERIOD
+          value: 60s
+        - name: DISABLE_TELEMETRY
+          value: 'false'
+        - name: MAX_CONCURRENT_RECONCILES
+          value: '3'
+        image: percona/percona-server-mongodb-operator:1.22.0
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /metrics
+            port: metrics
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: percona-server-mongodb-operator
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 250m
+            memory: 128Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: percona-server-mongodb-operator
+      serviceAccountName: percona-server-mongodb-operator
+      terminationGracePeriodSeconds: 30

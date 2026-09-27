@@ -5,3 +5,4 @@ resources:
   - mongodb-educationelly.yaml
   - mongodb-educationelly-graphql.yaml
   - mongodb-intervalai.yaml
+  - operator-deployment.yaml
