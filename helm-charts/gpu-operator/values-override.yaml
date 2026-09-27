@@ -1,13 +1,17 @@
 # GPU Operator Helm values override
 #
-# Operator, NFD master and NFD gc are pinned to debian-marmoset. Only
-# marmoset (NVIDIA) and debian-marmoset (Intel iGPU) have GPUs, so GPU
-# tooling stays on GPU nodes: the VPSes and elitedesk have none. The chart's
-# built-in control-plane affinity is only *preferred*, so historically these
-# drifted onto whichever node had room (NFD master sat on vmi3115606 with
-# ~100 restarts/week, every one a "http2: client connection lost" on the lossy
-# VPS<->VPS tailscale path). marmoset is excluded because it carries the
-# workload=gpu taint and is the node these controllers manage.
+# Operator, NFD master and NFD gc REQUIRE a control-plane node (the home etcd
+# servers: elitedesk, m720q, m920s). They are API-only controllers — they never
+# touch GPU hardware — so what matters is being next to the apiserver and
+# having somewhere to go when a node drains. The chart's built-in
+# control-plane affinity is only *preferred*, so historically these drifted
+# onto whichever node had room (NFD master sat on vmi3115606 with ~100
+# restarts/week, every one a "http2: client connection lost" on the lossy
+# VPS<->VPS tailscale path). Required control-plane keeps them off the edge
+# VPS and off marmoset (workload=gpu taint; the node these controllers manage).
+# They were hostname-pinned to debian-marmoset from 2026-08-25 to 2026-09-26,
+# back when the control plane was the VPSes; that left them Pending whenever
+# the laptop was drained.
 #
 # Managed by ArgoCD (gitops/applications/gpu-operator.yaml).
 # After manual sync, re-run patch-operator-probes.sh to fix hardcoded operator probes.
@@ -99,7 +103,7 @@ daemonsets:
       value: gpu
       effect: NoSchedule
 
-# Operator controller — pinned to debian-marmoset (see header). `affinity` here
+# Operator controller — control-plane only (see header). `affinity` here
 # replaces the chart's default control-plane preference wholesale.
 operator:
   affinity:
@@ -107,10 +111,8 @@ operator:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                  - debian-marmoset
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
   resources:
     limits:
       cpu: 1000m
@@ -124,9 +126,7 @@ node-feature-discovery:
   image:
     repository: registry.k8s.io/nfd/node-feature-discovery
     tag: v0.18.3
-  # NFD master — pinned to debian-marmoset (see header). Note the laptop is
-  # cordoned by the UPS drain hook during outages; the pod rides it out as
-  # Pending until uncordon, which is acceptable for a label aggregator.
+  # NFD master — control-plane only (see header).
   # Leader election has a known panic bug in v0.18.x (NamespaceLister.stop nil
   # pointer on lease loss). Can't disable via values — flag is hardcoded in chart
   # template. Aggressive lease durations reduce loss frequency to near zero.
@@ -136,10 +136,8 @@ node-feature-discovery:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - key: kubernetes.io/hostname
-                  operator: In
-                  values:
-                    - debian-marmoset
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
     config:
       extraLabelNs: ["nvidia.com"]
       leaderElection:
@@ -225,16 +223,14 @@ node-feature-discovery:
       periodSeconds: 10
       failureThreshold: 10
   gc:
-    # Same pin as master; gc only reaps NodeFeature objects, no node deps.
+    # Same placement as master; gc only reaps NodeFeature objects, no node deps.
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-                - key: kubernetes.io/hostname
-                  operator: In
-                  values:
-                    - debian-marmoset
+                - key: node-role.kubernetes.io/control-plane
+                  operator: Exists
     livenessProbe:
       initialDelaySeconds: 10
       timeoutSeconds: 5
