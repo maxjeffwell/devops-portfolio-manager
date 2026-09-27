@@ -6,6 +6,12 @@
 #                     scope, kept as a defensive/inert rule.
 #   - emptyDir:       ephemeral by definition; each 0-byte emptyDir still cost ~4min
 #                     of kopia repo overhead per run under opt-out fs-backup (2026-08-18).
+#   - pvcLabels:      the Prometheus TSDB (50Gi, 15d of re-scrapable metrics; long-term
+#                     copy lives in Mimir). The pod annotation backup-volumes-excludes only
+#                     opts out of fs-backup; since the 2026-09-27 move to openebs-lvmpv the
+#                     volume is snapshot-capable, so weekly-offsite (snapshotMoveData) would
+#                     otherwise CSI-snapshot + upload ~16G to Backblaze weekly. Label is set
+#                     by prometheus-operator, so it survives PVC recreation.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -27,5 +33,10 @@ data:
     - conditions:
         volumeTypes:
         - emptyDir
+      action:
+        type: skip
+    - conditions:
+        pvcLabels:
+          operator.prometheus.io/name: prometheus-kube-prometheus-prometheus
       action:
         type: skip
