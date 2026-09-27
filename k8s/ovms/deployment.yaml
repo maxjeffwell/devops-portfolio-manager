@@ -111,7 +111,11 @@ spec:
               # NOTE: the 3Gi LIMIT below is deliberately unchanged — the pod does
               # burst past 1500Mi during model load, and the limit is what governs
               # that. Do not lower the limit.
-              memory: 768Mi
+              # 2026-09-27: 768Mi -> 1Gi. Steady state has grown from ~343Mi (Aug)
+              # to ~933Mi now (14d p95 1042Mi), so 768Mi was under TYPICAL usage,
+              # not just the load burst. Still sized to steady state, not the
+              # 1705Mi load peak, to keep debian-marmoset's requests packable.
+              memory: 1Gi
               gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
