@@ -128,6 +128,8 @@ spec:
     enabled: false
   unsafeFlags:
     replsetSize: true
+  upgradeOptions:
+    setFCV: true
   users:
   - db: admin
     name: root
