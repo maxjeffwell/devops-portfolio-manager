@@ -7,7 +7,7 @@ metadata:
   labels:
     app: alertmanager-gotify-bridge
 spec:
-  replicas: 1
+  replicas: {{ .Values.gotifyBridge.replicas }}
   selector:
     matchLabels:
       app: alertmanager-gotify-bridge
@@ -16,6 +16,15 @@ spec:
       labels:
         app: alertmanager-gotify-bridge
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: alertmanager-gotify-bridge
       containers:
       - name: gotify-bridge
         image: "{{ .Values.gotifyBridge.image.repository }}:{{ .Values.gotifyBridge.image.tag }}"

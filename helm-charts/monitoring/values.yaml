@@ -43,6 +43,9 @@ veleroBackupVerify:
 # Gotify Bridge (AlertManager → Gotify notification relay)
 gotifyBridge:
   enabled: true
+  # Stateless webhook relay; 2 so alert delivery survives losing a node
+  # (template spreads them with soft hostname anti-affinity)
+  replicas: 2
   image:
     repository: ghcr.io/druggeri/alertmanager_gotify_bridge
     tag: "2.3.2"
