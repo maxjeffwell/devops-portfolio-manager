@@ -76,9 +76,9 @@ tempoMonolithic:
   resources:
     requests:
       cpu: 100m
-      # 512Mi request against a measured 2-day peak of 1317Mi (2026-09-07).
-      # Limit stays 2Gi -- peak is only 64% of it, so headroom is fine.
-      memory: 1536Mi
+      # Sized to measured peak: 14-day peak 1572Mi, p95 1033Mi (2026-09-26),
+      # up from a 2-day peak of 1317Mi on 2026-09-07. Limit stays 2Gi.
+      memory: 1664Mi
     limits:
       memory: 2Gi
   persistence:
