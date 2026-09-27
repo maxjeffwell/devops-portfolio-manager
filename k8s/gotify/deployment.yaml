@@ -7,6 +7,9 @@ metadata:
     app: gotify
 spec:
   replicas: 1
+  # RWO iSCSI volume: old pod must release it before the new one mounts
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: gotify
@@ -15,6 +18,16 @@ spec:
       labels:
         app: gotify
     spec:
+      # democratic-csi-mp node plugin only runs on these nodes (its DaemonSet
+      # is hostname-pinned); anywhere else the PVC fails MountDevice
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["debian-marmoset", "m720q"]
       containers:
         - name: gotify
           image: gotify/server

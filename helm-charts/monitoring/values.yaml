@@ -492,13 +492,10 @@ kube-prometheus-stack:
               - severity = "warning"
             receiver: 'gotify'
     alertmanagerSpec:
-      storage:
-        volumeClaimTemplate:
-          spec:
-            accessModes: ["ReadWriteOnce"]
-            resources:
-              requests:
-                storage: 2Gi
+      # 2 gossiping peers on emptyDir instead of 1 pod on a local-path PVC
+      # (which bound it to debian-marmoset forever); silences/nflog replicate
+      # between peers, chart's default soft anti-affinity spreads them
+      replicas: 2
       resources:
         requests:
           cpu: 50m
