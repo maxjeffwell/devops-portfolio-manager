@@ -149,7 +149,8 @@ pyroscope:
       # peak is ~154m against a 100m request, so it routinely burns more than it
       # reserves and is first in line to be throttled under CPU pressure.
       cpu: 200m
-      # 512Mi request against a measured 2-day peak of 1033Mi (2026-09-07).
+      # Sized to a measured 2-day peak of 1033Mi (2026-09-07). 14-day peak
+      # 932Mi, p95 595Mi (2026-09-26) -- still covered, left as is.
       memory: 1280Mi
     limits:
       # 2Gi -> 1536Mi: peak is ~67% of the new limit, still comfortable, and the
