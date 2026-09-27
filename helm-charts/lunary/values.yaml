@@ -67,19 +67,12 @@ pdb:
   enabled: false
   maxUnavailable: 1
 
-nodeSelector:
-  gpu-node: "true"  # debian-marmoset; takes lunary off CP, colocates with litellm/Ollama AI stack
+# No placement constraints: stateless, no GPU use, and the old reasons for
+# pinning to debian-marmoset (off the VPS control plane, next to
+# litellm/Ollama) no longer hold
+nodeSelector: {}
 tolerations: []
-affinity:
-  nodeAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        preference:
-          matchExpressions:
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-                - debian-marmoset
+affinity: {}
 
 # Gate startup on the database being reachable. lunary-backend runs its
 # materialized-view refresh synchronously at boot (index.ts:74) and calls
