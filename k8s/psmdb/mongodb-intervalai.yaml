@@ -110,7 +110,11 @@ spec:
         # 405Mi (peak 439Mi). The 512Mi first used here was peak-plus-padding
         # and, multiplied across 3 replica sets, helped push m720q to 99.9% of
         # allocatable memory requests. The 768Mi limit covers the peak.
-        memory: 448Mi
+        # 2026-09-27: 448Mi -> 576Mi. The elitedesk members (primaries) ran
+        # ABOVE 448Mi even at 14d p95 (up to 551Mi; peak 634Mi), which made the
+        # primaries first in line for node-pressure eviction. 576Mi covers every
+        # member's p95. (Limit is now 2Gi, see above.)
+        memory: 576Mi
     size: 3
     storage:
       engine: wiredTiger
