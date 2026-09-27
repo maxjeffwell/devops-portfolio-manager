@@ -124,6 +124,8 @@ spec:
           requests:
             storage: 10Gi
         storageClassName: openebs-lvmpv
+  sharding:
+    enabled: false
   unsafeFlags:
     replsetSize: true
   users:
