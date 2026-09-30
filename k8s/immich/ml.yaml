@@ -12,7 +12,7 @@ metadata:
     app: immich
     component: ml
 spec:
-  replicas: 1
+  replicas: 0  # TEMP 2026-09-30: cache migration to immich-ml-models in progress
   strategy:
     type: Recreate
   selector:

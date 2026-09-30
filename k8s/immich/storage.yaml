@@ -56,3 +56,21 @@ spec:
     requests:
       storage: 10Gi
   storageClassName: openebs-lvmpv
+---
+# 2026-09-30: replicated home for the ML model cache so immich-ml can schedule on
+# any i915 node instead of being pinned to elitedesk (where the lvm-localpv copy
+# lives). Models are re-downloadable, so thin + SATA pools are plenty.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-ml-models
+  namespace: immich
+  labels:
+    app: immich
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: mayastor-2-sata-thin
