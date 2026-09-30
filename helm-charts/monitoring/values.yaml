@@ -242,7 +242,9 @@ kube-prometheus-stack:
       # (offset by trimming mimir 4Gi -> 3Gi, which peaks at only 47%).
       resources:
         requests:
-          cpu: 200m
+          # 2026-09-30: cpu 200m -> 300m. 7d p95 239m, 30d peak 420m: it ran above
+          # its request most of the time, first to be throttled on m720q.
+          cpu: 300m
           memory: 3584Mi
         limits:
           cpu: 1000m

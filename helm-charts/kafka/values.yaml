@@ -1,0 +1,19 @@
+# Strimzi Kafka operator (Helm release `kafka`, namespace microservices,
+# chart strimzi/strimzi-kafka-operator 0.50.0). Captured into git 2026-09-30 from
+# `helm get values kafka -n microservices` -- the release had no values file in
+# any repo. The live Deployment had drifted to cpu 50m (hand patch) while the
+# release said 200m; 30-day peak is 66m, so the request is set to 100m here.
+#
+# Apply:
+#   helm repo add strimzi https://strimzi.io/charts/
+#   helm upgrade kafka strimzi/strimzi-kafka-operator --version 0.50.0 \
+#     -n microservices -f helm-charts/kafka/values.yaml
+nodeSelector:
+  role: data
+resources:
+  limits:
+    cpu: 2000m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 512Mi

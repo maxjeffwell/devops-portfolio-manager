@@ -104,7 +104,9 @@ patches:
               - name: argocd-application-controller
                 resources:
                   requests:
-                    cpu: 100m
+                    # 2026-09-30: cpu 100m -> 200m. 30-day peak 180m, 7d p95 69m:
+                    # reconcile bursts ran above the old request.
+                    cpu: 200m
                     memory: 1Gi
                   limits:
                     memory: 2Gi

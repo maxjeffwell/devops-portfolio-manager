@@ -64,7 +64,9 @@ spec:
             # by root, not writable by our UID 1000). Redirect into PVC.
             - { name: QDRANT__STORAGE__SNAPSHOTS_PATH, value: /qdrant/storage/snapshots }
           resources:
-            requests: { cpu: 500m, memory: 512Mi }
+            # 2026-09-30: cpu 500m -> 100m. 30-day peak 2m (intervalai related-cards
+            # queries a few times a day); 100m is still 50x that. Memory unchanged.
+            requests: { cpu: 100m, memory: 512Mi }
             limits:   { memory: 1Gi }
           volumeMounts:
             - { name: storage, mountPath: /qdrant/storage }

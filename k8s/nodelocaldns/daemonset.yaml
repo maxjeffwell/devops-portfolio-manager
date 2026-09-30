@@ -36,7 +36,8 @@ spec:
           image: registry.k8s.io/dns/k8s-dns-node-cache:1.26.0
           resources:
             requests:
-              cpu: 25m
+              # 2026-09-30: cpu 25m -> 50m. 30-day peak 50m on m720q (7d p95 8m).
+              cpu: 50m
               # 2026-09-16: was 5Mi (the upstream default), ~13x under real use.
               # 7-day peaks: 64.8Mi (elitedesk) / 54.9Mi (debian-marmoset) /
               # 52.2Mi (m720q) / 44.6Mi (marmoset) / 27.1Mi (vmi2951245).
