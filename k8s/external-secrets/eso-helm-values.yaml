@@ -11,6 +11,14 @@
 nodeSelector:
   kubernetes.io/hostname: m720q
 
+# 2026-09-30: explicit request for the core controller. It ran on the namespace
+# LimitRange default (10m/64Mi) while using 62-128Mi (7d p95) and ~25m CPU.
+# webhook (84Mi) and cert-controller (53Mi) stay on the default. No limits.
+resources:
+  requests:
+    cpu: 25m
+    memory: 128Mi
+
 webhook:
   nodeSelector:
     kubernetes.io/hostname: m720q

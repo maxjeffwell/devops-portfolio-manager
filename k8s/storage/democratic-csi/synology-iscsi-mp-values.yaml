@@ -25,6 +25,14 @@ controller:
     enabled: true
   externalSnapshotter:
     enabled: true
+  driver:
+    # 2026-09-30: explicit request. Without it the namespace LimitRange filled
+    # 10m/64Mi while the controller csi-driver runs 107-150Mi (7d p95); the
+    # scheduler was undercounting it by ~90Mi. No limit on purpose.
+    resources:
+      requests:
+        cpu: 10m
+        memory: 160Mi
 
 csiDriver:
   name: org.democratic-csi.synology-iscsi-mp
@@ -86,6 +94,12 @@ node:
                   - m720q
   tolerations: []
   driver:
+    # 2026-09-30: explicit request; the node csi-driver runs 125-148Mi (7d p95)
+    # on both nodes against the LimitRange default of 64Mi. No limit on purpose.
+    resources:
+      requests:
+        cpu: 10m
+        memory: 160Mi
     extraEnv:
       # Closes a race in v0.15.1 where NodeStageVolume's lsblk FSTYPE detection
       # returns empty on freshly-assembled multipath dm devices (udev hadn't
