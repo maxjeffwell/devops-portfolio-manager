@@ -91,11 +91,18 @@ spec:
               # (the restore takes ~30 min), ACME orders/challenges re-request
               # certs, and CNPG Cluster CRs make the operator build duplicate
               # database clusters with fresh PVCs.
+              # KubeBlocks (neon-cluster) likewise: the Cluster CR would build a
+              # second Neon pageserver writing to the SAME neon-storage bucket,
+              # and its children (svc/cm/secret/pvc, all labelled
+              # managed-by=kubeblocks) come back carrying
+              # component.kubeblocks.io/finalizer with no Component to clear it,
+              # wedging the namespace in Terminating (2026-09-27 run).
               velero restore create "$TEST_RESTORE" \
                 --from-backup "$LATEST_BACKUP" \
                 --include-namespaces default \
                 --namespace-mappings default:velero-test-restore \
-                --exclude-resources cronjobs.batch,orders.acme.cert-manager.io,challenges.acme.cert-manager.io,certificaterequests.cert-manager.io,clusters.postgresql.cnpg.io,backups.postgresql.cnpg.io,scheduledbackups.postgresql.cnpg.io \
+                --exclude-resources cronjobs.batch,orders.acme.cert-manager.io,challenges.acme.cert-manager.io,certificaterequests.cert-manager.io,clusters.postgresql.cnpg.io,backups.postgresql.cnpg.io,scheduledbackups.postgresql.cnpg.io,clusters.apps.kubeblocks.io,components.apps.kubeblocks.io,instancesets.workloads.kubeblocks.io \
+                --selector 'app.kubernetes.io/managed-by notin (kubeblocks)' \
                 --wait
 
               # Check restore status
