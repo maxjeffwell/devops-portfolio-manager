@@ -1,0 +1,23 @@
+# mayastor-sata: single-replica on the m920s SATA pool. Created by hand 2026-09-25,
+# imported into git 2026-09-30 (was live-only) with reclaimPolicy Retain.
+# Applied by hand: kubectl apply -f (no ArgoCD app covers k8s/storage/mayastor).
+---
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    description: "Mayastor single-replica on the m920s SATA pool (Crucial BX300, tier=sata).\nOne pool\
+      \ exists for this tier, so repl is 1 \u2014 not for data that needs replication.\n"
+  name: mayastor-sata
+parameters:
+  ioTimeout: '30'
+  poolAffinityTopologyLabel: 'tier: sata
+
+    '
+  protocol: nvmf
+  repl: '1'
+  thin: 'false'
+provisioner: io.openebs.csi-mayastor
+reclaimPolicy: Retain
+volumeBindingMode: Immediate

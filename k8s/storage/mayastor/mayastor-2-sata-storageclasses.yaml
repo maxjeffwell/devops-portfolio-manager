@@ -35,7 +35,7 @@ parameters:
   thin: "false"
   poolAffinityTopologyLabel: |
     media: sata
-reclaimPolicy: Delete
+reclaimPolicy: Retain  # 2026-09-30: was Delete; PVC deletion must not destroy data (see k8s/storage/mayastor/README-reclaim.md)
 volumeBindingMode: Immediate
 allowVolumeExpansion: true
 ---
@@ -61,6 +61,6 @@ parameters:
   thin: "true"
   poolAffinityTopologyLabel: |
     media: sata
-reclaimPolicy: Delete
+reclaimPolicy: Retain  # 2026-09-30: was Delete; PVC deletion must not destroy data (see k8s/storage/mayastor/README-reclaim.md)
 volumeBindingMode: Immediate
 allowVolumeExpansion: true

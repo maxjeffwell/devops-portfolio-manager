@@ -1,0 +1,38 @@
+# lvm-localpv StorageClasses (provisioner local.csi.openebs.io). Both were created
+# by hand and lived only in the cluster until 2026-09-30. openebs-lvmpv was already
+# Retain; openebs-lvmpv-vg0 changed Delete -> Retain the same day (mimir's PV had
+# been hand-patched to Retain to compensate). Retain on lvm-localpv means a released
+# PV does NOT free its LV: delete the PV and the lvmvolume CR, or the janitor.
+# Applied by hand: kubectl apply -f (the openebs-lvm helm release does not own these).
+---
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-lvmpv
+parameters:
+  storage: lvm
+  thinProvision: 'yes'
+  volgroup: openebs-vg
+provisioner: local.csi.openebs.io
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+---
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    description: 'lvm-localpv thin volumes in vg0 on m920s (the 1 TB OS NVMe, ~765 GiB free).
+
+      Only m920s has a vg0, so claims on this class can only bind there.
+
+      '
+  name: openebs-lvmpv-vg0
+parameters:
+  storage: lvm
+  thinProvision: 'yes'
+  volgroup: vg0
+provisioner: local.csi.openebs.io
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
