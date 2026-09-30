@@ -123,7 +123,9 @@ spec:
               # to ~933Mi now (14d p95 1042Mi), so 768Mi was under TYPICAL usage,
               # not just the load burst. Still sized to steady state, not the
               # 1705Mi load peak, to keep debian-marmoset's requests packable.
-              memory: 1Gi
+              # 2026-09-30: 1Gi -> 2Gi. interval_ai (from Triton) now loads alongside e5-large;
+              # measured 1787Mi resident with both models. Limit stays 3Gi.
+              memory: 2Gi
               gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
