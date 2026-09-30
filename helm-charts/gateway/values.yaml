@@ -22,7 +22,8 @@ resources:
       cpu: 500m
       memory: 512Mi
     requests:
-      cpu: 200m
+      # 2026-09-30: cpu 200m -> 150m. 30-day peak 94m, 7d p95 59m. No HPA.
+      cpu: 150m
       memory: 128Mi
 
 autoscaling:

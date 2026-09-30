@@ -30,7 +30,10 @@ resources:
     limits:
       memory: 512Mi
     requests:
-      cpu: 200m
+      # 2026-09-30: cpu 200m -> 150m, not lower: 30-day 5-min peak is 67m but the
+      # HPA (80%) scaled to 2 replicas several times this month, so instantaneous
+      # load has exceeded 160m. 150m keeps the HPA trigger at 120m.
+      cpu: 150m
       memory: 256Mi
   client:
     limits:

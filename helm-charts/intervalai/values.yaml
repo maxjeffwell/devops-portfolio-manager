@@ -103,7 +103,9 @@ resources:
     limits:
       memory: 1Gi
     requests:
-      cpu: 250m
+      # 2026-09-30: cpu 250m -> 100m. 30-day peak 56m, 7d p95 44m; the HPA
+      # (80%) now scales at 80m, still above every peak seen. Memory unchanged.
+      cpu: 100m
       memory: 512Mi
   client:
     limits:

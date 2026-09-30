@@ -31,10 +31,13 @@ resources:
     # (peak 218Mi vs a 256Mi request) -- that one was already about right.
     # NOTE: bookmarked-server was deliberately NOT cut the same way; it peaks at
     # 164m against its 200m request, so it is correctly sized as-is.
+    # 2026-09-30: REVERTED to 200m. Over 30 days the server sits at ~100m for
+    # hours (7d p95 100m, peak 134m) -- the 2-day sample was a quiet spell and
+    # the pod has been running AT its request. Size to 30-day peaks, not p95.
     limits:
       memory: 512Mi
     requests:
-      cpu: 100m
+      cpu: 200m
       memory: 256Mi
   client:
     limits:
