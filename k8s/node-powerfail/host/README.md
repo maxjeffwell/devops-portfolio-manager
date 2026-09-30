@@ -13,10 +13,15 @@ no YAML). Pair with the ServiceAccount in `../rbac.yaml`.
 
 Plus, per node:
 
-- `/etc/kubernetes/node-powerfail.kubeconfig` (root 0600): server
-  `https://127.0.0.1:6443` (every node here is a k3s server with a local API since
-  2026-09-25; the old `100.64.0.1` VPS target was retired), CA + token from Secret
-  `kube-system/node-powerfail-token`.
+- `/etc/kubernetes/node-powerfail.kubeconfig` (root 0600), CA + token from Secret
+  `kube-system/node-powerfail-token`. Server address depends on the node role:
+  - k3s **servers** (elitedesk, m720q, m920s): `https://127.0.0.1:6443` (local API;
+    the old `100.64.0.1` VPS target was retired 2026-09-25).
+  - k3s **agents** (debian-marmoset, neonmarmoset): `https://127.0.0.1:6444` — the
+    k3s agent's built-in client load balancer, which fails over across all servers.
+    (2026-09-30: dm had NO kubeconfig at all, so its drain silently skipped
+    cordon/drain; fixed. Verify with
+    `KUBECONFIG=/etc/kubernetes/node-powerfail.kubeconfig kubectl auth can-i create pods --subresource=eviction`.)
 - `/etc/nut/upssched.conf`: `AT ONBATT * START-TIMER powerfail <seconds>` /
   `AT ONLINE * CANCEL-TIMER powerfail`, CMDSCRIPT = upssched-cmd.
 - `/etc/nut/upsmon.conf`: `SHUTDOWNCMD "/usr/local/sbin/nut-powerfail-shutdown.sh"`,
