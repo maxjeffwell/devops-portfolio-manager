@@ -598,6 +598,39 @@ kube-prometheus-stack:
     # kube_* metrics were gone until the node was manually freed. KSM is a
     # cluster-scoped API scraper with no affinity to elitedesk, so let the
     # scheduler place it.
+    #
+    # 2026-09-30: the subchart's default collector list minus `endpoints`.
+    # v1 Endpoints is deprecated in k8s 1.33 and KSM logged the warning on
+    # every watch; nothing consumes the kube_endpoint_* family (no dashboard
+    # or PrometheusRule in either repo). Keep the rest of the defaults.
+    collectors:
+      - certificatesigningrequests
+      - configmaps
+      - cronjobs
+      - daemonsets
+      - deployments
+      - horizontalpodautoscalers
+      - ingresses
+      - jobs
+      - leases
+      - limitranges
+      - mutatingwebhookconfigurations
+      - namespaces
+      - networkpolicies
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - poddisruptionbudgets
+      - pods
+      - replicasets
+      - replicationcontrollers
+      - resourcequotas
+      - secrets
+      - services
+      - statefulsets
+      - storageclasses
+      - validatingwebhookconfigurations
+      - volumeattachments
     livenessProbe:
       failureThreshold: 10
       periodSeconds: 15
