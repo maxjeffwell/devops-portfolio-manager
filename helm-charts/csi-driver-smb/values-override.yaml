@@ -35,14 +35,17 @@ controller:
   # loops DeadlineExceeded forever. Keep the controller on LAN nodes, where
   # the mount is sub-second. (Node-side data mounts are unaffected; VPS pods
   # can still consume SMB PVs, just slowly.)
+  # 2026-09-30: keyed on the role label instead of a hostname so a VPS swap is
+  # a relabel (vmi2951245 was retired 2026-09-25 and the old rule matched no
+  # node). The edge taint is only PreferNoSchedule, so this must stay a hard rule.
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: role
                 operator: NotIn
-                values: [vmi2951245]
+                values: [edge]
 
 node:
   logLevel: 2
