@@ -6,7 +6,9 @@ metadata:
     app: dns-zone-restore-test
 spec:
   timeZone: "America/New_York"
-  schedule: "0 7 1-7 * 0"
+  # Every Sunday; the script exits unless it is the FIRST Sunday. Cron ORs
+  # day-of-month with day-of-week, so "1-7 * 0" meant days 1-7 AND every Sunday.
+  schedule: "0 7 * * 0"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
@@ -28,6 +30,8 @@ spec:
             - -c
             - |
               set -e
+              # First-Sunday gate (see schedule comment).
+              [ "$(date +%d)" -le 7 ] || { echo "Not the first Sunday of the month - skipping."; exit 0; }
               apk add --no-cache curl jq aws-cli > /dev/null 2>&1
 
               echo "=== DNS Zone Restore Test ==="

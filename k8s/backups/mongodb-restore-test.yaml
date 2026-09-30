@@ -6,7 +6,9 @@ metadata:
     app: mongodb-restore-test
 spec:
   timeZone: "America/New_York"
-  schedule: "30 6 1-7 * 0"
+  # Every Sunday; the script exits unless it is the FIRST Sunday. Cron ORs
+  # day-of-month with day-of-week, so "1-7 * 0" meant days 1-7 AND every Sunday.
+  schedule: "30 6 * * 0"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 3
@@ -28,6 +30,8 @@ spec:
             - -c
             - |
               set -e
+              # First-Sunday gate (see schedule comment).
+              [ "$(date +%d)" -le 7 ] || { echo "Not the first Sunday of the month - skipping."; exit 0; }
 
               echo "=== MongoDB Restore Test ==="
               echo "Date: $(date)"
@@ -39,7 +43,9 @@ spec:
               mongod --dbpath /tmp/mongodata --bind_ip localhost --port 27099 --fork --logpath /tmp/mongod.log > /dev/null 2>&1
               sleep 3
 
-              for DB in intervalai educationelly educationelly-graphql microservices vertex-platform; do
+              # vertex-platform is parked at 0 replicas and its backup CronJob is
+              # suspended (user decision 2026-08-23); add it back when unparked.
+              for DB in intervalai educationelly educationelly-graphql microservices; do
                 echo ""
                 echo "--- Testing ${DB} restore ---"
 
