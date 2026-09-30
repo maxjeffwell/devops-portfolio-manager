@@ -44,10 +44,15 @@ kind: StorageClass
 metadata:
   name: mayastor-2-sata-thin
   annotations:
+    # 2026-09-30: cluster DEFAULT class (was the k3s local-path addon, which had
+    # zero PVs after the lvm-localpv migration and is being retired). Applies
+    # only to PVCs that omit storageClassName; replicated + thin so an
+    # unplanned claim survives a node reboot and reserves nothing.
+    storageclass.kubernetes.io/is-default-class: "true"
     description: |
       Mayastor 2-replica on the SATA pools (m920s BX300 + elitedesk USB BX500),
       restricted to pools labelled media=sata. Thin provisioned: only written
-      blocks consume pool space.
+      blocks consume pool space. Cluster default StorageClass since 2026-09-30.
 provisioner: io.openebs.csi-mayastor
 parameters:
   ioTimeout: "30"
