@@ -60,6 +60,9 @@ spec:
                 aws --endpoint-url=https://s3.el-jefe.me s3 sync "s3://ovms-models/$name" "/models/$name"
                 ls -la "/models/$name/1/"
               done
+              # OpenVINO picks the first *.pb it sees; TensorFlow's optional fingerprint.pb
+              # must not be there or the SavedModel fails to load.
+              rm -f /models/interval_ai/1/fingerprint.pb
               echo "Sync complete"
           env:
             - { name: AWS_REGION, value: garage }
