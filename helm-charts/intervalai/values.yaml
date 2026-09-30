@@ -234,14 +234,13 @@ env:
     # Triton Inference Server Configuration (4-tiered fallback)
     - name: USE_TRITON
       value: "true"
-    # Tier 1: in-cluster CPU Triton (triton-amd on elitedesk, model interval_ai).
-    # 2026-09-30: was https://triton-gpu.el-jefe.me = the retired GTX 1080 tunnel
-    # (502 on every call, so each inference paid a dead round-trip before falling back).
+    # Tier 1: OVMS on the Intel iGPU (ovms-embeddings serves interval_ai as an OpenVINO
+    # model; same KServe v2 API the client already speaks). 2026-09-30, replaces Triton.
     - name: PRIMARY_TRITON_URL
-      value: "http://triton-service:8000"
-    # Tier 2: the same server via the public Traefik route (survives an in-cluster DNS/netpol fault)
+      value: "http://ovms-embeddings.ovms:8000"
+    # Tier 2: Triton (triton-amd) until it is retired; then RunPod (tier 3) is the fallback.
     - name: FALLBACK_TRITON_URL
-      value: "https://triton.el-jefe.me"
+      value: "http://triton-service:8000"
     - name: TRITON_MODEL_NAME
       value: "interval_ai"
     # Tier 3: RunPod Serverless GPU

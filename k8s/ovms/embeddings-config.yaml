@@ -24,7 +24,8 @@ data:
           "config": {
             "name": "interval_ai",
             "base_path": "/models/interval_ai",
-            "target_device": "GPU"
+            "target_device": "GPU",
+            "plugin_config": { "INFERENCE_PRECISION_HINT": "f32" }
           }
         }
       ]
