@@ -109,6 +109,28 @@ patches:
                   limits:
                     memory: 2Gi
 
+  # ── server resources ────────────────────────────────────────────────────
+  # 2026-09-30: was running on the namespace LimitRange default (64Mi) while
+  # using 109Mi (15d peak 112Mi). Request only, no limit, like the rest of the
+  # namespace policy.
+  - target:
+      kind: Deployment
+      name: argocd-server
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-server
+      spec:
+        template:
+          spec:
+            containers:
+              - name: argocd-server
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 192Mi
+
   # ── Config ──────────────────────────────────────────────────────────────
   # argocd-cm: local API accounts (radar, claude-mcp), kustomize load
   # restrictor, and health checks for Deployment/CronJob. Merged over the
