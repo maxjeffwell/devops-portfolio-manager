@@ -88,11 +88,11 @@ spec:
             values:
             - elitedesk
             - m720q
-            - m920s
             - neonmarmoset   # 2026-09-30: Mayastor csi-node + interrupt-mode pool node
-      # Soft preference moved m920s -> neonmarmoset 2026-09-30 to take request
-      # pressure off m920s (89% memory requested). Only pods recreated after this
-      # change move; primaries were left in place.
+            # m920s REMOVED 2026-09-30 (89% memory requested): with it allowed, the
+            # rolling update re-placed the rebuilt replicas on m920s (lowest CPU
+            # score) and nothing left. Intended end state: primary on a server
+            # (elitedesk/m720q), standby on neonmarmoset via the preference below.
       preferredDuringSchedulingIgnoredDuringExecution:
       - weight: 50
         preference:
