@@ -47,20 +47,20 @@ spec:
             - -c
             - |
               set -eu
-# Sync each model from garage once (marker = a file that only exists after a full sync).
-# e5-large: OpenVINO IR for the embeddings graph. interval_ai: TensorFlow SavedModel
-# (intervalai-server's 51-feature regressor, moved here from Triton 2026-09-30).
-for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb"; do
-  name=${m%%:*}; marker=${m#*:}
-  if [ -f "/models/$name/$marker" ]; then
-    echo "$name already present, skipping sync"
-    continue
-  fi
-  echo "Syncing s3://ovms-models/$name -> /models/$name ..."
-  aws --endpoint-url=https://s3.el-jefe.me s3 sync "s3://ovms-models/$name" "/models/$name"
-  ls -la "/models/$name/1/"
-done
-echo "Sync complete"
+              # Sync each model from garage once (marker = a file that only exists after a full sync).
+              # e5-large: OpenVINO IR for the embeddings graph. interval_ai: TensorFlow SavedModel
+              # (intervalai-server's 51-feature regressor, moved here from Triton 2026-09-30).
+              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb"; do
+                name=${m%%:*}; marker=${m#*:}
+                if [ -f "/models/$name/$marker" ]; then
+                  echo "$name already present, skipping sync"
+                  continue
+                fi
+                echo "Syncing s3://ovms-models/$name -> /models/$name ..."
+                aws --endpoint-url=https://s3.el-jefe.me s3 sync "s3://ovms-models/$name" "/models/$name"
+                ls -la "/models/$name/1/"
+              done
+              echo "Sync complete"
           env:
             - { name: AWS_REGION, value: garage }
             - name: AWS_ACCESS_KEY_ID
