@@ -45,6 +45,12 @@ alloy:
   enabled: false
 engines:
   local:
+    # 2026-09-30: hostpath (the localpv-provisioner subchart) OFF. Nothing ever
+    # used it: no StorageClass with provisioner openebs.io/local, zero PVs; its
+    # leader-election locks were stale since 7/29. The localpv-provisioner
+    # block below is therefore inert (kept for history).
+    hostpath:
+      enabled: false
     lvm:
       enabled: false
     rawfile:
