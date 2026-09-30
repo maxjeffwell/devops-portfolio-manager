@@ -210,6 +210,8 @@ data:
         { "__address__" = "10.0.0.5:3903", "instance" = "synology" },
         // m920s native member: admin on :3913 (k8s gateway pod holds :3903 there).
         { "__address__" = "100.64.0.2:3913", "instance" = "m920s" },
+        // 2026-09-30: neonmarmoset rebuilt as a storage node (zone laptop, layout v34).
+        { "__address__" = "100.64.0.15:3903", "instance" = "neonmarmoset" },
       ]
       forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "30s"

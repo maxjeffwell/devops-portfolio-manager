@@ -1169,6 +1169,10 @@ garageExternal:
     - name: m920s
       address: 100.64.0.2:3913
       zone: m920s
+    # 2026-09-30: neonmarmoset rebuilt on Debian 13 as a storage node (layout v34).
+    - name: neonmarmoset
+      address: 100.64.0.15:3903
+      zone: laptop
     # k8s gateway pod (sqlite, zero blocks; on m920s since 2026-09-25) via the in-cluster Service.
     - name: k8s-gateway
       address: garage.monitoring.svc.cluster.local:3903
