@@ -9,7 +9,7 @@ metadata:
 data:
   # OVMS config: registers the e5-large embeddings MediaPipe graph AND the
   # interval_ai TensorFlow SavedModel (KServe v2 /v2/models/interval_ai, served
-  # here instead of Triton since 2026-09-30; tiny dense net -> CPU is plenty).
+  # here instead of Triton since 2026-09-30; on the i915 via the OpenVINO GPU plugin).
   # e5-large: MediaPipe
   # graph. base_path points at /config (this ConfigMap mount) where graph.pbtxt
   # lives; the model files stay on the read-only PVC, referenced by absolute
@@ -24,7 +24,7 @@ data:
           "config": {
             "name": "interval_ai",
             "base_path": "/models/interval_ai",
-            "target_device": "CPU"
+            "target_device": "GPU"
           }
         }
       ]
