@@ -1,0 +1,23 @@
+# shared-ai-gateway -> ovms-embeddings (e5-large embeddings for bookmarked's semantic search).
+# 2026-09-30: replaces allow-ai-gateway-to-triton-embeddings after Triton was retired.
+# The ovms namespace already admits cluster ingress (ovms-allow-cluster); this is the egress half.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ai-gateway-to-ovms
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: shared-ai-gateway
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ovms
+    ports:
+    - port: 8000
+      protocol: TCP
