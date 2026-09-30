@@ -40,6 +40,15 @@ spec:
             summary: "Frequent netdev unregister on {{ $labels.node }}"
             description: "Kernel `unregister_netdevice: waiting for X to become free` events. Indicates real netif churn (not benign veth lifecycle)."
 
+        - alert: NodeTaskHung
+          expr: increase(problem_counter{reason="TaskHung"}[15m]) > 0
+          for: 0s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Hung kernel task on {{ $labels.pod }}"
+            description: "Kernel logged `task X blocked for more than N seconds` ({{ $value | printf \"%.0f\" }} messages in 15m; one per 120s per stuck task). Prior pattern: btrfs-transaction + rmdir blocked 10 min on debian-marmoset 2026-09-24. Check `dmesg -T | grep blocked` and `cat /proc/<pid>/stack` on the node."
+
         - alert: NodeFrequentKubeletRestart
           expr: rate(problem_counter{reason="FrequentKubeletRestart"}[15m]) > 0
           for: 5m
