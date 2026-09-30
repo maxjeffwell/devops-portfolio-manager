@@ -84,20 +84,31 @@ mayastor:
           # rebuild). Trade-off: volumes run single-replica up to 90m before
           # a replacement replica is built elsewhere.
           waitPeriod: 90m
+    ha:
+      node:
+        # 2026-09-30: chart default requests 100m cpu; 7d p95 is 0m on every
+        # node (it only acts on nexus failover). Limit kept at the chart default.
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 10m
+            memory: 64Mi
   alloy:
     enabled: false
   apis:
     rest:
       # 2026-09-22: chart default is 32Mi request / 64Mi limit. api-rest sits
       # flat at 50-58Mi (30-day max 58Mi, no growth), i.e. 1.6x its request and
-      # 6Mi under its limit, so any burst would OOM-kill it. cpu untouched
-      # (1m used of 50m). Deployment change only: no io-engine impact.
+      # 6Mi under its limit, so any burst would OOM-kill it. Deployment change
+      # only: no io-engine impact. 2026-09-30: cpu request 50m -> 10m (7d p95 1m).
       resources:
         limits:
           cpu: 100m
           memory: 128Mi
         requests:
-          cpu: 50m
+          cpu: 10m
           memory: 64Mi
   crds:
     csi:
@@ -111,6 +122,17 @@ mayastor:
     node:
       initContainers:
         enabled: true
+      # 2026-09-30: csi-node cpu request 100m -> 20m (7d p95 0-2m). The sidecar
+      # csi-driver-registrar is HARD-CODED at 100m/50Mi in the chart template
+      # (csi-node-daemonset.yaml, no values knob), so the pod goes 200m -> 120m,
+      # not 40m. Limits unchanged.
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 20m
+          memory: 64Mi
   etcd:
     clusterDomain: cluster.local
     enabled: true
@@ -141,6 +163,25 @@ mayastor:
     replicaCount: 3
   eventing:
     enabled: true
+    aggregator:
+      # 2026-09-30: cpu request 50m -> 10m (7d p95 ~0m). Limits chart default.
+      resources:
+        limits:
+          cpu: 100m
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 16Mi
+  operators:
+    pool:
+      # 2026-09-30: cpu request 50m -> 10m (7d p95 ~0m). Limits chart default.
+      resources:
+        limits:
+          cpu: 100m
+          memory: 32Mi
+        requests:
+          cpu: 10m
+          memory: 16Mi
   io_engine:
     coreList:
     - 1

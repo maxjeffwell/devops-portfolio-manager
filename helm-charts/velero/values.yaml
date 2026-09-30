@@ -151,11 +151,12 @@ nodeSelector:
 
 # 2026-09-07 right-sizing, measured 2-day peaks: cpu 39m against a 200m request,
 # memory 568Mi against a 512Mi request. Limit stays 1Gi (peak is ~55% of it).
+# 2026-09-30: cpu 100m -> 50m (7d p95 4m, max 11m; the 39m peak was a backup run).
 resources:
   limits:
     memory: 1Gi
   requests:
-    cpu: 100m
+    cpu: 50m
     memory: 640Mi
 
 snapshotsEnabled: true
