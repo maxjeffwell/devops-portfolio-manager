@@ -234,12 +234,14 @@ env:
     # Triton Inference Server Configuration (4-tiered fallback)
     - name: USE_TRITON
       value: "true"
-    # Tier 1: Local GPU (GTX 1080 via Cloudflare tunnel)
+    # Tier 1: in-cluster CPU Triton (triton-amd on elitedesk, model interval_ai).
+    # 2026-09-30: was https://triton-gpu.el-jefe.me = the retired GTX 1080 tunnel
+    # (502 on every call, so each inference paid a dead round-trip before falling back).
     - name: PRIMARY_TRITON_URL
-      value: "https://triton-gpu.el-jefe.me"
-    # Tier 2: VPS CPU Triton
-    - name: FALLBACK_TRITON_URL
       value: "http://triton-service:8000"
+    # Tier 2: the same server via the public Traefik route (survives an in-cluster DNS/netpol fault)
+    - name: FALLBACK_TRITON_URL
+      value: "https://triton.el-jefe.me"
     - name: TRITON_MODEL_NAME
       value: "interval_ai"
     # Tier 3: RunPod Serverless GPU
