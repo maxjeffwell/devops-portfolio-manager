@@ -23,10 +23,9 @@
 # `nodeSelector` and has NO affinity value — `manager.nodeSelector` below was
 # never rendered. The live Deployment carries a kubectl-patched affinity:
 # REQUIRED control-plane (the 3 home servers), PREFERRED m920s (was a hard
-# m920s pin until the 9/26 m920s power-off stranded it for an hour). Helm's
-# 3-way merge keeps that live affinity across upgrades; re-apply with:
-#   kubectl -n kube-system patch deploy inteldeviceplugins-controller-manager \
-#     --patch-file helm-charts/intel-device-plugins/affinity-patch.yaml
+# m920s pin until the 9/26 m920s power-off stranded it for an hour).
+# 2026-09-30: node affinity REMOVED live (scheduler-placed; taints exclude the
+# gpu/edge nodes). affinity-patch.yaml retired.
 manager:
   tolerations:
     - key: node-role.kubernetes.io/control-plane

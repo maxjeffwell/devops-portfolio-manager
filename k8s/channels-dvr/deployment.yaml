@@ -45,22 +45,10 @@ spec:
         # daily backup as every later item hit the exhausted context.
         backup.velero.io/backup-volumes-excludes: primary,recordings
     spec:
-      # Soft preference for neonmarmoset (2026-09-30; was m920s from 2026-09-26,
-      # and a hard hostname pin before that which left DVR down for the whole
-      # 9/26 15:35–16:37 m920s power-off). The i915 request limits it to iGPU
-      # nodes with a GpuDevicePlugin (m920s/elitedesk/m720q/dm/neonmarmoset)
-      # and the Mayastor data PV limits it to csi-node=mayastor
-      # (m920s/elitedesk/m720q/neonmarmoset) — together: any of the 4 home
-      # servers. Moved to relieve m920s memory requests.
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              preference:
-                matchExpressions:
-                  - key: kubernetes.io/hostname
-                    operator: In
-                    values: [neonmarmoset]
+      # No node affinity (2026-09-30). The i915 request limits it to iGPU nodes
+      # with a GpuDevicePlugin and the Mayastor data PV to csi-node=mayastor
+      # nodes; the scheduler picks among them by free requests. (History: hard
+      # m920s pin -> soft m920s 9/26 -> soft neonmarmoset 9/30 -> none.)
       containers:
         - name: channels-dvr
           # :tve, not :latest — the default image is Alpine WITHOUT Chrome;

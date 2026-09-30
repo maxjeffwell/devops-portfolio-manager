@@ -106,13 +106,7 @@ daemonsets:
 # Operator controller — control-plane only (see header). `affinity` here
 # replaces the chart's default control-plane preference wholesale.
 operator:
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-          - matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: Exists
+  # no node affinity (2026-09-30): scheduler-placed; taints exclude gpu/edge nodes
   resources:
     limits:
       cpu: 1000m
@@ -131,13 +125,7 @@ node-feature-discovery:
   # pointer on lease loss). Can't disable via values — flag is hardcoded in chart
   # template. Aggressive lease durations reduce loss frequency to near zero.
   master:
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: node-role.kubernetes.io/control-plane
-                  operator: Exists
+    # no node affinity (2026-09-30): scheduler-placed
     config:
       extraLabelNs: ["nvidia.com"]
       leaderElection:
@@ -223,14 +211,8 @@ node-feature-discovery:
       periodSeconds: 10
       failureThreshold: 10
   gc:
-    # Same placement as master; gc only reaps NodeFeature objects, no node deps.
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: node-role.kubernetes.io/control-plane
-                  operator: Exists
+    # gc only reaps NodeFeature objects, no node deps.
+    # no node affinity (2026-09-30): scheduler-placed
     livenessProbe:
       initialDelaySeconds: 10
       timeoutSeconds: 5

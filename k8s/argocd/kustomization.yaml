@@ -23,15 +23,12 @@ resources:
 
 patches:
   # ── Placement ───────────────────────────────────────────────────────────
-  # Every Argo CD workload runs on an always-on home server. Today that set is
-  # exactly the control-plane/etcd nodes (elitedesk, m720q, m920s), so the
-  # control-plane role is used as the selector. It is a stand-in for "not a
-  # laptop, not the VPS", not a technical need to sit next to etcd. If a
-  # dedicated non-etcd worker joins (e.g. neonmarmoset), switch this to a
-  # purpose label such as node-class=server on all eligible nodes.
-  #
-  # The nfs=broken toleration matches the other infrastructure workloads so
-  # a node tainted during an NFS incident keeps its Argo CD pods.
+  # NO node affinity (2026-09-30). The 9/26 "control-plane Exists" rule was a
+  # stand-in for "always-on home box"; the scheduler already balances by
+  # requests across every schedulable node, and the nodes that must NOT host
+  # infrastructure are excluded by taints (marmoset workload=gpu, VPS
+  # role=edge), not by lists here. Only the nfs=broken toleration remains so a
+  # node tainted during an NFS incident keeps its Argo CD pods.
   - target:
       kind: Deployment
       labelSelector: app.kubernetes.io/part-of=argocd
@@ -43,13 +40,6 @@ patches:
       spec:
         template:
           spec:
-            affinity:
-              nodeAffinity:
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  nodeSelectorTerms:
-                    - matchExpressions:
-                        - key: node-role.kubernetes.io/control-plane
-                          operator: Exists
             tolerations:
               - key: nfs
                 operator: Equal
@@ -66,13 +56,6 @@ patches:
       spec:
         template:
           spec:
-            affinity:
-              nodeAffinity:
-                requiredDuringSchedulingIgnoredDuringExecution:
-                  nodeSelectorTerms:
-                    - matchExpressions:
-                        - key: node-role.kubernetes.io/control-plane
-                          operator: Exists
             tolerations:
               - key: nfs
                 operator: Equal
@@ -80,13 +63,10 @@ patches:
                 effect: NoSchedule
 
   # ── repo-server ─────────────────────────────────────────────────────────
-  # Soft preference for m920s (it holds the git/helm/kustomize render cache,
-  # keeping it near the application-controller avoids cross-node chatter) plus
-  # a memory limit: kustomize/helm renders are the one thing in Argo CD that
-  # can balloon. Tolerations here REPLACE the common list above (pod
-  # tolerations are an atomic list): live state on 2026-09-30 carried only a
-  # no-op PreferNoSchedule toleration and no nfs toleration — kept verbatim so
-  # the first sync was a no-op; candidate for cleanup (align with the others).
+  # Memory limit only: kustomize/helm renders are the one thing in Argo CD
+  # that can balloon. (2026-09-30: the m920s soft preference and the no-op
+  # PreferNoSchedule toleration were dropped; it now gets the common nfs
+  # toleration like every other component.)
   - target:
       kind: Deployment
       name: argocd-repo-server
@@ -98,19 +78,6 @@ patches:
       spec:
         template:
           spec:
-            affinity:
-              nodeAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                  - weight: 100
-                    preference:
-                      matchExpressions:
-                        - key: kubernetes.io/hostname
-                          operator: In
-                          values: [m920s]
-            tolerations:
-              - key: node-role.kubernetes.io/control-plane
-                operator: Exists
-                effect: PreferNoSchedule
             containers:
               - name: argocd-repo-server
                 resources:

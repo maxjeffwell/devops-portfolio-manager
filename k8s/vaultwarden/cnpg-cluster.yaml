@@ -51,27 +51,18 @@ spec:
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
     nodeAffinity:
+      # 2026-09-30: the only real constraint is a node that can attach Mayastor
+      # volumes (csi-node runs where openebs.io/engine=mayastor). No hostname
+      # list, no preference: the scheduler places instances by free requests
+      # and CNPG's pod anti-affinity keeps primary and replica on different
+      # nodes.
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
         - matchExpressions:
-          - key: kubernetes.io/hostname
+          - key: openebs.io/engine
             operator: In
             values:
-            - elitedesk
-            - m720q
-            - neonmarmoset   # 2026-09-30: Mayastor csi-node + interrupt-mode pool node
-            # m920s REMOVED 2026-09-30 (89% memory requested): with it allowed, the
-            # rolling update re-placed the rebuilt replicas on m920s (lowest CPU
-            # score) and nothing left. Intended end state: primary on a server
-            # (elitedesk/m720q), standby on neonmarmoset via the preference below.
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 50
-        preference:
-          matchExpressions:
-          - key: kubernetes.io/hostname
-            operator: In
-            values:
-            - neonmarmoset
+            - mayastor
   bootstrap:
     initdb:
       database: vaultwarden
