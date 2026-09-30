@@ -1,0 +1,18 @@
+# neonmarmoset-pool: 160 GiB LV (openebs-vg/mayastor-pool) on the X1 Carbon's
+# internal NVMe. Added 2026-09-30 when neonmarmoset was rebuilt as a Debian 13
+# k3s worker + Mayastor pool node. tier=internal so mayastor-1/mayastor-2
+# replicas may land here (4th internal pool node: elitedesk, m720q, m920s, neon).
+# io-engine runs in interrupt mode on this node (helm-charts/mayastor/
+# io-engine-interrupt-mode-patch.yaml case list). Node has no SATA pool.
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: neonmarmoset-pool
+  namespace: openebs
+spec:
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-pFOSSjjFfdWkETBT98Sg0yWvfI87DYADqpWVQUXaX9VYC9OUdEmkwehdcwt58Anx
+  node: neonmarmoset
+  topology:
+    labelled:
+      tier: internal
