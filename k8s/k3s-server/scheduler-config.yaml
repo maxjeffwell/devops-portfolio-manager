@@ -1,0 +1,27 @@
+# kube-scheduler configuration for the embedded k3s scheduler (all 3 servers).
+# 2026-09-30: score nodes with memory weighted 3x over CPU. Default scoring
+# weights them equally, so a node with lots of free CPU kept winning placements
+# even when its memory requests were the fullest (m920s). Memory is the tight
+# resource on these nodes; CPU is mostly idle.
+# clientConnection.kubeconfig is REQUIRED here: k3s passes --kubeconfig as a
+# flag, and kube-scheduler ignores that flag once --config is used.
+apiVersion: kubescheduler.config.k8s.io/v1
+kind: KubeSchedulerConfiguration
+clientConnection:
+  kubeconfig: /var/lib/rancher/k3s/server/cred/scheduler.kubeconfig
+leaderElection:
+  leaderElect: true
+profiles:
+  - schedulerName: default-scheduler
+    pluginConfig:
+      - name: NodeResourcesFit
+        args:
+          apiVersion: kubescheduler.config.k8s.io/v1
+          kind: NodeResourcesFitArgs
+          scoringStrategy:
+            type: LeastAllocated
+            resources:
+              - name: memory
+                weight: 3
+              - name: cpu
+                weight: 1

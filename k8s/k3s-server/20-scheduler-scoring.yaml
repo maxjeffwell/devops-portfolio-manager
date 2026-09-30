@@ -1,0 +1,3 @@
+# 2026-09-30: memory-weighted scheduler scoring; see /etc/rancher/k3s/scheduler-config.yaml
+kube-scheduler-arg:
+  - "config=/etc/rancher/k3s/scheduler-config.yaml"
