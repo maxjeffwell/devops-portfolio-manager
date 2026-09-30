@@ -30,15 +30,16 @@ spec:
         # the folder was a byte-identical duplicate of Immich uploads and was deleted.)
         backup.velero.io/backup-volumes-excludes: library,tmp
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: elitedesk
+      # No nodeSelector: the gpu.intel.com/i915 limit below already restricts
+      # scheduling to nodes running the Intel GPU plugin; the library is NFS
+      # and tmp is an emptyDir, so nothing here is node-local.
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-        # 992 = `render` group on elitedesk: lets ffmpeg open /dev/dri/renderD128
+        # 992 = `render` group on every iGPU node: lets ffmpeg open /dev/dri/renderD128
         # for QSV video transcoding (Administration → Settings → Video Transcoding →
         # Hardware acceleration: QSV). Without this every video preview is software.
         supplementalGroups: [992]
