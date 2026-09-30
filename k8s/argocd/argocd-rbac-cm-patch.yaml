@@ -1,0 +1,11 @@
+# Local RBAC on top of the upstream (empty) argocd-rbac-cm.
+# Accounts are declared in argocd-cm-patch.yaml; their API tokens live in
+# argocd-secret (runtime-managed, never in git).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+data:
+  policy.csv: |
+    g, radar, role:readonly
+    g, claude-mcp, role:admin

@@ -1,0 +1,159 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argocd
+
+# Argo CD's OWN install, under GitOps (self-managed via gitops/applications/argocd.yaml).
+#
+# install.yaml is the pristine upstream non-HA manifest, vendored (not a remote
+# URL) because the ArgoCD repo-server blocks remote kustomize resources — same
+# reason as k8s/barman-cloud-plugin. Do NOT edit install.yaml; every local
+# change is a patch below so it survives re-vendoring.
+#   source: https://raw.githubusercontent.com/argoproj/argo-cd/v3.2.1/manifests/install.yaml
+#   version: v3.2.1
+#   sha256: a5e687d4e38edc603a67e45316087fe89a06603be9de908b07ab0afe98352c61
+# Upgrade: ./upgrade.sh v3.x.y  →  kubectl diff --server-side -k k8s/argocd  →  commit.
+#
+# History: until 2026-09-30 this install was `kubectl apply`d by hand and its
+# placement pins were live `kubectl patch`es with no git record (hostname pins
+# to debian-marmoset 9/6, application-controller → m720q 9/24, all replaced by
+# the control-plane affinity 9/26). This overlay captured the live state
+# verbatim on 2026-09-30 — first sync was a no-op.
+resources:
+  - install.yaml
+
+patches:
+  # ── Placement ───────────────────────────────────────────────────────────
+  # Every Argo CD workload runs on an always-on home server. Today that set is
+  # exactly the control-plane/etcd nodes (elitedesk, m720q, m920s), so the
+  # control-plane role is used as the selector. It is a stand-in for "not a
+  # laptop, not the VPS", not a technical need to sit next to etcd. If a
+  # dedicated non-etcd worker joins (e.g. neonmarmoset), switch this to a
+  # purpose label such as node-class=server on all eligible nodes.
+  #
+  # The nfs=broken toleration matches the other infrastructure workloads so
+  # a node tainted during an NFS incident keeps its Argo CD pods.
+  - target:
+      kind: Deployment
+      labelSelector: app.kubernetes.io/part-of=argocd
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: selected-by-target
+      spec:
+        template:
+          spec:
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: Exists
+            tolerations:
+              - key: nfs
+                operator: Equal
+                value: broken
+                effect: NoSchedule
+  - target:
+      kind: StatefulSet
+      name: argocd-application-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: argocd-application-controller
+      spec:
+        template:
+          spec:
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: Exists
+            tolerations:
+              - key: nfs
+                operator: Equal
+                value: broken
+                effect: NoSchedule
+
+  # ── repo-server ─────────────────────────────────────────────────────────
+  # Soft preference for m920s (it holds the git/helm/kustomize render cache,
+  # keeping it near the application-controller avoids cross-node chatter) plus
+  # a memory limit: kustomize/helm renders are the one thing in Argo CD that
+  # can balloon. Tolerations here REPLACE the common list above (pod
+  # tolerations are an atomic list): live state on 2026-09-30 carried only a
+  # no-op PreferNoSchedule toleration and no nfs toleration — kept verbatim so
+  # the first sync was a no-op; candidate for cleanup (align with the others).
+  - target:
+      kind: Deployment
+      name: argocd-repo-server
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-repo-server
+      spec:
+        template:
+          spec:
+            affinity:
+              nodeAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    preference:
+                      matchExpressions:
+                        - key: kubernetes.io/hostname
+                          operator: In
+                          values: [m920s]
+            tolerations:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+                effect: PreferNoSchedule
+            containers:
+              - name: argocd-repo-server
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 256Mi
+                  limits:
+                    memory: 512Mi
+
+  # ── application-controller resources ────────────────────────────────────
+  # 50 Applications; the controller's cache is the largest Argo CD consumer.
+  - target:
+      kind: StatefulSet
+      name: argocd-application-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: argocd-application-controller
+      spec:
+        template:
+          spec:
+            containers:
+              - name: argocd-application-controller
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 1Gi
+                  limits:
+                    memory: 2Gi
+
+  # ── Config ──────────────────────────────────────────────────────────────
+  # argocd-cm: local API accounts (radar, claude-mcp), kustomize load
+  # restrictor, and health checks for Deployment/CronJob. Merged over the
+  # upstream defaults (which are left untouched).
+  - path: argocd-cm-patch.yaml
+  # argocd-rbac-cm: role bindings for those accounts.
+  - path: argocd-rbac-cm-patch.yaml
+
+# NOT managed here, on purpose:
+#   - argocd-secret / argocd-notifications-secret contents: runtime-populated
+#     (admin password, server.secretkey, account tokens, TLS). The upstream
+#     Secret objects are applied with NO data; server-side apply leaves the
+#     runtime-owned keys alone.
+#   - argocd-server-ingress: owned by the portfolio-orchestration-platform app.
+#   - argocd-tls Certificate + argocd-initial-admin-secret: hand-created, unmanaged.
