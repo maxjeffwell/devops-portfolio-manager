@@ -214,6 +214,11 @@ kube-prometheus-stack:
       # Global scrape timeout: Prometheus runs at home now; the apiserver
       # /metrics (~19 MB) and the VPS kubelets arrive over the tailnet.
       scrapeTimeout: 30s
+      # 2026-09-30: discover targets via EndpointSlices. Kubernetes 1.33
+      # deprecated v1 Endpoints and Prometheus logged the warning on every
+      # discovery watch (~1/min). Operator >= 0.66 and Prometheus >= 2.21
+      # both support this; the ClusterRole already grants endpointslices.
+      serviceDiscoveryRole: EndpointSlice
       # Node selector - m720q (VPS -> elitedesk 2026-08-23; elitedesk -> m720q
       # 2026-09-27 to spread the monitoring stack). The PV is lvm-localpv on
       # m720q, so the pod must stay on that node.
