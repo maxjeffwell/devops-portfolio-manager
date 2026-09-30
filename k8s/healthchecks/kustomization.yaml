@@ -6,14 +6,20 @@ resources:
 - healthchecks-external-secret.yaml
 - verifier-cronjob.yaml
 - heartbeat-cronjob.yaml
+# The verifier's Python package lives in ./code so this kustomization only
+# reads inside its own directory (default kustomize load restriction; the
+# cluster-wide LoadRestrictionsNone escape hatch was removed 2026-09-30).
+# scripts/healthchecks is a symlink to ./code so `scripts.healthchecks.*`
+# imports keep working for the tests and match the /app/scripts/healthchecks
+# mount path in the CronJobs.
 configMapGenerator:
 - name: healthchecks-code
   files:
-  - __init__.py=../../scripts/healthchecks/__init__.py
-  - evaluate.py=../../scripts/healthchecks/evaluate.py
-  - k8s.py=../../scripts/healthchecks/k8s.py
-  - ping.py=../../scripts/healthchecks/ping.py
-  - checks.py=../../scripts/healthchecks/checks.py
-  - verifier.py=../../scripts/healthchecks/verifier.py
+  - __init__.py=code/__init__.py
+  - evaluate.py=code/evaluate.py
+  - k8s.py=code/k8s.py
+  - ping.py=code/ping.py
+  - checks.py=code/checks.py
+  - verifier.py=code/verifier.py
 generatorOptions:
   disableNameSuffixHash: true
