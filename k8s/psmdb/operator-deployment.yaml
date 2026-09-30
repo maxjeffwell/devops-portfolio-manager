@@ -42,16 +42,7 @@ spec:
         app.kubernetes.io/part-of: percona-server-mongodb-operator
         name: percona-server-mongodb-operator
     spec:
-      affinity:
-        nodeAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - preference:
-              matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values:
-                - debian-marmoset
-            weight: 100
+      # 2026-09-30: debian-marmoset preference removed; scheduler-placed.
       containers:
       - args:
         - --leader-elect=false

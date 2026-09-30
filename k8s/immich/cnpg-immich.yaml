@@ -28,19 +28,14 @@ spec:
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
     nodeAffinity:
+      # 2026-09-30: only the real constraint — a node with the Mayastor csi-node.
+      # No hostname list, no preference; the scheduler places by free requests.
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
           - matchExpressions:
-              - key: kubernetes.io/hostname
+              - key: openebs.io/engine
                 operator: In
-                values: [elitedesk, m720q]
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          preference:
-            matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: In
-                values: [elitedesk]
+                values: [mayastor]
     tolerations:
       - effect: NoSchedule
         key: nfs
