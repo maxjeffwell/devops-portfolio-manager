@@ -1,6 +1,6 @@
 # Second Intel GPU device plugin instance, for elitedesk's UHD 630 (Coffee Lake).
-# The existing CR `gpudeviceplugin-debian-marmoset` (NOT in git, hand-applied)
-# selects gpu-node=true and serves dm's Iris Xe. Node selectors must not overlap,
+# The debian-marmoset CR is gpu-plugin-debian-marmoset.yaml (in git since 2026-09-30)
+# and selects dm by hostname. Node selectors must not overlap,
 # so this one selects elitedesk by hostname. Cluster-scoped; lives here because
 # Immich ML is its only consumer today. 4 shares of the one iGPU.
 apiVersion: deviceplugin.intel.com/v1

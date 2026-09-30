@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: immich
 resources:
   - namespace.yaml
+  - gpu-plugin-debian-marmoset.yaml
   - gpu-plugin-elitedesk.yaml
   - gpu-plugin-m920s.yaml
   - gpu-plugin-m720q.yaml
