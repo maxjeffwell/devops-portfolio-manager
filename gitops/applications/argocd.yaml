@@ -1,10 +1,12 @@
 # Argo CD managing its own install (k8s/argocd = vendored upstream + patches).
 #
 # No resources-finalizer on purpose: deleting THIS Application must never
-# cascade-delete Argo CD itself. selfHeal is off (matches the parent policy) so
-# an emergency `kubectl patch` on an Argo CD component stays in place and shows
-# as OutOfSync instead of being reverted underneath you — but it is visible,
-# not tribal, and a normal sync restores git. Server-side apply is required
+# cascade-delete Argo CD itself. selfHeal is deliberately UNSET (= off, matches
+# the parent policy) so an emergency `kubectl patch` on an Argo CD component
+# stays in place and shows as OutOfSync instead of being reverted underneath
+# you — visible, not tribal, and a normal sync restores git. It is left unset
+# rather than written as `false` because server-side apply stored this object
+# without the key, and `false` vs absent kept the parent app-of-apps OutOfSync. Server-side apply is required
 # (CRDs > 256 KiB last-applied limit) and PruneLast keeps a bad render from
 # pruning before the replacement objects exist.
 apiVersion: argoproj.io/v1alpha1
@@ -26,7 +28,6 @@ spec:
   syncPolicy:
     automated:
       prune: true
-      selfHeal: false
     syncOptions:
       - CreateNamespace=false
       - ServerSideApply=true
