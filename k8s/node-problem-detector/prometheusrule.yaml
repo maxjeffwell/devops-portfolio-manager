@@ -49,6 +49,15 @@ spec:
             summary: "Hung kernel task on {{ $labels.pod }}"
             description: "Kernel logged `task X blocked for more than N seconds` ({{ $value | printf \"%.0f\" }} messages in 15m; one per 120s per stuck task). Prior pattern: btrfs-transaction + rmdir blocked 10 min on debian-marmoset 2026-09-24. Check `dmesg -T | grep blocked` and `cat /proc/<pid>/stack` on the node."
 
+        - alert: NodeBufferIOError
+          expr: increase(problem_counter{reason="IOError"}[10m]) > 2
+          for: 0s
+          labels:
+            severity: warning
+          annotations:
+            summary: "Kernel buffer I/O errors on {{ $labels.pod }}"
+            description: "{{ $value | printf \"%.0f\" }} `Buffer I/O error on dev X` messages in 10m. Threshold >2 skips the 1-2 msg blips from thin-clone/dm teardown (block 16 async page read). A burst means a real device problem: run `dmesg -T | grep 'I/O error'` and map dm-N with `dmsetup ls`."
+
         - alert: NodeFrequentKubeletRestart
           expr: rate(problem_counter{reason="FrequentKubeletRestart"}[15m]) > 0
           for: 5m
