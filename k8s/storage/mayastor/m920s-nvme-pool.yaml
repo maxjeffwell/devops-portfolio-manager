@@ -1,0 +1,17 @@
+# m920s-nvme-pool: Samsung PM981 (internal NVMe) on m920s, LVM-backed (mayastor LV).
+# Created by hand 2026-09-25; exported from the live cluster into git 2026-09-30
+# (the only pool that had no manifest). Labels: tier=internal (targeted by
+# mayastor-1/-2 and their thin twins). Label changes must ALSO be pushed to the
+# control plane: kubectl mayastor label pool m920s-nvme-pool tier=internal -n openebs
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: m920s-nvme-pool
+  namespace: openebs
+spec:
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-4qaHotMjbHKSEJc3YHmzfiPS3DxNCQu99wPHSsVwMFLPJICfXf3O5ecNbRHVmHfX
+  node: m920s
+  topology:
+    labelled:
+      tier: internal
