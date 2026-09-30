@@ -621,6 +621,12 @@ kube-prometheus-stack:
   # Prometheus Operator
   prometheusOperator:
     enabled: true
+    # 2026-09-30: the operator maintains the kubelet scrape targets as an
+    # EndpointSlice instead of a v1 Endpoints object (deprecated in k8s 1.33;
+    # the operator logged the warning on every sync). Pairs with
+    # prometheusSpec.serviceDiscoveryRole: EndpointSlice above.
+    kubeletEndpointsEnabled: false
+    kubeletEndpointSliceEnabled: true
     resources:
       requests:
         cpu: 50m
