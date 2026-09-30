@@ -89,6 +89,10 @@ spec:
             - elitedesk
             - m720q
             - m920s
+            - neonmarmoset   # 2026-09-30: Mayastor csi-node + interrupt-mode pool node
+      # Soft preference moved m920s -> neonmarmoset 2026-09-30 to take request
+      # pressure off m920s (89% memory requested). Only pods recreated after this
+      # change move; primaries were left in place.
       preferredDuringSchedulingIgnoredDuringExecution:
       - weight: 50
         preference:
@@ -96,7 +100,7 @@ spec:
           - key: kubernetes.io/hostname
             operator: In
             values:
-            - m920s
+            - neonmarmoset
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   # Inert (read only at creation) but truthful -- see (1) in the header.
