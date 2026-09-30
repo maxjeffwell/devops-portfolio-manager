@@ -1,0 +1,25 @@
+# intervalai-server -> triton-amd (Triton HTTP 8000 / gRPC 8001), model interval_ai.
+# 2026-09-30: intervalai's PRIMARY_TRITON_URL is now the in-cluster triton-service;
+# make that path explicit instead of relying on whatever else happens to admit it.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intervalai-to-triton
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: triton-amd
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: intervalai-server
+    ports:
+    - port: 8000
+      protocol: TCP
+    - port: 8001
+      protocol: TCP
