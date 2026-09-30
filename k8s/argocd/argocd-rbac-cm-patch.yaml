@@ -1,6 +1,10 @@
 # Local RBAC on top of the upstream (empty) argocd-rbac-cm.
 # Accounts are declared in argocd-cm-patch.yaml; their API tokens live in
 # argocd-secret (runtime-managed, never in git).
+# Both API accounts are read-only: radar (dashboard) and claude-mcp (the
+# ArgoCD MCP server). claude-mcp was role:admin until 2026-09-30; the MCP
+# server is meant for inspection, so writes (sync/update/create/delete) are
+# now denied at the RBAC layer regardless of what the MCP exposes.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,4 +12,4 @@ metadata:
 data:
   policy.csv: |
     g, radar, role:readonly
-    g, claude-mcp, role:admin
+    g, claude-mcp, role:readonly

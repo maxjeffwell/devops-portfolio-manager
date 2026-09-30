@@ -1,3 +1,9 @@
+# Local additions merged over the upstream argocd-cm defaults.
+# 2026-09-30: dropped `kustomize.buildOptions: --load-restrictor LoadRestrictionsNone`
+# (cluster-wide, let any kustomization read files outside its directory).
+# All 13 kustomize apps are k8s/<dir> in this repo with no parent-path refs,
+# so the default LoadRestrictionsRootOnly is sufficient. Re-add per-app via
+# spec.source.kustomize if one ever needs it — not here.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -5,7 +11,6 @@ metadata:
 data:
   accounts.claude-mcp: apiKey
   accounts.radar: apiKey
-  kustomize.buildOptions: --load-restrictor LoadRestrictionsNone
   resource.customizations.health.apps_Deployment: |-
     hs = {}
     if obj.status ~= nil then
