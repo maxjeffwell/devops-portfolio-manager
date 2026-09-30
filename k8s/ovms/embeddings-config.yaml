@@ -47,7 +47,7 @@ data:
           plugin_config: '{"NUM_STREAMS": "1"}',
           normalize_embeddings: true,
           pooling: CLS,
-          target_device: "AUTO"
+          target_device: "GPU"   # explicit: bookmarked + intervalai embeddings run on the i915, not the CPU
         }
       }
     }
