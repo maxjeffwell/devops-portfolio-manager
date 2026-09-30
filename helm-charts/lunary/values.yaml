@@ -226,3 +226,13 @@ externalSecrets:
       remoteKey: LUNARY_JWT_SECRET
     - secretKey: database-url
       remoteKey: LUNARY_DATABASE_URL
+
+# Static frontend runs on the edge node next to Traefik (assets served from the public IP,
+# no home round-trip); API calls already go browser -> Traefik -> server via ingress paths.
+nodeSelectorFrontend:
+  role: edge
+tolerationsFrontend:
+  - key: role
+    operator: Equal
+    value: edge
+    effect: PreferNoSchedule

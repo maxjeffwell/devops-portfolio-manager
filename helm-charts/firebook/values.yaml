@@ -90,3 +90,13 @@ affinity:
               operator: In
               values:
                 - "true"
+
+# Static client runs on the edge node next to Traefik (assets served from the public IP,
+# no home round-trip); API calls already go browser -> Traefik -> server via ingress paths.
+nodeSelectorClient:
+  role: edge
+tolerationsClient:
+  - key: role
+    operator: Equal
+    value: edge
+    effect: PreferNoSchedule
