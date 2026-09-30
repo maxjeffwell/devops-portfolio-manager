@@ -238,9 +238,9 @@ env:
     # model; same KServe v2 API the client already speaks). 2026-09-30, replaces Triton.
     - name: PRIMARY_TRITON_URL
       value: "http://ovms-embeddings.ovms:8000"
-    # Tier 2: Triton (triton-amd) until it is retired; then RunPod (tier 3) is the fallback.
+    # Tier 2: same OVMS service (Triton retired 2026-09-30); RunPod remains tier 3.
     - name: FALLBACK_TRITON_URL
-      value: "http://triton-service:8000"
+      value: "http://ovms-embeddings.ovms:8000"
     - name: TRITON_MODEL_NAME
       value: "interval_ai"
     # Tier 3: RunPod Serverless GPU
