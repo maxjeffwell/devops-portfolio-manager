@@ -134,8 +134,9 @@ spec:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
               # limit OOMKilled the pod repeatedly (exit 137) on model load.
               # 2026-10-01: 3Gi -> 6Gi for the qwen2.5-1.5b-instruct LLM graph.
-              # 2026-10-01: 6Gi -> 7Gi for the qwen3-embedding-0.6b graph.
-              memory: 7Gi
+              # 2026-10-01: 6Gi -> 7Gi for the qwen3-embedding-0.6b graph; -> 8Gi after
+              # measuring 6293Mi resident with all four graphs loaded (88% of 7Gi).
+              memory: 8Gi
               gpu.intel.com/i915: "1"
           livenessProbe:
             httpGet: { path: /v2/health/live, port: 8000 }
