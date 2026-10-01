@@ -141,7 +141,7 @@ metadata:
   name: b2-offsite-credentials-eso
   namespace: default
 spec:
-  refreshInterval: 1h
+  refreshInterval: 24h
   secretStoreRef:
     name: doppler-secret-store
     kind: ClusterSecretStore
