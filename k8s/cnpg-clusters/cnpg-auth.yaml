@@ -130,6 +130,13 @@ spec:
   enableSuperuserAccess: true
   superuserSecret:
     name: cnpg-auth-superuser
+  # Continuous WAL archiving to B2 via the Barman Cloud plugin
+  # (ObjectStore cnpg-auth-b2, see barman-cloud-b2.yaml).
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: cnpg-auth-b2
   backup:
     target: prefer-standby
     volumeSnapshot:
