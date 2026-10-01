@@ -1,0 +1,125 @@
+# Barman Cloud (CNPG plugin) backups to Backblaze B2, added 2026-10-01:
+# continuous WAL archiving + a daily base backup per cluster -> point-in-time
+# recovery, 30-day retention, off-site. Same pattern as k8s/vaultwarden.
+# The existing daily volumeSnapshot backups stay as fast local restores.
+# The ScheduledBackups (method: plugin) are added with each cluster's plugin
+# block, so clusters restart one at a time.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cnpg-b2-creds
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  refreshInterval: 24h3m11s
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: cnpg-b2-creds
+    creationPolicy: Owner
+  data:
+    # Same Backblaze key Velero uses for this bucket.
+    - secretKey: ACCESS_KEY_ID
+      remoteRef:
+        key: BACKBLAZE_ACCESS_KEY_ID
+    - secretKey: ACCESS_SECRET_KEY
+      remoteRef:
+        key: BACKBLAZE_SECRET_ACCESS_KEY
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: cnpg-auth-b2
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  retentionPolicy: "30d"
+  configuration:
+    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-auth"
+    endpointURL: "https://s3.us-east-005.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-b2-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-b2-creds
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: cnpg-bookmarked-b2
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  retentionPolicy: "30d"
+  configuration:
+    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-bookmarked"
+    endpointURL: "https://s3.us-east-005.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-b2-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-b2-creds
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: cnpg-codetalk-b2
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  retentionPolicy: "30d"
+  configuration:
+    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-codetalk"
+    endpointURL: "https://s3.us-east-005.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-b2-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-b2-creds
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip
+---
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: cnpg-lunary-b2
+  namespace: default
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  retentionPolicy: "30d"
+  configuration:
+    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-lunary"
+    endpointURL: "https://s3.us-east-005.backblazeb2.com"
+    s3Credentials:
+      accessKeyId:
+        name: cnpg-b2-creds
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: cnpg-b2-creds
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: gzip
+    data:
+      compression: gzip

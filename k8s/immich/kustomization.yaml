@@ -9,6 +9,7 @@ resources:
   - gpu-plugin-m720q.yaml
   - gpu-plugin-neonmarmoset.yaml
   - storage.yaml
+  - barman-cloud-b2.yaml
   - cnpg-immich.yaml
   - networkpolicy.yaml
   - redis.yaml
