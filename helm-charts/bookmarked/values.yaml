@@ -15,11 +15,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/bookmarks-react-hooks-server
-    tag: 20260824-090042-20f1a46
+    tag: 20261001-192435-75e805b
     pullPolicy: Always
   client:
     repository: maxjeffwell/bookmarks-react-hooks-client
-    tag: 20260824-090042-20f1a46
+    tag: 20261001-192435-75e805b
     pullPolicy: Always
 
 imagePullSecrets: []
