@@ -15,7 +15,7 @@ spec:
   # mounted at the SAME container paths the ASUSTOR instance uses
   # (/sharefolder/Movies, "/sharefolder/TV Shows", /media/dvr) so a copied
   # /config keeps its library paths.
-  replicas: 1
+  replicas: 0  # 2026-10-01 TEMP: config migration to Mayastor in progress
   strategy:
     # Recreate avoids RWO PVC dual-attach during rollouts.
     type: Recreate

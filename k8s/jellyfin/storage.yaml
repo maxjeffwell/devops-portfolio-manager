@@ -16,6 +16,27 @@ spec:
       storage: 20Gi
   storageClassName: openebs-lvmpv
 ---
+# 2026-10-01: /config moved to Mayastor (mayastor-2-thin: 2 replicas on NVMe-tier
+# pools, thin) so jellyfin is no longer node-local to debian-marmoset. Data copied
+# from jellyfin-config (above) with a one-off Job on dm, which can attach both
+# since 10/1 (dm = Mayastor consumer node). The old lvmpv claim is kept in git for
+# rollback until the new volume has proven itself; then delete it here, the
+# Retained PV, and the lvmvolume CR in ns openebs.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jellyfin-config-mayastor
+  namespace: jellyfin
+  labels:
+    app: jellyfin
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: mayastor-2-thin
+---
 # /cache — image cache, trickplay, fonts. Regenerable; excluded from Velero.
 apiVersion: v1
 kind: PersistentVolumeClaim
