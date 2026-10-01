@@ -1,0 +1,52 @@
+# 2026-10-01: public Postgres endpoint for the code-search tool
+# (triton-semantic-search/code_search), whose index lives in cnpg-bookmarked
+# (db neondb, tables code_embeddings + code_embeddings_e5).
+#
+# code-search-db.el-jefe.me:443 (A 31.220.98.70, DNS-only) -> edge Traefik
+# (Postgres STARTTLS, HostSNI, TLS terminated here) -> cnpg-bookmarked-rw:5432.
+# Intended login: role code_search (SQL-created, SELECT/INSERT/UPDATE/DELETE on
+# the two code tables + their sequences only, CONNECTION LIMIT 10; password in
+# the tool's local .env). NOTE (accepted by user 2026-10-01): any password role
+# on this cluster is reachable through this route, incl. bookmarked's
+# neondb_owner (32-char password).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: code-search-db
+  namespace: default
+spec:
+  secretName: code-search-db-tls
+  dnsNames:
+    - code-search-db.el-jefe.me
+  issuerRef:            # HTTP-01 via edge Traefik (DNS-01 stalls on Cloudflare NXDOMAIN)
+    kind: ClusterIssuer
+    name: letsencrypt-prod
+---
+# libpq >= 17 requires ALPN "postgresql" for TLS
+apiVersion: traefik.io/v1alpha1
+kind: TLSOption
+metadata:
+  name: code-search-db-postgres-alpn
+  namespace: default
+spec:
+  minVersion: VersionTLS12
+  alpnProtocols:
+    - postgresql
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: code-search-db
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: HostSNI(`code-search-db.el-jefe.me`)
+      services:
+        - name: cnpg-bookmarked-rw
+          port: 5432
+  tls:
+    secretName: code-search-db-tls
+    options:
+      name: code-search-db-postgres-alpn
