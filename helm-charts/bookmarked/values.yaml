@@ -136,6 +136,13 @@ env:
       value: "true"
     - name: LOCAL_AI_URL
       value: "http://shared-ai-gateway:8002"
+    # Semantic search embeddings (2026-10-01): straight to OVMS on the Intel iGPU,
+    # Qwen3-Embedding-0.6B (1024 d). Replaces Triton bge-base / gateway e5-large.
+    # Query instruction + 0.45 min similarity default live in shared/ai/EmbeddingService.js.
+    - name: EMBEDDING_URL
+      value: "http://ovms-embeddings.ovms:8000"
+    - name: EMBEDDING_MODEL
+      value: "qwen3-embedding-0.6b"
     # OpenAI Configuration (not used when USE_LOCAL_AI=true)
     - name: OPENAI_API_KEY
       valueFrom:

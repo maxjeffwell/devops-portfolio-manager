@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-bookmarked-to-ovms
+  namespace: default
+  annotations:
+    purpose: >-
+      Let bookmarked-server call OVMS /v3/embeddings (qwen3-embedding-0.6b)
+      for semantic search (2026-10-01, replaces Triton). Required because
+      default-deny-all blocks egress by default.
+spec:
+  podSelector:
+    matchLabels:
+      app: bookmarked-server
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ovms
+      ports:
+        - { port: 8000, protocol: TCP }
