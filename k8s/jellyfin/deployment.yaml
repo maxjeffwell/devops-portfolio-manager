@@ -35,8 +35,13 @@ spec:
     spec:
       # DNS served by the cluster-wide NodeLocal DNSCache (k8s/nodelocaldns).
       dnsPolicy: ClusterFirst
+      # 2026-10-01: intel-gpu-gen=xe is a HARDWARE fact label (Alder Lake Xe iGPU on
+      # debian-marmoset + neonmarmoset; the three UHD 630 nodes are gen9). The
+      # encoding ConfigMap enables AV1 hardware decode and the HEVC low-power
+      # encoder, which UHD 630 lacks (vainfo-verified), so jellyfin stays on Xe.
       nodeSelector:
         gpu-node: "true"
+        intel-gpu-gen: xe
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true
