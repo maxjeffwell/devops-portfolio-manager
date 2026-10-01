@@ -1,17 +1,14 @@
 # GPU Operator Helm values override
 #
-# Operator, NFD master and NFD gc REQUIRE a control-plane node (the home etcd
-# servers: elitedesk, m720q, m920s). They are API-only controllers — they never
-# touch GPU hardware — so what matters is being next to the apiserver and
-# having somewhere to go when a node drains. The chart's built-in
-# control-plane affinity is only *preferred*, so historically these drifted
-# onto whichever node had room (NFD master sat on vmi3115606 with ~100
-# restarts/week, every one a "http2: client connection lost" on the lossy
-# VPS<->VPS tailscale path). Required control-plane keeps them off the edge
-# VPS and off marmoset (workload=gpu taint; the node these controllers manage).
-# They were hostname-pinned to debian-marmoset from 2026-08-25 to 2026-09-26,
-# back when the control plane was the VPSes; that left them Pending whenever
-# the laptop was drained.
+# Placement (2026-09-30, user decision): the operator controller, NFD master and
+# NFD gc are SCHEDULER-PLACED. They are API-only controllers that never touch GPU
+# hardware; any node with a path to the apiserver runs them identically. Taints
+# keep them off marmoset (workload=gpu, the node they manage) and off the edge
+# VPS. History: 2026-08 they were forced onto control-plane nodes because the
+# control plane was on the VPSes and the NFD master crash-looped (~100
+# restarts/week, "http2: client connection lost") over the lossy VPS<->VPS
+# tailscale path; 2026-08-25..09-26 they were hostname-pinned to debian-marmoset.
+# Both reasons are gone with the home control plane, so no affinity is set.
 #
 # Managed by ArgoCD (gitops/applications/gpu-operator.yaml).
 # After manual sync, re-run patch-operator-probes.sh to fix hardcoded operator probes.
@@ -103,8 +100,7 @@ daemonsets:
       value: gpu
       effect: NoSchedule
 
-# Operator controller — control-plane only (see header). `affinity` here
-# replaces the chart's default control-plane preference wholesale.
+# Operator controller — scheduler-placed (see header).
 operator:
   # no node affinity (2026-09-30): scheduler-placed; taints exclude gpu/edge nodes
   resources:
@@ -112,7 +108,8 @@ operator:
       cpu: 1000m
       memory: 512Mi
     requests:
-      cpu: 200m
+      # 2026-09-30: cpu 200m (chart default) -> 50m. 30-day peak 5m, 7d p95 1m.
+      cpu: 50m
       memory: 128Mi
 
 node-feature-discovery:

@@ -73,7 +73,10 @@ spec:
               readOnly: true
           resources:
             requests:
-              cpu: 250m
+              # 2026-09-30: cpu 250m -> 400m. Recording/transcode bursts peaked at
+              # 382m and exceeded the old request in 22 five-minute windows over 30
+              # days; no cpu limit, so this only corrects the scheduler's view.
+              cpu: 400m
               memory: 512Mi
               gpu.intel.com/i915: "1"
             limits:
