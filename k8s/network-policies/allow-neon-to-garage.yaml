@@ -10,6 +10,10 @@ spec:
   - ports:
     - port: 3900
       protocol: TCP
+    - port: 3920   # garage gateway S3 host port (2026-10-01; Svc garage:3900 DNATs here)
+      protocol: TCP
+    - port: 3923   # garage gateway admin host port
+      protocol: TCP
     to:
     - namespaceSelector:
         matchLabels:
