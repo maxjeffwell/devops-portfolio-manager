@@ -145,7 +145,10 @@ spec:
       volumes:
         # 2026-10-01: /config on Mayastor (see storage.yaml); jellyfin-config (lvmpv, dm) kept for rollback.
         - { name: config,        persistentVolumeClaim: { claimName: jellyfin-config-mayastor } }
-        - { name: cache,         persistentVolumeClaim: { claimName: jellyfin-cache } }
+        # 2026-10-01: /cache (image cache, trickplay, fonts; regenerable, Velero-excluded)
+        # was the last dm-local volume (lvmpv). emptyDir lets jellyfin run on any
+        # gpu-node; the 10Gi jellyfin-cache claim stays in git for rollback for now.
+        - { name: cache,         emptyDir: { sizeLimit: 10Gi } }
         - { name: media-movies,  persistentVolumeClaim: { claimName: jellyfin-media-movies,  readOnly: true } }
         - { name: media-tvshows, persistentVolumeClaim: { claimName: jellyfin-media-tvshows, readOnly: true } }
         - { name: rec-channels,  persistentVolumeClaim: { claimName: jellyfin-rec-channels,  readOnly: true } }
