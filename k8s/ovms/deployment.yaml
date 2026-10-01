@@ -50,7 +50,7 @@ spec:
               # Sync each model from garage once (marker = a file that only exists after a full sync).
               # e5-large: OpenVINO IR for the embeddings graph. interval_ai: TensorFlow SavedModel
               # (intervalai-server's 51-feature regressor, moved here from Triton 2026-09-30).
-              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb"; do
+              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen2.5-1.5b-instruct:openvino_model.bin"; do
                 name=${m%%:*}; marker=${m#*:}
                 if [ -f "/models/$name/$marker" ]; then
                   echo "$name already present, skipping sync"
@@ -125,12 +125,15 @@ spec:
               # 1705Mi load peak, to keep debian-marmoset's requests packable.
               # 2026-09-30: 1Gi -> 2Gi. interval_ai (from Triton) now loads alongside e5-large;
               # measured 1787Mi resident with both models. Limit stays 3Gi.
-              memory: 2Gi
+              # 2026-10-01: 2Gi -> 3Gi. + qwen2.5-1.5b-instruct LLM for the gateway's
+              # auto tier (int4 weights ~0.9 GB + 1 GB KV cache in shared iGPU memory).
+              memory: 3Gi
               gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
               # limit OOMKilled the pod repeatedly (exit 137) on model load.
-              memory: 3Gi
+              # 2026-10-01: 3Gi -> 6Gi for the qwen2.5-1.5b-instruct LLM graph.
+              memory: 6Gi
               gpu.intel.com/i915: "1"
           livenessProbe:
             httpGet: { path: /v2/health/live, port: 8000 }

@@ -17,7 +17,8 @@ data:
   config.json: |
     {
       "mediapipe_config_list": [
-        { "name": "e5-large", "base_path": "/config" }
+        { "name": "e5-large", "base_path": "/config" },
+        { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" }
       ],
       "model_config_list": [
         {
@@ -48,6 +49,45 @@ data:
           normalize_embeddings: true,
           pooling: CLS,
           target_device: "GPU"   # explicit: bookmarked + intervalai embeddings run on the i915, not the CPU
+        }
+      }
+    }
+  # 2026-10-01: OpenAI-compatible chat (/v3/chat/completions, model
+  # "qwen2.5-1.5b-instruct") for shared-ai-gateway's auto tier (tags, descriptions).
+  # Weights: OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov (Apache-2.0) in s3://ovms-models.
+  llm-graph.pbtxt: |
+    input_stream: "HTTP_REQUEST_PAYLOAD:input"
+    output_stream: "HTTP_RESPONSE_PAYLOAD:output"
+    node: {
+      name: "LLMExecutor"
+      calculator: "HttpLLMCalculator"
+      input_stream: "LOOPBACK:loopback"
+      input_stream: "HTTP_REQUEST_PAYLOAD:input"
+      input_side_packet: "LLM_NODE_RESOURCES:llm"
+      output_stream: "LOOPBACK:loopback"
+      output_stream: "HTTP_RESPONSE_PAYLOAD:output"
+      input_stream_info: {
+        tag_index: 'LOOPBACK:0',
+        back_edge: true
+      }
+      node_options: {
+        [type.googleapis.com / mediapipe.LLMCalculatorOptions]: {
+          models_path: "/models/qwen2.5-1.5b-instruct",
+          plugin_config: '{}',
+          enable_prefix_caching: false,
+          cache_size: 1,
+          max_num_seqs: 4,
+          device: "GPU"
+        }
+      }
+      input_stream_handler {
+        input_stream_handler: "SyncSetInputStreamHandler",
+        options {
+          [mediapipe.SyncSetInputStreamHandlerOptions.ext] {
+            sync_set {
+              tag_index: "LOOPBACK:0"
+            }
+          }
         }
       }
     }
