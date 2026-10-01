@@ -161,6 +161,21 @@ mayastor:
       size: 2Gi
       storageClass: openebs-lvmpv-vg0
     replicaCount: 3
+    # 2026-09-30: the bitnami "micro" preset (250m/256Mi req, 375m/384Mi lim) was
+    # never a choice. 30-day per-member cpu p95 15-28m, max 111m; mem max 108Mi.
+    # cpu request 250m -> 100m (x3 = 450m freed on the server nodes); memory and
+    # limits kept -- etcd is memory-sensitive. Changing this ROLLS the 3 members
+    # one at a time (RollingUpdate, pod-2 -> pod-0): check pools/volumes and
+    # `etcdctl endpoint health` between members; re-apply the io-engine patch after.
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+        ephemeral-storage: 50Mi
+      limits:
+        cpu: 375m
+        memory: 384Mi
+        ephemeral-storage: 2Gi
   eventing:
     enabled: true
     aggregator:
