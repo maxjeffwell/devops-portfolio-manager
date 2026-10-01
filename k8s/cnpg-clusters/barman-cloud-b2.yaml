@@ -171,7 +171,8 @@ metadata:
   namespace: default
 spec:
   schedule: "0 20 2 * * *"   # 6-field CNPG cron (UTC)
-  immediate: true       # first base backup right away (PITR starts from it)
+  # first base backup is taken on demand after the plugin restart (an
+  # immediate one would run before the sidecar exists and fail)
   backupOwnerReference: self
   cluster:
     name: cnpg-codetalk
@@ -186,7 +187,8 @@ metadata:
   namespace: default
 spec:
   schedule: "0 10 2 * * *"   # 6-field CNPG cron (UTC)
-  immediate: true       # first base backup right away (PITR starts from it)
+  # first base backup is taken on demand after the plugin restart (an
+  # immediate one would run before the sidecar exists and fail)
   backupOwnerReference: self
   cluster:
     name: cnpg-bookmarked

@@ -76,6 +76,13 @@ spec:
       memory: 768Mi
     limits:
       memory: 2Gi
+  # Continuous WAL archiving to B2 via the Barman Cloud plugin
+  # (ObjectStore cnpg-immich-b2, see barman-cloud-b2.yaml).
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: cnpg-immich-b2
   backup:
     target: prefer-standby
     volumeSnapshot:

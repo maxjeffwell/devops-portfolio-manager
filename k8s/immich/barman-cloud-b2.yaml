@@ -61,3 +61,17 @@ spec:
       compression: gzip
     data:
       compression: gzip
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: cnpg-immich-b2-daily
+  namespace: immich
+spec:
+  schedule: "0 40 2 * * *"   # 6-field CNPG cron (UTC)
+  backupOwnerReference: self
+  cluster:
+    name: cnpg-immich
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
