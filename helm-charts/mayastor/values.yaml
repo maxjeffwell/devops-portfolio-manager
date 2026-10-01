@@ -212,11 +212,15 @@ mayastor:
         memory: 1Gi
       requests:
         # 2026-09-26: was '1'. With SPDK interrupt mode on (see
-        # io-engine-interrupt-mode-patch.yaml) the reactor idles at ~350-550m
-        # instead of spinning a full core. Heavy I/O still pushes it back to ~1
-        # core, which the 2-core limit covers. Not lower: the request is also
-        # the pod's CPU weight on its pinned core 1 under contention.
-        cpu: 600m
+        # io-engine-interrupt-mode-patch.yaml) one reactor idles at ~350-550m
+        # instead of spinning a full core.
+        # 2026-09-30: 600m -> 1100m. m920s (-l1,7) and neonmarmoset (-l2,3) now
+        # run TWO reactors so the io-engine owns a whole hyperthreaded physical
+        # core; each reactor still runs the 100us NVMe queue poll timer, so the
+        # pod idles at ~1070m on those nodes (elitedesk/m720q, no HT, stay at
+        # one reactor ~450m). DS-wide request, so the no-HT nodes over-request
+        # ~500m; accepted. Heavy I/O still fits the 2-core limit.
+        cpu: 1100m
         hugepages2Mi: 2Gi
         # 2026-09-24: was 1Gi (chart default, equal to the limit). The io-engine
         # data path lives in the 2Gi hugepages accounted separately; the memory
