@@ -1,8 +1,21 @@
 priorityClassName: portfolio-app
-replicaCount: 1
+# 2026-10-01: 1 -> 2 replicas, Recreate -> RollingUpdate (maxUnavailable 0). This
+# chart has only the server component, so replicaCount is safe to raise directly.
+# Multi-instance review: the only in-process state is the contact-form rate
+# limiter (3/IP/10 min, degrades to 6 across two pods) and the Kafka consumer
+# already uses a unique group id per process, so both replicas get every event.
+# RollingUpdate matters most here: graphql-ws subscriptions died on every deploy.
+replicaCount: 2
 
 strategy:
-  type: Recreate
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+
+pdb:
+  enabled: true
+  minAvailable: 1
 
 image:
   server:

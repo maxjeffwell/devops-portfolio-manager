@@ -7,9 +7,15 @@ metadata:
     app: devops-portfolio-api
     component: backend
 spec:
-  replicas: 1
+  # 2026-10-01: 2 replicas + zero-downtime rollout. The only in-process state is
+  # the config-loader's memo of applications.yaml (identical in every pod), so
+  # instances are interchangeable. PDB in api-pdb.yaml.
+  replicas: 2
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: devops-portfolio-api
