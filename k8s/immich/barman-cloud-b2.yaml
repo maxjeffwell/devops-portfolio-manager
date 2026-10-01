@@ -37,6 +37,16 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
   retentionPolicy: "30d"
+  # The plugin injects a sidecar into every instance pod. The default
+  # namespace's ResourceQuota rejects containers without requests/limits
+  # (pod creation failed, 2026-10-01). Observed usage ~70Mi.
+  instanceSidecarConfiguration:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 96Mi
+      limits:
+        memory: 512Mi
   configuration:
     destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-immich"
     endpointURL: "https://s3.us-east-005.backblazeb2.com"
