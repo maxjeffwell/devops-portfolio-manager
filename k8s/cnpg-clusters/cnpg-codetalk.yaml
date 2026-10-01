@@ -84,6 +84,13 @@ spec:
     disableDefaultQueries: false
     enablePodMonitor: true
   enableSuperuserAccess: false
+  # Continuous WAL archiving to B2 via the Barman Cloud plugin
+  # (ObjectStore cnpg-codetalk-b2, see barman-cloud-b2.yaml).
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: cnpg-codetalk-b2
   backup:
     target: prefer-standby
     volumeSnapshot:
