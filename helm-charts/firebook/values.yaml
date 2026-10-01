@@ -110,3 +110,9 @@ database:
     host: firebook-db.el-jefe.me
     service: neon-cluster-neon-compute-neon-compute
     port: 55432
+  # Idempotent Argo PostSync Job that (re)creates role/db/pgvector/table and the
+  # lockdown. Never touches the firebook password (that lives in the Firebase console).
+  bootstrap:
+    enabled: true
+    computePod: neon-cluster-neon-compute-0
+    image: alpine/k8s:1.34.3

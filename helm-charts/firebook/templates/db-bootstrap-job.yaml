@@ -1,0 +1,166 @@
+{{- if .Values.database.bootstrap.enabled }}
+{{- $pod := .Values.database.bootstrap.computePod }}
+# Declarative bootstrap for firebook's embeddings database on the in-cluster
+# KubeBlocks Neon (neon-cluster). KubeBlocks has no CRD for "a database in the
+# cluster", so this idempotent Job (re)creates everything firebook's Cloud
+# Functions need: role, database, pgvector, bookmarks table + indexes, and the
+# lockdown (only role firebook may CONNECT; upstream-example role neon NOLOGIN).
+#
+# It NEVER sets or changes the firebook password: firebook's secrets live in
+# the Firebase console (Secret Manager NEON_DATABASE_URL). On a from-scratch
+# rebuild the role is created without a password and the Job log says so; set
+# it to the password in that Firebase secret.
+#
+# The compute's admin role (cloud_admin) only authenticates locally (trust on
+# 127.0.0.1, no password), so the SQL runs via `kubectl exec` into the compute
+# pod. RBAC is limited to that single pod name.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: firebook-db-bootstrap
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: firebook-db-bootstrap
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    resourceNames: [{{ $pod | quote }}]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    resourceNames: [{{ $pod | quote }}]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: firebook-db-bootstrap
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: firebook-db-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: firebook-db-bootstrap
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: firebook-db-bootstrap-sql
+  namespace: {{ .Release.Namespace }}
+data:
+  bootstrap.sql: |
+    \set ON_ERROR_STOP on
+    SELECT 'CREATE ROLE firebook LOGIN'
+      WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'firebook') \gexec
+    SELECT 'ALTER ROLE firebook LOGIN'
+      WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'firebook' AND NOT rolcanlogin) \gexec
+    SELECT 'CREATE DATABASE firebook OWNER firebook'
+      WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'firebook') \gexec
+    REVOKE CONNECT ON DATABASE firebook FROM PUBLIC;
+    GRANT CONNECT ON DATABASE firebook TO firebook;
+    REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
+    -- role neon ships with the upstream example password: never allow it to log in
+    SELECT 'ALTER ROLE neon NOLOGIN'
+      WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'neon' AND rolcanlogin) \gexec
+    SELECT CASE WHEN rolpassword IS NULL
+      THEN 'WARNING: role firebook has NO password. Set it from Firebase secret NEON_DATABASE_URL (project marmoset-c2870).'
+      ELSE 'role firebook: password set (not managed here)' END
+      FROM pg_authid WHERE rolname = 'firebook';
+    \c firebook
+    CREATE EXTENSION IF NOT EXISTS vector;
+    REVOKE ALL ON SCHEMA public FROM PUBLIC;
+    GRANT USAGE, CREATE ON SCHEMA public TO firebook;
+    SET ROLE firebook;
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id                   bigserial PRIMARY KEY,
+      firebase_uid         text NOT NULL,
+      firebase_bookmark_id text NOT NULL,
+      title                text NOT NULL DEFAULT '',
+      url                  text NOT NULL DEFAULT '',
+      description          text NOT NULL DEFAULT '',
+      tags                 text[],
+      embedding            vector(1024),
+      created_at           timestamptz NOT NULL DEFAULT now(),
+      updated_at           timestamptz NOT NULL DEFAULT now(),
+      UNIQUE (firebase_uid, firebase_bookmark_id)
+    );
+    CREATE INDEX IF NOT EXISTS bookmarks_uid_idx ON bookmarks (firebase_uid);
+    CREATE INDEX IF NOT EXISTS bookmarks_embedding_hnsw ON bookmarks USING hnsw (embedding vector_cosine_ops);
+    RESET ROLE;
+    SELECT 'firebook.bookmarks rows: ' || count(*) FROM bookmarks;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: firebook-db-bootstrap
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: firebook-db-bootstrap
+    spec:
+      serviceAccountName: firebook-db-bootstrap
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bootstrap
+          image: {{ .Values.database.bootstrap.image }}
+          env:
+            - name: HOME
+              value: /tmp
+            - name: COMPUTE_POD
+              value: {{ $pod | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              for i in $(seq 1 60); do
+                ready=$(kubectl get pod "$COMPUTE_POD" -o jsonpath='{.status.containerStatuses[0].ready}' 2>/dev/null || true)
+                [ "$ready" = "true" ] && break
+                echo "waiting for $COMPUTE_POD ($i)"; sleep 5
+              done
+              kubectl exec -i "$COMPUTE_POD" -- \
+                psql -h localhost -p {{ .Values.database.expose.port }} -U cloud_admin -d postgres -X -q -At \
+                < /sql/bootstrap.sql
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: sql
+              mountPath: /sql
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: sql
+          configMap:
+            name: firebook-db-bootstrap-sql
+        - name: tmp
+          emptyDir: {}
+{{- end }}
