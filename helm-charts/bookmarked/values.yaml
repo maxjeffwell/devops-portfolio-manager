@@ -178,12 +178,6 @@ env:
           key: zone-id
     - name: PUBLIC_URL
       value: "https://bookmarked-k8s.el-jefe.me"
-    # Cache Invalidation API Key (for cross-deployment sync)
-    - name: CACHE_INVALIDATION_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: bookmarked-secret
-          key: CACHE_INVALIDATION_API_KEY
     # JWT Authentication Secrets
     - name: JWT_SECRET
       valueFrom:
