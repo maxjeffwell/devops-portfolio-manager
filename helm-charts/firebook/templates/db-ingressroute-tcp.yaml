@@ -13,9 +13,11 @@ spec:
   secretName: firebook-db-tls
   dnsNames:
     - {{ .Values.database.expose.host }}
+  # HTTP-01 through edge Traefik (port 80). DNS-01 stalled 2026-10-01: Cloudflare's
+  # nameservers never served the _acme-challenge TXT for this name.
   issuerRef:
     kind: ClusterIssuer
-    name: letsencrypt-prod-dns
+    name: letsencrypt-prod
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRouteTCP
@@ -32,4 +34,18 @@ spec:
           port: {{ .Values.database.expose.port }}
   tls:
     secretName: firebook-db-tls
+    options:
+      name: firebook-db-postgres-alpn
+---
+# libpq >= 17 refuses TLS unless the server negotiates ALPN "postgresql"
+# ("SSL error: no application protocol"). node-postgres doesn't care, psql does.
+apiVersion: traefik.io/v1alpha1
+kind: TLSOption
+metadata:
+  name: firebook-db-postgres-alpn
+  namespace: {{ .Release.Namespace }}
+spec:
+  minVersion: VersionTLS12
+  alpnProtocols:
+    - postgresql
 {{- end }}
