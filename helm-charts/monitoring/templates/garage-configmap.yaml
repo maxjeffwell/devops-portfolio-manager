@@ -22,8 +22,8 @@ data:
 
     replication_factor = 2
 
-    rpc_bind_addr = "[::]:3901"
-    rpc_public_addr = "__HOST_IP__:3901"
+    rpc_bind_addr = "[::]:{{ .Values.garage.ports.rpc | default 3901 }}"
+    rpc_public_addr = "__HOST_IP__:{{ .Values.garage.ports.rpc | default 3901 }}"
     rpc_secret = "__RPC_SECRET__"
 
     # Garage v2 requires <node_id>@<addr>; bare ip:port is silently unusable
@@ -40,7 +40,7 @@ data:
 
     [s3_api]
     s3_region = "garage"
-    api_bind_addr = "[::]:3900"
+    api_bind_addr = "[::]:{{ .Values.garage.ports.s3 | default 3900 }}"
     {{- if .Values.garage.ingress.virtualHostedStyle }}
     # Tells Garage which DNS suffix to strip from the Host header to extract
     # the bucket name. Required for virtual-hosted-style S3 addressing
@@ -49,6 +49,6 @@ data:
     {{- end }}
 
     [admin]
-    api_bind_addr = "[::]:3903"
+    api_bind_addr = "[::]:{{ .Values.garage.ports.admin | default 3903 }}"
     admin_token = "__ADMIN_TOKEN__"
 {{- end }}

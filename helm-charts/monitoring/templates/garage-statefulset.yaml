@@ -98,14 +98,14 @@ spec:
           image: "{{ .Values.garage.image.repository }}:{{ .Values.garage.image.tag }}"
           ports:
             - name: s3-api
-              containerPort: 3900
+              containerPort: {{ .Values.garage.ports.s3 | default 3900 }}
               protocol: TCP
             - name: rpc
-              containerPort: 3901
-              hostPort: 3901
+              containerPort: {{ .Values.garage.ports.rpc | default 3901 }}
+              hostPort: {{ .Values.garage.ports.rpc | default 3901 }}
               protocol: TCP
             - name: admin
-              containerPort: 3903
+              containerPort: {{ .Values.garage.ports.admin | default 3903 }}
               protocol: TCP
           env:
             - name: GARAGE_CONFIG_FILE

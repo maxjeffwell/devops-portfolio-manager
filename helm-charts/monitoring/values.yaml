@@ -751,18 +751,26 @@ garageHome:
 
 garage:
   enabled: true
-  replicas: 1
+  # 2026-10-01: 1 -> 2 replicas. garage-0 was the ONLY in-cluster S3 endpoint
+  # (Neon remote_storage, every backup CronJob, Alloy, graphql-gateway) and
+  # was hard-pinned to m920s: the m920s reboot that night left it Pending for
+  # ~5 min and every consumer lost S3. Two gateway pods, required anti-affinity
+  # across nodes, readiness-probed Service endpoints => one node down costs 0.
+  replicas: 2
   antiAffinity: true
-  # This pod is the GATEWAY member (zero blocks) of the federated Garage
-  # cluster. hostNetwork + rpc on :3901, so it can only live on a node
-  # without a native garage (elitedesk/debian-marmoset run one on the host).
-  # Was 2 replicas (vmi2951245 + vmi3115606) until 2026-09-06; vmi3115606 is
-  # being decommissioned and its gateway (30da4663) was removed from the
-  # layout at v31. 2026-09-25: moved vmi2951245 -> m920s (VPS retirement);
-  # m920s has no native garage yet — a future native member there must use
-  # a different rpc port (e.g. :3902) because this gateway holds :3901.
-  nodeHostnames:
-    - m920s
+  # These pods are GATEWAY members (zero blocks) of the federated Garage
+  # cluster and run with hostNetwork so native members (incl. the two NAS
+  # boxes, which cannot route to pod IPs) can reach their RPC port. Every
+  # Mayastor node also runs a NATIVE garage on the host at 3900/3901/3903
+  # (m920s: 3910/3911/3913), so the gateway pods use their own host port
+  # trio below. The in-cluster Services still expose 3900/3903 to consumers
+  # via named targetPorts, so nothing client-side changes.
+  # History: 2 replicas (vmi2951245 + vmi3115606) until 2026-09-06; moved to
+  # m920s 2026-09-25 with a hostname pin (removed 2026-10-01, see above).
+  ports:
+    s3: 3920
+    rpc: 3921
+    admin: 3923
   tolerations:
     - key: node-role.kubernetes.io/control-plane
       operator: Exists
