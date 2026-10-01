@@ -86,6 +86,13 @@ mayastor:
           waitPeriod: 90m
     ha:
       node:
+        # 2026-10-01: run the HA node agent wherever volumes can be MOUNTED, not
+        # only where pools live. openebs.io/csi-consumer=true is a capability label (NOT openebs.io/csi-node — the plugin owns that key with value "mayastor")
+        # on the 4 pool nodes + debian-marmoset (consumer-only, no pool). Overrides
+        # the chart-wide nodeSelector (openebs.io/engine) that the io-engine keeps.
+        nodeSelector:
+          kubernetes.io/arch: amd64
+          openebs.io/csi-consumer: "true"
         # 2026-09-30: chart default requests 100m cpu; 7d p95 is 0m on every
         # node (it only acts on nexus failover). Limit kept at the chart default.
         resources:
@@ -122,6 +129,14 @@ mayastor:
     node:
       initContainers:
         enabled: true
+      # 2026-10-01: csi-node (the mount-side plugin) runs on every node labelled
+      # openebs.io/csi-consumer=true: the 4 pool nodes + debian-marmoset, which can
+      # now mount Mayastor volumes over nvme-tcp without hosting a pool (no
+      # hugepages, no reactor). io-engine still follows the chart-wide
+      # openebs.io/engine selector. See agents.ha.node for the matching agent.
+      nodeSelector:
+        kubernetes.io/arch: amd64
+        openebs.io/csi-consumer: "true"
       # 2026-09-30: csi-node cpu request 100m -> 20m (7d p95 0-2m). The sidecar
       # csi-driver-registrar is HARD-CODED at 100m/50Mi in the chart template
       # (csi-node-daemonset.yaml, no values knob), so the pod goes 200m -> 120m,
