@@ -32,8 +32,12 @@ spec:
     - ipBlock:
         cidr: 100.64.0.0/10    # Tailscale (current kubelet endpoint IPs post 2026-05-04 migration)
     ports:
-    - {protocol: TCP, port: 3900}   # Garage S3 API
-    - {protocol: TCP, port: 3903}   # Garage admin
+    - {protocol: TCP, port: 3900}   # Garage S3 API (native nodes: ASUSTOR/Synology/m720q/elitedesk/dm/neon)
+    - {protocol: TCP, port: 3903}   # Garage admin (native nodes)
+    - {protocol: TCP, port: 3920}   # Garage S3 API — in-cluster gateway garage-0/1 host port since 2026-10-01
+                                    # (Svc garage.monitoring:3900 DNATs to <node>:3920; without this the
+                                    # mongodb-backup* jobs get an instant REJECT = "Could not connect to the endpoint URL")
+    - {protocol: TCP, port: 3923}   # Garage admin — in-cluster gateway host port
     - {protocol: TCP, port: 3100}   # Loki on ASUSTOR (10.0.0.4) — for any future log-shipping backup
   # Source DB: any CNPG cluster (cnpg-codetalk, cnpg-bookmarked, cnpg-auth, cnpg-lunary)
   - to:
