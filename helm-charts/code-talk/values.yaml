@@ -86,18 +86,6 @@ env:
         secretKeyRef:
           name: code-talk-secret
           key: REDIS_URL
-    - name: UPSTASH_REDIS_REST_URL
-      valueFrom:
-        secretKeyRef:
-          name: code-talk-secret
-          key: UPSTASH_REDIS_REST_URL
-          optional: true
-    - name: UPSTASH_REDIS_REST_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: code-talk-secret
-          key: UPSTASH_REDIS_REST_TOKEN
-          optional: true
     - name: ALLOWED_ORIGINS
       value: "https://code-talk-k8s.el-jefe.me"
     - name: AI_GATEWAY_URL
