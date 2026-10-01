@@ -52,8 +52,11 @@ spec:
           ports:
             - { name: http, containerPort: 80, protocol: TCP }
           resources:
-            requests: { cpu: 25m, memory: 64Mi }
-            limits:   { memory: 128Mi }
+            # 2026-09-30: memory 64Mi -> 128Mi request, 128Mi -> 256Mi limit. The
+            # SRH Node proxy sits flat at ~95Mi (7d p95 95Mi, 30d max 100Mi): it
+            # ran 1.5x over its request and 28Mi under its limit. cpu unchanged.
+            requests: { cpu: 25m, memory: 128Mi }
+            limits:   { memory: 256Mi }
           readinessProbe:
             httpGet: { path: /, port: 80 }
             initialDelaySeconds: 5
