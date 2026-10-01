@@ -1,0 +1,17 @@
+# KafkaTopic analytics.events (vertex-platform analytics-service). Exported from live
+# 2026-09-30; was kubectl-applied with no git copy. The ai.gateway.events topic lives
+# in portfolio-orchestration-platform/k8s/kafka/ (hand-applied there).
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  finalizers:
+  - strimzi.io/topic-operator
+  labels:
+    strimzi.io/cluster: vertex-kafka
+  name: analytics.events
+  namespace: microservices
+spec:
+  config:
+    retention.ms: 604800000
+  partitions: 3
+  replicas: 1

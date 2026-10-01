@@ -1,0 +1,116 @@
+# Strimzi Kafka cluster `vertex-kafka` (KRaft, 1 combined controller+broker) and its
+# node pool. Exported from the live cluster 2026-09-30 -- these CRs had been
+# kubectl-applied and lived in no repo. Applied BY HAND (no ArgoCD app):
+#   kubectl diff -f k8s/kafka/ && kubectl apply -f k8s/kafka/
+# The operator itself is the Helm release `kafka` (helm-charts/kafka/values.yaml).
+# Placement: both the broker pool and the entity operator require role=data
+# (m720q); the broker's 5Gi lvm-localpv PV is node-local there anyway.
+# Sizing (2026-09-30): broker 896Mi req / 1Gi lim, flat at ~755Mi (30d max
+# 776Mi) with Strimzi's dynamic heap at 50% of the limit -- correctly sized.
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  annotations:
+    strimzi.io/kraft: enabled
+    strimzi.io/node-pools: enabled
+  name: vertex-kafka
+  namespace: microservices
+spec:
+  entityOperator:
+    template:
+      pod:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: role
+                  operator: In
+                  values:
+                  - data
+    topicOperator:
+      livenessProbe:
+        failureThreshold: 3
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        timeoutSeconds: 5
+      resources:
+        limits:
+          memory: 384Mi
+        requests:
+          cpu: 50m
+          memory: 384Mi
+      startupProbe:
+        failureThreshold: 60
+        initialDelaySeconds: 15
+        periodSeconds: 10
+        timeoutSeconds: 5
+    userOperator:
+      livenessProbe:
+        failureThreshold: 3
+        initialDelaySeconds: 120
+        periodSeconds: 10
+        timeoutSeconds: 5
+      readinessProbe:
+        failureThreshold: 3
+        initialDelaySeconds: 60
+        periodSeconds: 10
+        timeoutSeconds: 5
+      resources:
+        limits:
+          memory: 384Mi
+        requests:
+          cpu: 50m
+          memory: 384Mi
+  kafka:
+    config:
+      auto.create.topics.enable: true
+      default.replication.factor: 1
+      log.retention.hours: 168
+      min.insync.replicas: 1
+      offsets.topic.replication.factor: 1
+      transaction.state.log.min.isr: 1
+      transaction.state.log.replication.factor: 1
+    listeners:
+    - name: plain
+      port: 9092
+      tls: false
+      type: internal
+    metadataVersion: '4.1'
+    version: 4.1.1
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  labels:
+    strimzi.io/cluster: vertex-kafka
+  name: vertex-kafka-pool
+  namespace: microservices
+spec:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 896Mi
+  roles:
+  - controller
+  - broker
+  storage:
+    class: openebs-lvmpv
+    deleteClaim: false
+    size: 5Gi
+    type: persistent-claim
+  template:
+    pod:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - data

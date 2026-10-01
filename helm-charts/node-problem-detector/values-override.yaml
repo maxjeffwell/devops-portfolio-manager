@@ -11,10 +11,14 @@ image:
 resources:
   requests:
     cpu: 20m
-    memory: 50Mi
+    # 2026-09-30: memory 50Mi -> 100Mi request, 100Mi -> 192Mi limit. Every pod
+    # ran above the old request (7d p95 60-78Mi, 30d max 87Mi on elitedesk) and
+    # within 13Mi of the old limit. No OOM kills yet; the 3 restarts seen were
+    # exit 255 at node reboots. cpu untouched (p95 1-3m, request 20m).
+    memory: 100Mi
   limits:
     cpu: 200m
-    memory: 100Mi
+    memory: 192Mi
 
 # Default chart tolerations tolerate ALL NoSchedule taints (would land on
 # marmoset's nvidia.com/gpu:NoSchedule). Reset to empty so the nodeAffinity
