@@ -8,8 +8,10 @@
 # cpu1 shares a physical core with another thread, then execs io-engine with
 # the chart's args otherwise unchanged.
 #
-#   m920s        i7-8700   cpu1's HT sibling is cpu7      -> -l1,7 (owns core 1)
-#   neonmarmoset i7-1260P  siblings are adjacent (0-1)    -> -l2,3 (whole P-core,
+#   m920s        i7-8700   cpu1's HT sibling is cpu7      -> -l1,7 (owns core 1
+#                           by running a 2nd reactor on the sibling; ~+500m)
+#   neonmarmoset i7-1260P  siblings are adjacent (0-1)    -> -l2 + kernel
+#                           isolcpus=2,3 (one reactor owns the whole P-core;
 #                           cpu1 would share a core with cpu0's housekeeping)
 #   elitedesk    i5-9500T  no HT                          -> -l1 (chart value)
 #   m720q        i5-8400T  no HT                          -> -l1 (chart value)
@@ -40,7 +42,7 @@ spec:
               esac
               case "$MY_NODE_NAME" in
                 m920s)        CORES=1,7 ;;
-                neonmarmoset) CORES=2,3 ;;
+                neonmarmoset) CORES=2 ;;
                 *)            CORES= ;;
               esac
               if [ -n "$CORES" ]; then
