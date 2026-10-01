@@ -1,0 +1,29 @@
+# 2026-10-01: firebook's Firebase Cloud Functions (Google Cloud) store bookmark
+# embeddings in the in-cluster KubeBlocks Neon (neon-cluster, database/role
+# "firebook"). The public path is edge Traefik -> IngressRouteTCP
+# firebook-db (Postgres STARTTLS, HostSNI firebook-db.el-jefe.me) -> compute.
+# Only Traefik may reach the compute's Postgres port from outside the cluster's
+# own neon-cluster pods.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-firebook-db
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: neon-cluster
+      apps.kubeblocks.io/component-name: neon-compute
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: traefik
+    ports:
+    - port: 55432
+      protocol: TCP

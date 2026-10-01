@@ -100,3 +100,13 @@ tolerationsClient:
     operator: Equal
     value: edge
     effect: PreferNoSchedule
+
+# Embeddings DB for the Firebase Cloud Functions: database "firebook" on the
+# in-cluster KubeBlocks Neon (neon-cluster), exposed via edge Traefik with TLS.
+# DNS: firebook-db.el-jefe.me CNAME edge.el-jefe.me, DNS-only (not proxied).
+database:
+  expose:
+    enabled: true
+    host: firebook-db.el-jefe.me
+    service: neon-cluster-neon-compute-neon-compute
+    port: 55432
