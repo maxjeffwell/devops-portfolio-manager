@@ -5,7 +5,7 @@ metadata:
   labels:
     app: mongodb-backup
 spec:
-  refreshInterval: 24h
+  refreshInterval: 23h59m52s
   secretStoreRef:
     kind: ClusterSecretStore
     name: doppler-secret-store

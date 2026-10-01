@@ -18,7 +18,7 @@ metadata:
   name: k8up-repo-password
   namespace: stirling-pdf
 spec:
-  refreshInterval: 24h
+  refreshInterval: 23h47m9s
   secretStoreRef:
     kind: ClusterSecretStore
     name: doppler-secret-store
@@ -50,7 +50,7 @@ metadata:
   name: k8up-s3-credentials
   namespace: stirling-pdf
 spec:
-  refreshInterval: 24h
+  refreshInterval: 23h49m47s
   secretStoreRef:
     kind: ClusterSecretStore
     name: doppler-secret-store

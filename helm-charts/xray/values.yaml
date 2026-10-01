@@ -27,7 +27,7 @@ nodeSelector:
 
 externalSecrets:
   enabled: true
-  refreshInterval: 24h
+  refreshInterval: 23h53m50s
   secretStoreName: doppler-secret-store
   secretStoreKind: ClusterSecretStore
   targetSecretName: xray-secrets

@@ -7,7 +7,7 @@ metadata:
   labels:
     app: influxdb
 spec:
-  refreshInterval: 24h
+  refreshInterval: 24h27m16s
   secretStoreRef:
     kind: ClusterSecretStore
     name: doppler-secret-store
