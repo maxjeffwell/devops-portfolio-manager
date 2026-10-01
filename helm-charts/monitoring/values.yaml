@@ -247,7 +247,10 @@ kube-prometheus-stack:
           cpu: 300m
           memory: 3584Mi
         limits:
-          cpu: 1000m
+          # 2026-09-30: cpu limit 1000m -> 2000m. Only ever reached during WAL
+          # replay after a restart (49 s at the old limit, ~21% of CFS periods
+          # throttled) and head compaction; a limit reserves nothing at idle.
+          cpu: 2000m
           memory: 5Gi
       # Config-reloader sidecar and init container resources (required by monitoring-quota)
       containers:
