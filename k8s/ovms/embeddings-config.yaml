@@ -18,7 +18,8 @@ data:
     {
       "mediapipe_config_list": [
         { "name": "e5-large", "base_path": "/config" },
-        { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" }
+        { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" },
+        { "name": "qwen3-embedding-0.6b", "graph_path": "/config/qwen3-embedding-graph.pbtxt" }
       ],
       "model_config_list": [
         {
@@ -88,6 +89,32 @@ data:
               tag_index: "LOOPBACK:0"
             }
           }
+        }
+      }
+    }
+  # 2026-10-01: Qwen3-Embedding-0.6B (OpenVINO int8, Apache-2.0, 1024 d, LAST pooling).
+  # Eval on bookmarked's 62 bookmarks / 20 labelled queries: hit@1 18/20, MRR 0.935,
+  # relevance margin 0.277 vs e5-large CLS (no prefixes) 11/20, 0.636, 0.039.
+  # Queries need the instruction prefix
+  #   "Instruct: Given a web search query, retrieve relevant bookmarks that match the query\nQuery: "
+  # documents get none. e5-large stays for firebook / intervalai / code-search until migrated.
+  qwen3-embedding-graph.pbtxt: |
+    input_stream: "REQUEST_PAYLOAD:input"
+    output_stream: "RESPONSE_PAYLOAD:output"
+    node {
+      name: "EmbeddingsExecutor"
+      input_side_packet: "EMBEDDINGS_NODE_RESOURCES:embeddings_servable"
+      calculator: "EmbeddingsCalculatorOV"
+      input_stream: "REQUEST_PAYLOAD:input"
+      output_stream: "RESPONSE_PAYLOAD:output"
+      node_options: {
+        [type.googleapis.com / mediapipe.EmbeddingsCalculatorOVOptions]: {
+          models_path: "/models/qwen3-embedding-0.6b",
+          plugin_config: '{"NUM_STREAMS": "1"}',
+          normalize_embeddings: true,
+          pooling: LAST,
+          truncate: true,
+          target_device: "GPU"
         }
       }
     }
