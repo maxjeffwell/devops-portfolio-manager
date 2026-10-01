@@ -209,3 +209,17 @@ spec:
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: cnpg-lunary-b2-daily
+  namespace: default
+spec:
+  schedule: "0 30 2 * * *"   # 6-field CNPG cron (UTC)
+  backupOwnerReference: self
+  cluster:
+    name: cnpg-lunary
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
