@@ -9,7 +9,8 @@ metadata:
 spec:
   # 2026-10-01: 2 replicas + zero-downtime rollout. The only in-process state is
   # the config-loader's memo of applications.yaml (identical in every pod), so
-  # instances are interchangeable. PDB in api-pdb.yaml.
+  # instances are interchangeable. PDB is the third document in this file: the podrick
+  # Application has an explicit directory.include list, so new files are NOT picked up.
   replicas: 2
   strategy:
     type: RollingUpdate
@@ -98,3 +99,15 @@ spec:
   - protocol: TCP
     port: 5001
     targetPort: 5001
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: devops-portfolio-api
+  namespace: default
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: devops-portfolio-api
