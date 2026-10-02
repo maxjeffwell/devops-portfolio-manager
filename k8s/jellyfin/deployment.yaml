@@ -52,7 +52,10 @@ spec:
         runAsUser: 1000
         runAsGroup: 1000
         fsGroup: 1000
-        # 992 = `render` group on debian-marmoset (owner of /dev/dri/renderD128).
+        # Only re-chown when the volume root is wrong. Default (Always) walks every
+        # file in the metadata-heavy config volume on each start -- minutes over NVMe-oF.
+        fsGroupChangePolicy: OnRootMismatch
+        # 992 = `render` group on debian-marmoset AND neonmarmoset (owner of /dev/dri/renderD128).
         supplementalGroups: [992]
         seccompProfile:
           type: RuntimeDefault

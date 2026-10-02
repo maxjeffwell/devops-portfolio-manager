@@ -60,7 +60,8 @@ spec:
                   continue
                 fi
                 echo "Syncing s3://ovms-models/$name -> /models/$name ..."
-                aws --endpoint-url=https://s3.el-jefe.me s3 sync "s3://ovms-models/$name" "/models/$name"
+                # In-cluster Garage (2026-10-02): ~53 MB/s vs ~3.4 MiB/s via public s3.el-jefe.me.
+                aws --endpoint-url=http://garage.monitoring.svc.cluster.local:3900 s3 sync "s3://ovms-models/$name" "/models/$name"
                 ls -la "/models/$name/1/"
               done
               # OpenVINO picks the first *.pb it sees; TensorFlow's optional fingerprint.pb
