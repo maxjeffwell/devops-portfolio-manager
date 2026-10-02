@@ -3,6 +3,11 @@
 # weights them equally, so a node with lots of free CPU kept winning placements
 # even when its memory requests were the fullest (m920s). Memory is the tight
 # resource on these nodes; CPU is mostly idle.
+# 2026-10-02: memory 3 -> 2, and NodeResourcesBalancedAllocation 1 -> 2.
+# With memory dominating, the two 29 GiB nodes (elitedesk, m720q) kept winning
+# and reached 73-83 % CPU requested while the others sat at 14-34 %.
+# BalancedAllocation prefers the node whose CPU% and memory% end up closest,
+# sending CPU-heavy pods to memory-full/CPU-idle nodes and vice versa.
 # clientConnection.kubeconfig is REQUIRED here: k3s passes --kubeconfig as a
 # flag, and kube-scheduler ignores that flag once --config is used.
 apiVersion: kubescheduler.config.k8s.io/v1
@@ -13,6 +18,12 @@ leaderElection:
   leaderElect: true
 profiles:
   - schedulerName: default-scheduler
+    plugins:
+      score:
+        enabled:
+          # Default plugin; listing it here only changes its weight (default 1).
+          - name: NodeResourcesBalancedAllocation
+            weight: 2
     pluginConfig:
       - name: NodeResourcesFit
         args:
@@ -22,6 +33,6 @@ profiles:
             type: LeastAllocated
             resources:
               - name: memory
-                weight: 3
+                weight: 2
               - name: cpu
                 weight: 1
