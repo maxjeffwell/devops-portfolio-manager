@@ -20,12 +20,3 @@ pods even at ~76% memory requested. Memory now weighs 3x CPU in the
 scheduler's decision; taints exclude the nodes that must not host generic work.
 
 Only affects NEW placements (Kubernetes never moves a running pod).
-
-## 2026-10-02: memory 3 -> 2, BalancedAllocation weight 1 -> 2
-Memory-dominant LeastAllocated kept sending pods to the two 29 GiB nodes
-(elitedesk, m720q: 73-83 % CPU requested) while the others sat at 14-34 % CPU.
-NodeResourcesBalancedAllocation now counts double: it prefers the node whose
-CPU% and memory% end up closest after placement. Rolled out m920s -> m720q ->
-elitedesk (leader last); each restart verified (--config in the scheduler
-command line, no scheduler errors, node Ready, etcd ok). Previous file kept as
-/etc/rancher/k3s/scheduler-config.yaml.bak-20261002 on each server.
