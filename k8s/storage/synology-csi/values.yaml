@@ -17,6 +17,14 @@
 # an uninstall/reinstall). Same patch on kube-system/csi-s3, which has no source here:
 #   kubectl -n synology-csi patch ds synology-csi-node \
 #     -p '{"spec":{"template":{"spec":{"priorityClassName":"system-node-critical"}}}}'
+#
+# 2026-10-02: csi-plugin mounts host / at /host with NO mountPropagation (private). Every
+# restart of this pod snapshotted all host mounts into its namespace, including Mayastor
+# globalmounts; host unmounts never reached it, so ext4/jbd2 stayed alive and Mayastor
+# NodeUnstage timed out ("Timed out waiting for /proc/fs/jbd2/nvmeXn1-8") -> Mayastor pods
+# could not move between nodes. HostToContainer lets host unmounts propagate in (pod->host
+# behaviour unchanged). Chart has no value for it -> live patch, same rules as above:
+#   kubectl -n synology-csi patch ds synology-csi-node -p '{"spec":{"template":{"spec":{"containers":[{"name":"csi-plugin","volumeMounts":[{"mountPath":"/host","name":"host-root","mountPropagation":"HostToContainer"}]}]}}}}'
 
 storageClasses:
   - name: synology-iscsi
