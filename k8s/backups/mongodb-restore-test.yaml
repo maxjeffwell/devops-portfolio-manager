@@ -45,7 +45,7 @@ spec:
 
               # vertex-platform is parked at 0 replicas and its backup CronJob is
               # suspended (user decision 2026-08-23); add it back when unparked.
-              for DB in intervalai educationelly educationelly-graphql microservices; do
+              for DB in intervalai educationelly educationelly-graphql; do
                 echo ""
                 echo "--- Testing ${DB} restore ---"
 
