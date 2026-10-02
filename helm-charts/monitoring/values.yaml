@@ -553,6 +553,8 @@ kube-prometheus-stack:
   nodeExporter:
     enabled: true
   prometheus-node-exporter:
+    # 2026-10-02: was priority 0 (preemption victim); node agent -> node-critical.
+    priorityClassName: system-node-critical
     resources:
       requests:
         cpu: 10m
@@ -1091,6 +1093,8 @@ crowdsec:
   logProcessor:
     enabled: true
     localApiUrl: "http://crowdsec-lapi.monitoring.svc.cluster.local:8080"
+    # 2026-10-02: was priority 0 (preemption victim); node agent -> node-critical.
+    priorityClassName: system-node-critical
     image:
       repository: crowdsecurity/crowdsec
       tag: "v1.7.6"

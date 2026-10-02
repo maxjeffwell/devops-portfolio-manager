@@ -15,6 +15,9 @@ spec:
       labels:
         app: crowdsec-log-processor
     spec:
+      {{- with .Values.crowdsec.logProcessor.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
