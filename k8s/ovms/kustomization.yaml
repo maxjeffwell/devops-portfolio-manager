@@ -7,6 +7,7 @@ resources:
   - model-pvc.yaml
   - embeddings-config.yaml
   - deployment.yaml
+  - llm.yaml
   - service.yaml
   - networkpolicy.yaml
   - servicemonitor.yaml

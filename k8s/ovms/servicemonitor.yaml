@@ -7,8 +7,8 @@ metadata:
     portfolio: "true"
 spec:
   selector:
-    matchLabels:
-      app: ovms-embeddings
+    matchExpressions:
+      - { key: app, operator: In, values: [ovms-embeddings, ovms-llm] }
   endpoints:
     - port: rest
       path: /metrics

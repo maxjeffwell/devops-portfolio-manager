@@ -5,8 +5,8 @@ metadata:
   namespace: ovms
 spec:
   podSelector:
-    matchLabels:
-      app: ovms-embeddings
+    matchExpressions:
+      - { key: app, operator: In, values: [ovms-embeddings, ovms-llm] }
   policyTypes:
     - Ingress
   ingress:
