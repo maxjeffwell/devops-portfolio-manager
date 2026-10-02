@@ -72,3 +72,14 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: vaultwarden-b2
+  # Local Mayastor snapshots (fast restore), same as the other CNPG clusters.
+  # Pruned after 7 days by backups/cnpg-snapshot-pruner.
+  backup:
+    target: prefer-standby
+    volumeSnapshot:
+      className: mayastor-snapclass-cnpg
+      online: true
+      onlineConfiguration:
+        immediateCheckpoint: false
+        waitForArchive: true
+      snapshotOwnerReference: none

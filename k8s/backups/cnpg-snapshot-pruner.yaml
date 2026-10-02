@@ -54,6 +54,31 @@ subjects:
   name: cnpg-snapshot-pruner
   namespace: default
 ---
+# 2026-10-02: cnpg-vaultwarden got a daily volumeSnapshot schedule.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cnpg-snapshot-pruner
+  namespace: vaultwarden
+rules:
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots"]
+  verbs: ["get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cnpg-snapshot-pruner
+  namespace: vaultwarden
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cnpg-snapshot-pruner
+subjects:
+- kind: ServiceAccount
+  name: cnpg-snapshot-pruner
+  namespace: default
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -112,7 +137,7 @@ spec:
               # snapshot only because the CNPG clusters use mayastor-snapclass-cnpg
               # (deletionPolicy Delete) since 2026-09-25; with the old Retain class
               # every pruned snapshot left an orphan backend snapshot behind.
-              for pair in default/cnpg-auth default/cnpg-codetalk default/cnpg-lunary default/cnpg-bookmarked immich/cnpg-immich; do
+              for pair in default/cnpg-auth default/cnpg-codetalk default/cnpg-lunary default/cnpg-bookmarked immich/cnpg-immich vaultwarden/cnpg-vaultwarden; do
                 ns="${pair%%/*}"; cluster="${pair#*/}"
                 echo "--- ${ns}/${cluster} ---"
                 if ! kubectl get volumesnapshot -n "$ns" -l "cnpg.io/cluster=${cluster}" \
