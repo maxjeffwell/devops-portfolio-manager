@@ -1,0 +1,145 @@
+# CoreDNS + node-local-dns alerts. Moved into git 2026-10-02 from the hand-applied
+# PrometheusRule monitoring/coredns-health-alerts (created 2026-01-19, never committed).
+# Both layers export coredns_* metrics, so every CoreDNS rule is scoped to job="coredns".
+# The cache-hit rule watches node-local-dns: it is the front cache, CoreDNS behind it
+# only sees misses and runs at a single-digit hit ratio by design.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: coredns-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+    # REQUIRED: Prometheus operator ruleSelector is matchLabels{release: prometheus}.
+    release: prometheus
+spec:
+  groups:
+  - name: coredns-health
+    rules:
+    - alert: CoreDNSDown
+      expr: up{job="coredns"} == 0
+      for: 2m
+      labels:
+        component: dns
+        severity: critical
+      annotations:
+        summary: "CoreDNS is not responding to scrapes."
+        description: "CoreDNS instance {{ "{{" }} $labels.instance {{ "}}" }} has been down for more than 2 minutes."
+        runbook: "Check CoreDNS pod status with kubectl get pods -n kube-system -l k8s-app=kube-dns"
+
+    - alert: CoreDNSAllInstancesDown
+      expr: absent(up{job="coredns"} == 1)
+      for: 1m
+      labels:
+        component: dns
+        severity: critical
+      annotations:
+        summary: "All CoreDNS instances are down - cluster DNS is broken."
+        description: "All CoreDNS instances are down. Cluster DNS resolution is unavailable."
+        runbook: "Immediately check kube-system namespace for CoreDNS pods and node health."
+
+    - alert: CoreDNSHighErrorRate
+      expr: |
+        sum(rate(coredns_dns_responses_total{job="coredns", rcode=~"SERVFAIL|REFUSED|NOTIMP"}[5m])) by (instance)
+        /
+        sum(rate(coredns_dns_responses_total{job="coredns"}[5m])) by (instance)
+        > 0.05
+      for: 5m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "CoreDNS error rate is above 5%."
+        description: "CoreDNS is returning errors for {{ "{{" }} $value | humanizePercentage {{ "}}" }} of requests."
+
+    - alert: CoreDNSHighLatency
+      expr: |
+        histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{job="coredns"}[5m])) by (le, instance))
+        > 0.1
+      for: 5m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "CoreDNS latency is above 100ms."
+        description: "CoreDNS 99th percentile latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }}."
+
+    - alert: CoreDNSRestarted
+      expr: |
+        increase(kube_pod_container_status_restarts_total{namespace="kube-system", container="coredns"}[1h]) > 2
+      for: 0m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "CoreDNS is restarting frequently."
+        description: "CoreDNS pod {{ "{{" }} $labels.pod {{ "}}" }} has restarted {{ "{{" }} $value {{ "}}" }} times in the last hour."
+
+    - alert: CoreDNSForwardErrors
+      expr: |
+        sum(rate(coredns_forward_responses_total{job="coredns", rcode=~"SERVFAIL|REFUSED"}[5m])) by (to)
+        /
+        sum(rate(coredns_forward_responses_total{job="coredns"}[5m])) by (to)
+        > 0.05
+      for: 5m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "CoreDNS forward plugin errors detected."
+        description: "CoreDNS is experiencing errors forwarding to upstream DNS servers."
+
+    - alert: CoreDNSRequestSpike
+      expr: |
+        sum(rate(coredns_dns_requests_total{job="coredns"}[5m]))
+        /
+        sum(avg_over_time(rate(coredns_dns_requests_total{job="coredns"}[5m])[1h:5m]))
+        > 3
+      for: 5m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "Unusual spike in DNS requests detected."
+        description: "CoreDNS requests have increased by more than 300% compared to the hourly average."
+
+    # Unscoped on purpose: a panic in either DNS layer matters.
+    - alert: CoreDNSPanicRecovery
+      expr: increase(coredns_panics_total[5m]) > 0
+      for: 0m
+      labels:
+        component: dns
+        severity: critical
+      annotations:
+        summary: "CoreDNS experienced a panic - check logs immediately."
+        description: "{{ "{{" }} $labels.job {{ "}}" }} on {{ "{{" }} $labels.instance {{ "}}" }} has recovered from {{ "{{" }} $value {{ "}}" }} panics."
+
+  - name: node-local-dns
+    rules:
+    # Every pod on a node resolves through its node-local-dns; down = DNS broken on that node.
+    - alert: NodeLocalDNSDown
+      expr: up{job="node-local-dns"} == 0
+      for: 3m
+      labels:
+        component: dns
+        severity: critical
+      annotations:
+        summary: "node-local-dns is down on a node - pods there cannot resolve DNS."
+        description: "node-local-dns on {{ "{{" }} $labels.node {{ "}}" }} ({{ "{{" }} $labels.instance {{ "}}" }}) has not answered scrapes for 3 minutes."
+        runbook: "kubectl -n kube-system get pods -l k8s-app=node-local-dns -o wide"
+
+    # Fleet-wide front-cache hit ratio. Baseline 2026-10-02: ~75% overall, 53-89% on busy nodes.
+    - alert: CoreDNSLowCacheHitRatio
+      expr: |
+        sum(rate(coredns_cache_hits_total{job="node-local-dns"}[30m]))
+        /
+        (sum(rate(coredns_cache_hits_total{job="node-local-dns"}[30m])) + sum(rate(coredns_cache_misses_total{job="node-local-dns"}[30m])))
+        < 0.4
+      for: 30m
+      labels:
+        component: dns
+        severity: info
+      annotations:
+        summary: "node-local-dns cache efficiency is degraded."
+        description: "node-local-dns fleet-wide cache hit ratio is {{ "{{" }} $value | humanizePercentage {{ "}}" }} (baseline ~75%)."

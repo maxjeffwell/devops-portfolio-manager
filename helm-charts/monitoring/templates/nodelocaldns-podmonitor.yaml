@@ -1,0 +1,29 @@
+# node-local-dns (k8s/nodelocaldns, hostNetwork DaemonSet) serves every pod's DNS on
+# 169.254.20.10 / 10.43.0.10 and holds the cache that actually absorbs repeat lookups;
+# CoreDNS only sees its misses. Scraped so its cache and health are visible (2026-10-02).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: node-local-dns
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+    app.kubernetes.io/part-of: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-system
+  selector:
+    matchLabels:
+      k8s-app: node-local-dns
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      relabelings:
+        - action: replace
+          targetLabel: job
+          replacement: node-local-dns
+        - action: replace
+          sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
