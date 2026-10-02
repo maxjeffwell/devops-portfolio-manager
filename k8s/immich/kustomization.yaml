@@ -3,6 +3,13 @@ kind: Kustomization
 namespace: immich
 resources:
   - namespace.yaml
+  # GpuDevicePlugin CRs -> operator-owned DaemonSets kube-system/intel-gpu-plugin-gpudeviceplugin-<node>.
+  # 2026-10-02: the CR has no priority field, so the DaemonSets were priority 0 (preemption
+  # victims). Patched live to system-node-critical; the operator (0.35.0) only rewrites the
+  # fields it owns, so this survives CR spec changes and operator restarts (tested). Re-apply
+  # if a DaemonSet is ever recreated (CR deleted/renamed, operator reinstall):
+  #   kubectl -n kube-system patch ds intel-gpu-plugin-gpudeviceplugin-<node> \
+  #     -p {"spec":{"template":{"spec":{"priorityClassName":"system-node-critical"}}}}
   - gpu-plugin-debian-marmoset.yaml
   - gpu-plugin-elitedesk.yaml
   - gpu-plugin-m920s.yaml
