@@ -18,7 +18,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
-      allowEmpty: false
     syncOptions:
       # SSA so ArgoCD only owns the fields in git; the PSMDB operator keeps its own.
       - ServerSideApply=true
