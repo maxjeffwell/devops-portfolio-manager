@@ -21,6 +21,9 @@ spec:
     spec:
       nodeSelector:
         gpu-node: "true"
+        # 2026-10-02 deliberate GPU split (user decision): OVMS owns dm's Xe iGPU,
+        # jellyfin owns neonmarmoset's. Pinned by hostname, not left to the scheduler.
+        kubernetes.io/hostname: debian-marmoset
       priorityClassName: portfolio-critical
       terminationGracePeriodSeconds: 30
       securityContext:
@@ -32,7 +35,7 @@ spec:
       volumes:
         - name: models
           persistentVolumeClaim:
-            claimName: ovms-models
+            claimName: ovms-models-m920s
         - name: config
           configMap:
             name: ovms-embeddings-config

@@ -3,6 +3,8 @@
 # (the only pool that had no manifest). Labels: tier=internal (targeted by
 # mayastor-1/-2 and their thin twins). Label changes must ALSO be pushed to the
 # control plane: kubectl mayastor label pool m920s-nvme-pool tier=internal -n openebs
+# 2026-10-02: + ovms-models=true -- the ONLY pool with it; targeted by the
+# mayastor-ovms-models StorageClass so OVMS's model cache lives on m920s NVMe.
 apiVersion: openebs.io/v1beta3
 kind: DiskPool
 metadata:
@@ -15,3 +17,4 @@ spec:
   topology:
     labelled:
       tier: internal
+      ovms-models: "true"

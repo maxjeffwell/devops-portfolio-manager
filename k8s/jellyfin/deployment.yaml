@@ -39,9 +39,13 @@ spec:
       # debian-marmoset + neonmarmoset; the three UHD 630 nodes are gen9). The
       # encoding ConfigMap enables AV1 hardware decode and the HEVC low-power
       # encoder, which UHD 630 lacks (vainfo-verified), so jellyfin stays on Xe.
+      # 2026-10-02 deliberate GPU split (user decision): jellyfin owns neonmarmoset's
+      # Xe iGPU, OVMS owns debian-marmoset's. Pinned by hostname; keep the xe label
+      # too so the hardware requirement stays documented if the pin is ever lifted.
       nodeSelector:
         gpu-node: "true"
         intel-gpu-gen: xe
+        kubernetes.io/hostname: neonmarmoset
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true

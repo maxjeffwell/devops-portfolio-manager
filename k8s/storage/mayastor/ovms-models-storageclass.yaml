@@ -1,0 +1,33 @@
+# mayastor-ovms-models StorageClass
+# Single-replica thin Mayastor volume pinned to m920s-nvme-pool -- the only pool
+# labelled ovms-models=true (see m920s-nvme-pool.yaml). Holds OVMS's model cache
+# (~2.6G), which model-loader re-syncs from Garage, so 1 replica is enough.
+# 2026-10-02: user chose m920s NVMe for this deliberately; the OVMS pod itself
+# runs on debian-marmoset and mounts it over NVMe-oF.
+#
+# Pool label must ALSO be on the control plane:
+#   kubectl mayastor label pool m920s-nvme-pool ovms-models=true -n openebs
+#
+# StorageClass parameters are immutable: changing this file means
+# `kubectl delete sc mayastor-ovms-models && kubectl apply -f` this file.
+#
+# Not under ArgoCD -- kubectl-apply by hand.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mayastor-ovms-models
+  annotations:
+    description: |
+      Mayastor 1-replica thin, pinned to m920s-nvme-pool (ovms-models=true).
+      OVMS model cache.
+provisioner: io.openebs.csi-mayastor
+parameters:
+  ioTimeout: "30"
+  protocol: nvmf
+  repl: "1"
+  thin: "true"
+  poolAffinityTopologyLabel: |
+    ovms-models: "true"
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true

@@ -13,3 +13,22 @@ spec:
   resources:
     requests:
       storage: 4Gi
+---
+# 2026-10-02: model cache moved to Mayastor on m920s NVMe (mayastor-ovms-models =
+# m920s-nvme-pool only). Network-attached, so the pod is no longer tied to dm by
+# storage. ovms-models (dm-local lvmpv) above is unused; kept for rollback.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ovms-models-m920s
+  namespace: ovms
+  labels:
+    app: ovms-embeddings
+    portfolio: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: mayastor-ovms-models
+  resources:
+    requests:
+      storage: 8Gi
