@@ -1,0 +1,18 @@
+# Embeddings-only front door (2026-10-02). Selects every pod labelled
+# ovms-embed=true: the main ovms-embeddings pod (dm Xe) AND ovms-embed-m720q
+# (m720q UHD 630), so embedding clients keep working when either restarts.
+# Clients that need the LLM or interval_ai must keep using `ovms-embeddings`.
+apiVersion: v1
+kind: Service
+metadata:
+  name: ovms-embed
+  namespace: ovms
+  labels:
+    app: ovms-embed
+spec:
+  type: ClusterIP
+  selector:
+    ovms-embed: "true"
+  ports:
+    - { name: rest, port: 8000, targetPort: 8000, protocol: TCP }
+    - { name: grpc, port: 9000, targetPort: 9000, protocol: TCP }

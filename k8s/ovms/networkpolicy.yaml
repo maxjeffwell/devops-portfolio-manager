@@ -5,8 +5,9 @@ metadata:
   namespace: ovms
 spec:
   podSelector:
-    matchLabels:
-      app: ovms-embeddings
+    matchExpressions:
+      # ovms-embed-m720q (2026-10-02) = embeddings-only replica on m720q's UHD 630.
+      - { key: app, operator: In, values: [ovms-embeddings, ovms-embed-m720q] }
   policyTypes:
     - Ingress
   ingress:

@@ -7,6 +7,8 @@ resources:
   - model-pvc.yaml
   - embeddings-config.yaml
   - deployment.yaml
+  - embed-m720q.yaml
+  - service-embed.yaml
   - service.yaml
   - networkpolicy.yaml
   - servicemonitor.yaml
