@@ -188,6 +188,13 @@ ingress:
 
 # Kube-Prometheus-Stack Configuration
 kube-prometheus-stack:
+  # 2026-10-02: upstream KubeHpaMaxedOut fires forever on HPAs with minReplicas == maxReplicas
+  # (the portfolio servers use min=max=2 as their server-only replica knob, see
+  # portfolio-common). Disabled here; templates/hpa-alerts.yaml carries the same rule
+  # minus the min==max HPAs.
+  defaultRules:
+    disabled:
+      KubeHpaMaxedOut: true
   # Prometheus Configuration
   prometheus:
     prometheusSpec:

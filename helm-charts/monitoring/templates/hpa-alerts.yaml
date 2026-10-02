@@ -1,0 +1,38 @@
+# Replacement for kube-prometheus-stack's KubeHpaMaxedOut (disabled via
+# kube-prometheus-stack.defaultRules.disabled). Same expression, but HPAs whose
+# minReplicas == maxReplicas are skipped: they are fixed replica counts and can
+# never be anything but "maxed out".
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hpa-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+    # REQUIRED: Prometheus operator ruleSelector is matchLabels{release: prometheus}.
+    release: prometheus
+spec:
+  groups:
+  - name: hpa.rules
+    rules:
+    - alert: KubeHpaMaxedOut
+      expr: |
+        (
+          kube_horizontalpodautoscaler_status_current_replicas{job="kube-state-metrics"}
+            ==
+          kube_horizontalpodautoscaler_spec_max_replicas{job="kube-state-metrics"}
+        )
+        unless on (namespace, horizontalpodautoscaler)
+        (
+          kube_horizontalpodautoscaler_spec_max_replicas{job="kube-state-metrics"}
+            ==
+          kube_horizontalpodautoscaler_spec_min_replicas{job="kube-state-metrics"}
+        )
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "HPA is running at max replicas"
+        description: "HPA {{ "{{" }} $labels.namespace {{ "}}" }}/{{ "{{" }} $labels.horizontalpodautoscaler {{ "}}" }} has been running at max replicas for longer than 15 minutes."
+        runbook_url: "https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubehpamaxedout"
