@@ -1,0 +1,99 @@
+# 2026-10-02 GPU failback (user decision): jellyfin + immich-ml belong on
+# neonmarmoset's Xe iGPU but may fail over to debian-marmoset (Xe label only, no
+# hostname pin). Kubernetes never moves running pods back, so this CronJob does
+# the `rollout restart` once neon has been Ready + schedulable for 15 min. The
+# scheduler then places the new pod (neon normally has far more free requests).
+# Guards: pod must be >30 min old, so at most one restart per deployment per 30 min
+# even if the scheduler keeps choosing dm.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gpu-failback
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gpu-failback
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: ["jellyfin", "immich-ml"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gpu-failback
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gpu-failback
+subjects:
+  - kind: ServiceAccount
+    name: gpu-failback
+    namespace: jellyfin
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gpu-failback
+spec:
+  schedule: "*/10 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 3600
+      backoffLimit: 0
+      template:
+        spec:
+          serviceAccountName: gpu-failback
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            seccompProfile: { type: RuntimeDefault }
+          containers:
+            - name: failback
+              image: alpine/k8s:1.34.3
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: { drop: ["ALL"] }
+              resources:
+                requests: { cpu: 10m, memory: 32Mi }
+                limits: { memory: 128Mi }
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  HOME_NODE=neonmarmoset
+                  age() { jq -rn --arg t "$1" '(now - ($t | fromdateiso8601)) | floor'; }
+                  node=$(kubectl get node "$HOME_NODE" -o json)
+                  ready=$(echo "$node" | jq -r '.status.conditions[] | select(.type=="Ready") | .status')
+                  since=$(echo "$node" | jq -r '.status.conditions[] | select(.type=="Ready") | .lastTransitionTime')
+                  unsched=$(echo "$node" | jq -r '.spec.unschedulable // false')
+                  if [ "$ready" != True ] || [ "$unsched" = true ] || [ "$(age "$since")" -lt 900 ]; then
+                    echo "$HOME_NODE not ready/schedulable for 15 min yet; nothing to do"; exit 0
+                  fi
+                  for nd in jellyfin/jellyfin immich/immich-ml; do
+                    ns=${nd%/*}; d=${nd#*/}
+                    sel=$(kubectl -n "$ns" get deploy "$d" -o json | jq -r '.spec.selector.matchLabels | to_entries | map("\(.key)=\(.value)") | join(",")')
+                    kubectl -n "$ns" get pods -l "$sel" -o json \
+                      | jq -r '.items[] | select(.status.phase=="Running") | "\(.spec.nodeName) \(.status.startTime)"' \
+                      | while read -r pnode start; do
+                          if [ "$pnode" != "$HOME_NODE" ] && [ "$(age "$start")" -ge 1800 ]; then
+                            echo "$nd on $pnode -> rollout restart"
+                            kubectl -n "$ns" rollout restart deploy "$d"
+                          else
+                            echo "$nd on $pnode, ok"
+                          fi
+                        done
+                  done

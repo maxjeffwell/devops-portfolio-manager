@@ -13,3 +13,4 @@ resources:
   - ingressroute-auth.yaml
   - ingressroute-metrics-block.yaml
   - servicemonitor.yaml
+  - gpu-failback.yaml
