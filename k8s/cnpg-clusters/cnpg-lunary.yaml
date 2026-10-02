@@ -1,6 +1,6 @@
 # cnpg-lunary: captured from the live cluster 2026-09-05 (was live-patched, untracked).
 # Same field set as cnpg-bookmarked. Migrated off Synology iSCSI to mayastor-2 2026-09-05 (repl=2, primary on m720q).
-# bootstrap/externalClusters are the original pg_basebackup migration source — immutable, kept for a clean diff.
+# bootstrap: was the pg_basebackup migration source (gone); now initdb with the real db identity (2026-10-02), see the comment on bootstrap
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -45,27 +45,19 @@ spec:
             - mayastor
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
+  # Created by pg_basebackup from cnpg-lunary-src, a migration source that no
+  # longer exists (cluster and its TLS Secrets gone; the instance manager logged
+  # 'secrets "cnpg-lunary-src-replication" not found'). Replaced with initdb
+  # carrying the real database identity, read from pg_database. bootstrap is
+  # only read at creation (plus the db/owner names for monitoring and app-role
+  # reconciliation, which are unchanged), so this is inert today.
   bootstrap:
-    pg_basebackup:
+    initdb:
       database: lunary
       owner: neondb_owner
-      source: cnpg-lunary-src
-  externalClusters:
-  - connectionParameters:
-      dbname: postgres
-      host: cnpg-lunary-src-rw
-      sslmode: verify-ca
-      user: streaming_replica
-    name: cnpg-lunary-src
-    sslCert:
-      key: tls.crt
-      name: cnpg-lunary-src-replication
-    sslKey:
-      key: tls.key
-      name: cnpg-lunary-src-replication
-    sslRootCert:
-      key: ca.crt
-      name: cnpg-lunary-src-ca
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
   probes:
     liveness:
       isolationCheck:
