@@ -10,6 +10,13 @@
 #
 # The client-info secret must be created separately (contains DSM credentials).
 # See client-info-secret.yaml.
+#
+# 2026-10-02: the chart has NO priorityClassName value, so the node DaemonSet was
+# priority 0 (a preemption victim -> evicting it breaks iSCSI mounts on that node).
+# Patched live, outside helm (survives helm upgrade via 3-way merge; re-apply after
+# an uninstall/reinstall). Same patch on kube-system/csi-s3, which has no source here:
+#   kubectl -n synology-csi patch ds synology-csi-node \
+#     -p '{"spec":{"template":{"spec":{"priorityClassName":"system-node-critical"}}}}'
 
 storageClasses:
   - name: synology-iscsi

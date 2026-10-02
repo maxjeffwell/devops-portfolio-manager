@@ -39,13 +39,16 @@ spec:
       # debian-marmoset + neonmarmoset; the three UHD 630 nodes are gen9). The
       # encoding ConfigMap enables AV1 hardware decode and the HEVC low-power
       # encoder, which UHD 630 lacks (vainfo-verified), so jellyfin stays on Xe.
-      # 2026-10-02 deliberate GPU split (user decision): jellyfin owns neonmarmoset's
-      # Xe iGPU, OVMS owns debian-marmoset's. Pinned by hostname; keep the xe label
-      # too so the hardware requirement stays documented if the pin is ever lifted.
+      # 2026-10-02 GPU split (user decision): jellyfin + immich-ml normally run on
+      # neonmarmoset's Xe iGPU, OVMS on debian-marmoset's. No hostname pin, so either
+      # Xe node qualifies and jellyfin fails over to debian-marmoset if neon is down
+      # (sharedDevNum 4 lets it share dm's iGPU with OVMS). It only fits there when dm
+      # has ~1Gi of free requests; no preemption on purpose -- dm's mongodb secondaries
+      # are on node-local openebs-lvmpv and could not reschedule if evicted.
+      # After a failover, restart the deployment once neon is back to move it home.
       nodeSelector:
         gpu-node: "true"
         intel-gpu-gen: xe
-        kubernetes.io/hostname: neonmarmoset
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true

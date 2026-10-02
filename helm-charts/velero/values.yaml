@@ -128,6 +128,9 @@ nodeAgent:
   extraArgs:
     - --node-agent-configmap=velero-node-agent-config
   podVolumePath: /var/lib/kubelet/pods
+  # 2026-10-02: was priority 0, i.e. a preemption victim under memory pressure.
+  # Node-level agent -> system-node-critical (applied live by kubectl patch first).
+  priorityClassName: system-node-critical
   # 2026-09-16: previously had no resources block, so it inherited the
   # namespace LimitRange default (10m/64Mi) -- 2.6x under its real peak.
   # Measured 14-day peaks WITH backups running (29 PVBs/day, 98 on 09-13):

@@ -1,8 +1,8 @@
 # Immich machine learning (CLIP smart search, face detection/recognition, OCR)
 # on an Intel iGPU via OpenVINO. The -openvino image needs /dev/dri, which the
 # Intel GPU device plugin injects for gpu.intel.com/i915; that request is what
-# limits scheduling to the i915 nodes. 2026-10-02: pinned to neonmarmoset's Xe
-# iGPU (user decision; see nodeSelector) -- 96 EUs vs the UHD 630's 24. The render
+# limits scheduling to the i915 nodes. 2026-10-02: Xe iGPU nodes only (see
+# nodeSelector) -- 96 EUs vs the UHD 630's 24. The render
 # group is gid 992 on every iGPU node. Models download from Hugging Face on first
 # use into /cache (replicated Mayastor PVC since 2026-09-30). Runs as uid 1000
 # like the server.
@@ -31,12 +31,12 @@ spec:
       annotations:
         backup.velero.io/backup-volumes-excludes: cache,tmp
     spec:
-      # 2026-10-02 deliberate GPU placement (user decision): immich-ml shares
-      # neonmarmoset's Xe iGPU with jellyfin (OVMS owns debian-marmoset's).
-      # Pinned by hostname; intel-gpu-gen=xe documents the hardware requirement.
+      # 2026-10-02 GPU split (user decision): immich-ml normally shares
+      # neonmarmoset's Xe iGPU with jellyfin (OVMS runs on debian-marmoset's).
+      # No hostname pin: fails over to debian-marmoset when neon is down and dm has
+      # ~1Gi of free requests (no preemption -- see k8s/jellyfin/deployment.yaml).
       nodeSelector:
         intel-gpu-gen: xe
-        kubernetes.io/hostname: neonmarmoset
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
