@@ -11,13 +11,15 @@ data:
   # interval_ai TensorFlow SavedModel (KServe v2 /v2/models/interval_ai, served
   # here instead of Triton since 2026-09-30; on the i915 via the OpenVINO GPU plugin).
   # e5-large: MediaPipe
-  # graph. base_path points at /config (this ConfigMap mount) where graph.pbtxt
-  # lives; the model files stay on the read-only PVC, referenced by absolute
+  # graph. graph_path points at /config/graph.pbtxt (this ConfigMap mount). NOT base_path:
+  # /config: OVMS then re-reads this config.json as e5-large's subconfig and logs
+  # "Duplicated model names: interval_ai" + "Loading Mediapipe e5-large ... failed".
+  # The model files stay on the read-only PVC, referenced by absolute
   # models_path in the graph.
   config.json: |
     {
       "mediapipe_config_list": [
-        { "name": "e5-large", "base_path": "/config" },
+        { "name": "e5-large", "graph_path": "/config/graph.pbtxt" },
         { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" },
         { "name": "qwen3-embedding-0.6b", "graph_path": "/config/qwen3-embedding-graph.pbtxt" }
       ],
