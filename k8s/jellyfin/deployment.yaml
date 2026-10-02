@@ -39,8 +39,8 @@ spec:
       # debian-marmoset + neonmarmoset; the three UHD 630 nodes are gen9). The
       # encoding ConfigMap enables AV1 hardware decode and the HEVC low-power
       # encoder, which UHD 630 lacks (vainfo-verified), so jellyfin stays on Xe.
-      # 2026-10-02 GPU split (user decision): jellyfin + immich-ml normally run on
-      # neonmarmoset's Xe iGPU, OVMS on debian-marmoset's. No hostname pin, so either
+      # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
+      # debian-marmoset Xe = immich-ml + ovms-llm. jellyfin has no hostname pin, so either
       # Xe node qualifies and jellyfin fails over to debian-marmoset if neon is down
       # (sharedDevNum 4 lets it share dm's iGPU with OVMS). It only fits there when dm
       # has ~1Gi of free requests; no preemption on purpose -- dm's mongodb secondaries

@@ -21,9 +21,9 @@ spec:
     spec:
       nodeSelector:
         gpu-node: "true"
-        # 2026-10-02 deliberate GPU split (user decision): OVMS owns dm's Xe iGPU,
-        # jellyfin owns neonmarmoset's. Pinned by hostname, not left to the scheduler.
-        kubernetes.io/hostname: debian-marmoset
+        # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
+        # debian-marmoset Xe = immich-ml + ovms-llm. Hostname-pinned.
+        kubernetes.io/hostname: neonmarmoset
       priorityClassName: portfolio-critical
       terminationGracePeriodSeconds: 30
       securityContext:
@@ -53,7 +53,7 @@ spec:
               # Sync each model from garage once (marker = a file that only exists after a full sync).
               # e5-large: OpenVINO IR for the embeddings graph. interval_ai: TensorFlow SavedModel
               # (intervalai-server's 51-feature regressor, moved here from Triton 2026-09-30).
-              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen2.5-1.5b-instruct:openvino_model.bin" "qwen3-embedding-0.6b:openvino_model.bin"; do
+              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen3-embedding-0.6b:openvino_model.bin"; do
                 name=${m%%:*}; marker=${m#*:}
                 if [ -f "/models/$name/$marker" ]; then
                   echo "$name already present, skipping sync"
@@ -142,7 +142,9 @@ spec:
               # 2026-10-02: 3584Mi -> 7Gi. Measured 6629Mi working set with all four graphs;
               # the request was ~3Gi BELOW real use, so the scheduler counted dm memory as
               # free that OVMS was actually holding. Request now matches reality.
-              memory: 7Gi
+              # 2026-10-02: 7Gi -> 5Gi. The LLM (~2.2Gi working set) moved to ovms-llm.
+              # Re-measure with all three remaining models loaded and match it.
+              memory: 5Gi
               gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old

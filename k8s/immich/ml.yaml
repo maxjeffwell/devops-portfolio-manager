@@ -31,12 +31,11 @@ spec:
       annotations:
         backup.velero.io/backup-volumes-excludes: cache,tmp
     spec:
-      # 2026-10-02 GPU split (user decision): immich-ml normally shares
-      # neonmarmoset's Xe iGPU with jellyfin (OVMS runs on debian-marmoset's).
-      # No hostname pin: fails over to debian-marmoset when neon is down and dm has
-      # ~1Gi of free requests (no preemption -- see k8s/jellyfin/deployment.yaml).
+      # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
+      # debian-marmoset Xe = immich-ml + ovms-llm. Hostname-pinned.
       nodeSelector:
         intel-gpu-gen: xe
+        kubernetes.io/hostname: debian-marmoset
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

@@ -1,6 +1,7 @@
-# 2026-10-02 GPU split (user decision): the qwen2.5-1.5b-instruct LLM gets its own
-# OVMS pod on neonmarmoset's Xe iGPU (shared with jellyfin + immich-ml), while
-# ovms-embeddings on debian-marmoset keeps the embedding graphs + interval_ai.
+# 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
+# debian-marmoset Xe = immich-ml + ovms-llm.
+# The qwen2.5-1.5b-instruct LLM has its own OVMS pod; ovms-embeddings keeps the
+# embedding graphs + interval_ai.
 # OpenAI-compatible chat at http://ovms-llm.ovms:8000/v3 (model "qwen2.5-1.5b-instruct")
 # for shared-ai-gateway's auto tier and litellm's local-llama / ollama-llama3.2-3b.
 # Weights: OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov (Apache-2.0) in s3://ovms-models.
@@ -97,8 +98,8 @@ spec:
       nodeSelector:
         gpu-node: "true"
         intel-gpu-gen: xe
-        # 2026-10-02 GPU split (user decision): the LLM runs on neonmarmoset's Xe iGPU.
-        kubernetes.io/hostname: neonmarmoset
+        # 2026-10-02 GPU split (user decision): the LLM runs on debian-marmoset's Xe iGPU.
+        kubernetes.io/hostname: debian-marmoset
       priorityClassName: portfolio-critical
       terminationGracePeriodSeconds: 30
       securityContext:

@@ -1,6 +1,5 @@
-# 2026-10-02 GPU failback (user decision): jellyfin + immich-ml belong on
-# neonmarmoset's Xe iGPU but may fail over to debian-marmoset (Xe label only, no
-# hostname pin). Kubernetes never moves running pods back, so this CronJob does
+# 2026-10-02 GPU failback (user decision): jellyfin belongs on neonmarmoset's Xe
+# iGPU but may fail over to debian-marmoset (Xe label only, no hostname pin). Kubernetes never moves running pods back, so this CronJob does
 # the `rollout restart` once neon has been Ready + schedulable for 15 min. The
 # scheduler then places the new pod (neon normally has far more free requests).
 # Guards: pod must be >30 min old, so at most one restart per deployment per 30 min
@@ -23,7 +22,7 @@ rules:
     verbs: ["list"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    resourceNames: ["jellyfin", "immich-ml"]
+    resourceNames: ["jellyfin"]
     verbs: ["get", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -83,7 +82,7 @@ spec:
                   if [ "$ready" != True ] || [ "$unsched" = true ] || [ "$(age "$since")" -lt 900 ]; then
                     echo "$HOME_NODE not ready/schedulable for 15 min yet; nothing to do"; exit 0
                   fi
-                  for nd in jellyfin/jellyfin immich/immich-ml; do
+                  for nd in jellyfin/jellyfin; do
                     ns=${nd%/*}; d=${nd#*/}
                     sel=$(kubectl -n "$ns" get deploy "$d" -o json | jq -r '.spec.selector.matchLabels | to_entries | map("\(.key)=\(.value)") | join(",")')
                     kubectl -n "$ns" get pods -l "$sel" -o json \

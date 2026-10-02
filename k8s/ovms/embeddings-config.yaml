@@ -20,7 +20,6 @@ data:
     {
       "mediapipe_config_list": [
         { "name": "e5-large", "graph_path": "/config/graph.pbtxt" },
-        { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" },
         { "name": "qwen3-embedding-0.6b", "graph_path": "/config/qwen3-embedding-graph.pbtxt" }
       ],
       "model_config_list": [
@@ -55,45 +54,7 @@ data:
         }
       }
     }
-  # 2026-10-01: OpenAI-compatible chat (/v3/chat/completions, model
-  # "qwen2.5-1.5b-instruct") for shared-ai-gateway's auto tier (tags, descriptions).
-  # Weights: OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov (Apache-2.0) in s3://ovms-models.
-  llm-graph.pbtxt: |
-    input_stream: "HTTP_REQUEST_PAYLOAD:input"
-    output_stream: "HTTP_RESPONSE_PAYLOAD:output"
-    node: {
-      name: "LLMExecutor"
-      calculator: "HttpLLMCalculator"
-      input_stream: "LOOPBACK:loopback"
-      input_stream: "HTTP_REQUEST_PAYLOAD:input"
-      input_side_packet: "LLM_NODE_RESOURCES:llm"
-      output_stream: "LOOPBACK:loopback"
-      output_stream: "HTTP_RESPONSE_PAYLOAD:output"
-      input_stream_info: {
-        tag_index: 'LOOPBACK:0',
-        back_edge: true
-      }
-      node_options: {
-        [type.googleapis.com / mediapipe.LLMCalculatorOptions]: {
-          models_path: "/models/qwen2.5-1.5b-instruct",
-          plugin_config: '{}',
-          enable_prefix_caching: false,
-          cache_size: 1,
-          max_num_seqs: 4,
-          device: "GPU"
-        }
-      }
-      input_stream_handler {
-        input_stream_handler: "SyncSetInputStreamHandler",
-        options {
-          [mediapipe.SyncSetInputStreamHandlerOptions.ext] {
-            sync_set {
-              tag_index: "LOOPBACK:0"
-            }
-          }
-        }
-      }
-    }
+  # 2026-10-02: the qwen2.5-1.5b-instruct LLM moved to its own pod (llm.yaml, ovms-llm).
   # 2026-10-01: Qwen3-Embedding-0.6B (OpenVINO int8, Apache-2.0, 1024 d, LAST pooling).
   # Eval on bookmarked's 62 bookmarks / 20 labelled queries: hit@1 18/20, MRR 0.935,
   # relevance margin 0.277 vs e5-large CLS (no prefixes) 11/20, 0.636, 0.039.
