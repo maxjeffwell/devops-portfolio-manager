@@ -1,0 +1,144 @@
+# Blackbox DNS probes + alerts. Moved into git 2026-10-02 (the Probes and the rule were
+# hand-applied). Targets are the kube-dns ClusterIP, not its hostname: blackbox counts
+# resolving the target name in probe_duration_seconds, and with ndots:5 that walked four
+# search domains first (~400 ms from the VPS, where blackbox happens to schedule) while
+# the probed query itself took ~20 ms. node-local-dns serves 10.43.0.10 on every node,
+# so the probe exercises the same path pods use, wherever blackbox runs.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: dns-cluster-probe
+  namespace: monitoring
+  labels:
+    app: blackbox-exporter
+    probe-type: dns
+    release: prometheus
+spec:
+  jobName: dns-cluster
+  module: dns_cluster
+  interval: 30s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 10.43.0.10:53   # kube-dns ClusterIP
+      labels:
+        probe_target: coredns
+        probe_type: dns_internal
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: dns-external-probe
+  namespace: monitoring
+  labels:
+    app: blackbox-exporter
+    probe-type: dns
+    release: prometheus
+spec:
+  jobName: dns-external
+  module: dns_external
+  interval: 60s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 10.43.0.10:53   # kube-dns ClusterIP
+      labels:
+        probe_target: coredns-forwarding
+        probe_type: dns_external
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: dns-probe-alerts
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+    # REQUIRED: Prometheus operator ruleSelector is matchLabels{release: prometheus}.
+    release: prometheus
+spec:
+  groups:
+  - name: dns-probes
+    rules:
+    - alert: DNSProbeInternalFailed
+      expr: probe_success{job="dns-cluster"} == 0
+      for: 2m
+      labels:
+        component: dns
+        probe_type: internal
+        severity: critical
+      annotations:
+        summary: "Internal DNS resolution is failing."
+        description: "DNS probe for internal cluster resolution (kubernetes.default.svc.cluster.local) has been failing for 2 minutes. CoreDNS may be unable to resolve internal services."
+        runbook: |
+          1. Check CoreDNS pods: kubectl get pods -n kube-system -l k8s-app=kube-dns
+          2. Check CoreDNS logs: kubectl logs -n kube-system -l k8s-app=kube-dns
+          3. Test manually: kubectl run -it --rm debug --image=busybox --restart=Never -- nslookup kubernetes.default
+
+    - alert: DNSProbeExternalFailed
+      expr: probe_success{job="dns-external"} == 0
+      for: 5m
+      labels:
+        component: dns
+        probe_type: external
+        severity: warning
+      annotations:
+        summary: "External DNS resolution is failing."
+        description: "DNS probe for external resolution (google.com) has been failing for 5 minutes. CoreDNS forwarding to upstream DNS may be broken."
+        runbook: |
+          1. Check CoreDNS forward plugin config
+          2. Check network connectivity to upstream DNS
+          3. Test manually: kubectl run -it --rm debug --image=busybox --restart=Never -- nslookup google.com
+
+    - alert: DNSProbeHighLatency
+      expr: probe_duration_seconds{job=~"dns-.*"} > 0.5
+      for: 5m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "DNS resolution latency is high."
+        description: "DNS probe {{ "{{" }} $labels.job {{ "}}" }} latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }}, which exceeds the 500ms threshold."
+
+    - alert: BlackboxExporterDown
+      expr: up{job="blackbox-exporter"} == 0
+      for: 2m
+      labels:
+        component: monitoring
+        severity: warning
+      annotations:
+        summary: "Blackbox exporter is not responding."
+        description: "Blackbox exporter is down - DNS synthetic probes are not running."
+
+    # An answer arrived (query succeeded) but the probe failed => unexpected rcode.
+    # Was probe_dns_lookup_time_seconds > 0, which is target-NAME resolution time and is
+    # ~0 now that the targets are IPs.
+    - alert: DNSProbeWrongRcode
+      expr: |
+        probe_dns_query_succeeded{job=~"dns-.*"} == 1
+        and probe_success{job=~"dns-.*"} == 0
+      for: 2m
+      labels:
+        component: dns
+        severity: warning
+      annotations:
+        summary: "DNS probe received unexpected response."
+        description: "DNS probe received unexpected response code. Expected NOERROR but got a different code."
+
+    - alert: DNSProbeNoData
+      expr: absent(probe_success{job="dns-cluster"})
+      for: 5m
+      labels:
+        component: monitoring
+        severity: warning
+      annotations:
+        summary: "DNS probe metrics are missing."
+        description: "No data from DNS probes for 5 minutes. Check blackbox exporter and probe configuration."
