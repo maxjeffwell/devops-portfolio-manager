@@ -138,7 +138,10 @@ spec:
               # 2026-10-01: 2Gi -> 3Gi. + qwen2.5-1.5b-instruct LLM for the gateway's
               # auto tier (int4 weights ~0.9 GB + 1 GB KV cache in shared iGPU memory).
               # 2026-10-01: 3Gi -> 3584Mi. + qwen3-embedding-0.6b (int8, 0.6 GB) for bookmarked.
-              memory: 3584Mi
+              # 2026-10-02: 3584Mi -> 7Gi. Measured 6629Mi working set with all four graphs;
+              # the request was ~3Gi BELOW real use, so the scheduler counted dm memory as
+              # free that OVMS was actually holding. Request now matches reality.
+              memory: 7Gi
               gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
