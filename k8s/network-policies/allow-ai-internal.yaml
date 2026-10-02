@@ -1,0 +1,19 @@
+# NetworkPolicy default/allow-ai-internal. Exported from the live cluster 2026-09-26 (it was
+# hand-applied, tracked by nothing); verified with an empty kubectl diff.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ai-internal
+  namespace: default
+spec:
+  ingress:
+  - from:
+    - podSelector: {}
+    ports:
+    - port: 8080
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: llama-cpu
+  policyTypes:
+  - Ingress
