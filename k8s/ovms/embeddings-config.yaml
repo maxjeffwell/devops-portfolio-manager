@@ -32,15 +32,6 @@ data:
         }
       ]
     }
-  # 2026-10-02: embeddings-only variant for the ovms-embed-m720q replica (UHD 630).
-  # Same graphs as above, minus the LLM and interval_ai (those stay on dm's Xe).
-  config-embed.json: |
-    {
-      "mediapipe_config_list": [
-        { "name": "e5-large", "base_path": "/config" },
-        { "name": "qwen3-embedding-0.6b", "graph_path": "/config/qwen3-embedding-graph.pbtxt" }
-      ]
-    }
   # OpenAI-compatible embeddings graph (OVMS 2025.4 EmbeddingsCalculatorOV).
   # e5 requires MEAN pooling; embeddings are L2-normalized server-side.
   graph.pbtxt: |
