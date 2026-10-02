@@ -67,6 +67,9 @@ spec:
               # OpenVINO picks the first *.pb it sees; TensorFlow's optional fingerprint.pb
               # must not be there or the SavedModel fails to load.
               rm -f /models/interval_ai/1/fingerprint.pb
+              # Partial downloads left by a killed sync (aws-cli writes <file>.<8 random chars>
+              # then renames). Harmless to OVMS but they waste space on the thin volume.
+              rm -f /models/*/*.bin.???????? /models/*/1/*.bin.????????
               echo "Sync complete"
           env:
             - { name: AWS_REGION, value: garage }
@@ -84,7 +87,10 @@ spec:
             - { name: models, mountPath: /models }
           resources:
             requests: { cpu: 100m, memory: 64Mi }
-            limits:   { memory: 256Mi }
+            # 2026-10-02: 256Mi -> 1Gi. Against in-cluster garage (~53 MB/s) aws-cli's
+            # transfer buffers hit ~250Mi RSS -> OOMKilled 7x (it was fine at 3.4 MiB/s via
+            # the public endpoint). Init-container limits don't add to the pod's footprint.
+            limits:   { memory: 1Gi }
       containers:
         - name: ovms
           image: openvino/model_server:2025.4-gpu
