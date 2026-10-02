@@ -142,10 +142,12 @@ pyroscope:
     repository: grafana/pyroscope
     tag: "1.18.1"
   priorityClassName: monitoring
-  # 2026-09-27: moved off elitedesk (spread the monitoring stack across nodes).
-  # The PV is lvm-localpv on debian-marmoset, so the pod must stay on that node.
-  nodeSelector:
-    kubernetes.io/hostname: debian-marmoset
+  # 2026-10-02: hostname pin removed to free memory on debian-marmoset. Storage is
+  # lvm-localpv, so the new PV binds wherever the scheduler first places the pod
+  # (WaitForFirstConsumer) and the PV's own node affinity keeps it there. Flushed
+  # blocks live in garage S3, so recreating the local volume loses no history.
+  # (was: 9/27 moved off elitedesk -> pinned to debian-marmoset)
+  nodeSelector: {}
   resources:
     requests:
       # Raised 100m -> 200m 2026-09-07. Unlike most of elitedesk (which is
