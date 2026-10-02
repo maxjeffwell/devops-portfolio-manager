@@ -26,8 +26,10 @@ parameters:
   protocol: nvmf
   repl: "1"
   thin: "true"
+  # Value must be UNQUOTED: Mayastor matches the text literally, so "true" (with
+  # quotes) never equals the pool's true -> "Not enough suitable pools, 0/1".
   poolAffinityTopologyLabel: |
-    ovms-models: "true"
+    ovms-models: true
 reclaimPolicy: Retain
 volumeBindingMode: Immediate
 allowVolumeExpansion: true
