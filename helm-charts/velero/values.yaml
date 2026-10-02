@@ -144,10 +144,9 @@ nodeAgent:
     limits:
       memory: 512Mi
 
-# Server pinned to elitedesk since 2026-08-18 (kubectl patch; ported to values
-# 2026-09-01 — without this an upgrade would silently unpin it).
-nodeSelector:
-  kubernetes.io/hostname: elitedesk
+# Server unpinned 2026-10-02 (was elitedesk since 2026-08-18, no placement
+# fact: no local volume or device). Kept explicit so an upgrade can't re-add it.
+nodeSelector: {}
 
 # 2026-09-07 right-sizing, measured 2-day peaks: cpu 39m against a 200m request,
 # memory 568Mi against a 512Mi request. Limit stays 1Gi (peak is ~55% of it).

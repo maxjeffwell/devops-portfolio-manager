@@ -46,9 +46,6 @@ ingress:
 persistence:
   enabled: false
 
-nodeSelector:
-  kubernetes.io/hostname: elitedesk
-
 # ArgoCD integration (GitOps deep diff on Application pages).
 # Token is minted for a dedicated read-only account, NOT admin: argocd's admin
 # is a superuser that bypasses RBAC entirely, so an admin token could delete

@@ -116,8 +116,8 @@ tempoRedis:
   image:
     repository: docker.dragonflydb.io/dragonflydb/dragonfly
     tag: "latest"
-  nodeSelector:
-    kubernetes.io/hostname: elitedesk
+  # No node pin (2026-10-02): no local volume, scheduler places it.
+  nodeSelector: {}
   resources:
     requests:
       cpu: 50m

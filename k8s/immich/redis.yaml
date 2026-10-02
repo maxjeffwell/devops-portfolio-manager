@@ -24,8 +24,6 @@ spec:
         component: redis
         portfolio: "true"
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: elitedesk
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

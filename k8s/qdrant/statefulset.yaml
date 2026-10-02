@@ -29,11 +29,18 @@ spec:
         app: qdrant
         portfolio: "true"
     spec:
-      nodeSelector:
-        # 2026-09-24: moved off debian-marmoset (89 % memory requests) to m720q
-        # (32 GB). Requires the democratic-csi node plugin on the target node;
-        # see k8s/storage/democratic-csi/synology-iscsi-mp-values.yaml.
-        kubernetes.io/hostname: m720q
+      # Placement FACT only: the volume is democratic-synology-iscsi-mp, whose
+      # node plugin runs on these nodes (see
+      # k8s/storage/democratic-csi/synology-iscsi-mp-values.yaml). The
+      # scheduler picks between them (was a hard m720q pin, 2026-09-24).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["debian-marmoset", "m720q"]
       priorityClassName: portfolio-critical
       restartPolicy: Always
       schedulerName: default-scheduler
