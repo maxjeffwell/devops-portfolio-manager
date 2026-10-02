@@ -30,9 +30,12 @@ spec:
         # the folder was a byte-identical duplicate of Immich uploads and was deleted.)
         backup.velero.io/backup-volumes-excludes: library,tmp
     spec:
-      # No nodeSelector: the gpu.intel.com/i915 limit below already restricts
-      # scheduling to nodes running the Intel GPU plugin; the library is NFS
-      # and tmp is an emptyDir, so nothing here is node-local.
+      # 2026-10-02 deliberate GPU placement (user decision): QSV transcoding uses
+      # elitedesk's UHD 630. The Xe iGPUs are taken (OVMS on debian-marmoset;
+      # jellyfin + immich-ml on neonmarmoset). Nothing here is node-local (library
+      # is NFS, tmp is an emptyDir), so this pin is the only thing holding it here.
+      nodeSelector:
+        kubernetes.io/hostname: elitedesk
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true
