@@ -1,6 +1,5 @@
 # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
-# debian-marmoset Xe = immich-ml ONLY; ovms-llm runs on a gen9 (UHD 630) iGPU node
-# (elitedesk / m720q / m920s, scheduler picks) - neon has no memory left for it.
+# debian-marmoset Xe = immich-ml + ovms-llm.
 # The qwen2.5-1.5b-instruct LLM has its own OVMS pod; ovms-embeddings keeps the
 # embedding graphs + interval_ai.
 # OpenAI-compatible chat at http://ovms-llm.ovms:8000/v3 (model "qwen2.5-1.5b-instruct")
@@ -98,9 +97,9 @@ spec:
     spec:
       nodeSelector:
         gpu-node: "true"
-        # 2026-10-02 (user decision): LLM on a gen9 iGPU; the Xe nodes are taken
-        # (dm = immich-ml only, neon = jellyfin + ovms-embeddings).
-        intel-gpu-gen: gen9
+        intel-gpu-gen: xe
+        # 2026-10-02 GPU split (user decision): the LLM runs on debian-marmoset's Xe iGPU.
+        kubernetes.io/hostname: debian-marmoset
       priorityClassName: portfolio-critical
       terminationGracePeriodSeconds: 30
       securityContext:
