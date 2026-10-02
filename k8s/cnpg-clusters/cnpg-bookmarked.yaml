@@ -63,12 +63,17 @@ spec:
     podAntiAffinityType: required
     topologyKey: kubernetes.io/hostname
   bootstrap:
+    # The application database is neondb/neondb_owner (data migrated from
+    # Neon). CNPG reads these two names to pick the database its metrics
+    # queries run in and the role it manages from secret cnpg-bookmarked-app;
+    # with the defaults (app/app) it logged 'database "app" does not exist'
+    # every few seconds. initdb itself only ran at creation.
     initdb:
-      database: app
+      database: neondb
       encoding: UTF8
       localeCType: C
       localeCollate: C
-      owner: app
+      owner: neondb_owner
   storage:
     resizeInUseVolumes: true
     size: 5Gi
