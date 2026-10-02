@@ -88,6 +88,7 @@ spec:
   # (ObjectStore cnpg-codetalk-b2, see barman-cloud-b2.yaml).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
+      enabled: true
       isWALArchiver: true
       parameters:
         barmanObjectName: cnpg-codetalk-b2

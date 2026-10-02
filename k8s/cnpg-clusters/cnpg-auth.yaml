@@ -134,6 +134,7 @@ spec:
   # (ObjectStore cnpg-auth-b2, see barman-cloud-b2.yaml).
   plugins:
     - name: barman-cloud.cloudnative-pg.io
+      enabled: true
       isWALArchiver: true
       parameters:
         barmanObjectName: cnpg-auth-b2

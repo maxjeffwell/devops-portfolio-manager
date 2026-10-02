@@ -19,14 +19,21 @@ spec:
   target:
     name: cnpg-b2-creds
     creationPolicy: Owner
+    deletionPolicy: Retain
   data:
     # Same Backblaze key Velero uses for this bucket.
     - secretKey: ACCESS_KEY_ID
       remoteRef:
+        conversionStrategy: Default
+        decodingStrategy: None
         key: BACKBLAZE_ACCESS_KEY_ID
+        metadataPolicy: None
     - secretKey: ACCESS_SECRET_KEY
       remoteRef:
+        conversionStrategy: Default
+        decodingStrategy: None
         key: BACKBLAZE_SECRET_ACCESS_KEY
+        metadataPolicy: None
 ---
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
