@@ -1,0 +1,24 @@
+# litellm -> ovms-embeddings (qwen2.5-1.5b-instruct chat via OVMS's OpenAI API, /v3).
+# 2026-10-02: litellm's local-llama / ollama-llama3.2-3b routes moved from the retired
+# ollama to OVMS. The ovms namespace already admits cluster ingress (ovms-allow-cluster);
+# this is the egress half.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-litellm-to-ovms
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: litellm
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ovms
+    ports:
+    - port: 8000
+      protocol: TCP
