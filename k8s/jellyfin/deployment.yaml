@@ -46,9 +46,18 @@ spec:
       # has ~1Gi of free requests; no preemption on purpose -- dm's mongodb secondaries
       # are on node-local openebs-lvmpv and could not reschedule if evicted.
       # After a failover, restart the deployment once neon is back to move it home.
+      # 2026-10-02 later (user decision): HOME moved back to debian-marmoset -- neon
+      # lacks the room. Preferred (not required) so it can still fail over to neon.
       nodeSelector:
         gpu-node: "true"
         intel-gpu-gen: xe
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - { key: kubernetes.io/hostname, operator: In, values: [debian-marmoset] }
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true

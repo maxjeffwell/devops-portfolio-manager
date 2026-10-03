@@ -1,7 +1,7 @@
-# 2026-10-02 GPU failback (user decision): jellyfin belongs on neonmarmoset's Xe
-# iGPU but may fail over to debian-marmoset (Xe label only, no hostname pin). Kubernetes never moves running pods back, so this CronJob does
-# the `rollout restart` once neon has been Ready + schedulable for 15 min. The
-# scheduler then places the new pod (neon normally has far more free requests).
+# 2026-10-02 GPU failback (user decision, home flipped to dm later 10/2): jellyfin
+# belongs on debian-marmoset's Xe iGPU but may fail over to neonmarmoset (Xe label only, no hostname pin). Kubernetes never moves running pods back, so this CronJob does
+# the `rollout restart` once dm has been Ready + schedulable for 15 min. The
+# scheduler then places the new pod (preferred affinity favours dm).
 # Guards: pod must be >30 min old, so at most one restart per deployment per 30 min
 # even if the scheduler keeps choosing dm.
 apiVersion: v1
@@ -73,7 +73,7 @@ spec:
               args:
                 - |
                   set -eu
-                  HOME_NODE=neonmarmoset
+                  HOME_NODE=debian-marmoset
                   age() { jq -rn --arg t "$1" '(now - ($t | fromdateiso8601)) | floor'; }
                   node=$(kubectl get node "$HOME_NODE" -o json)
                   ready=$(echo "$node" | jq -r '.status.conditions[] | select(.type=="Ready") | .status')
