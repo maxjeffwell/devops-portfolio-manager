@@ -10,8 +10,8 @@ metadata:
   namespace: jellyfin
 spec:
   podSelector:
-    matchLabels:
-      app: jellyfin
+    matchExpressions:
+      - { key: app, operator: In, values: [jellyfin, jellyfin-dm] }
   policyTypes:
     - Ingress
     - Egress

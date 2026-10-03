@@ -14,3 +14,4 @@ resources:
   - ingressroute-metrics-block.yaml
   - servicemonitor.yaml
   - gpu-failback.yaml
+  - jellyfin-dm.yaml
