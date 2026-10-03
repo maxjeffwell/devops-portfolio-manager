@@ -1,7 +1,7 @@
-# kubenav (iPhone app) ServiceAccount, cluster-admin by user choice 2026-10-02.
-# The phone reaches the API over the tailnet (https://100.64.0.2:6443). The token
+# kubenav (iPad app) ServiceAccount, cluster-admin by user choice 2026-10-02.
+# The iPad reaches the API over the tailnet (https://100.64.0.2:6443). The token
 # lives in the Secret below (filled in by the token controller, never in git).
-# Lost phone: delete the Secret, and the controller issues a new token while the old one stops working.
+# Lost iPad: delete the Secret, and the controller issues a new token while the old one stops working.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
