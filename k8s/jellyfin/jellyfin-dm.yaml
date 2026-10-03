@@ -71,15 +71,17 @@ spec:
       initContainers:
         # Cloned config carries the main server's ServerId (data/device.txt);
         # drop it once so this instance generates its own and clients don't
-        # merge the two servers.
+        # merge the two servers. Marker must NOT be named .jellyfin-* — Jellyfin's
+        # startup sanity check treats those as its own path markers and aborts.
         - name: new-server-id
           image: busybox:1.36
           command: [sh, -c]
           args:
             - |
-              if [ ! -e /config/.jellyfin-dm ]; then
+              [ -e /config/.jellyfin-dm ] && mv /config/.jellyfin-dm /config/.dm-serverid-reset
+              if [ ! -e /config/.dm-serverid-reset ]; then
                 rm -f /config/data/device.txt
-                touch /config/.jellyfin-dm
+                touch /config/.dm-serverid-reset
                 echo "fresh ServerId"
               fi
           securityContext:
