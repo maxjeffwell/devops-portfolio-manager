@@ -19,7 +19,12 @@
 #
 # 2026-10-06 (user decision): synced by the `headscale` ArgoCD app
 # (gitops/applications/headscale.yaml, prune + selfHeal). Before that it was
-# applied by hand on purpose. headplane's config Secret headplane-config is
+# applied by hand on purpose.
+# !! EXCEPTION: the `headscale` Endpoints below is NOT managed by ArgoCD --
+# argocd-cm resource.exclusions drops the Endpoints/EndpointSlice kinds
+# cluster-wide (watch-event noise). ArgoCD will neither create nor repair it.
+# If it is ever missing: `kubectl apply -f k8s/headscale/headscale.yaml`.
+# headplane's config Secret headplane-config is
 # rendered by the ExternalSecret in k8s/platform-external-secrets/ from the
 # Doppler key HEADPLANE_COOKIE_SECRET -- it is NOT stored here.
 apiVersion: apps/v1
