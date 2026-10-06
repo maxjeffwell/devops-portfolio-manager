@@ -48,6 +48,10 @@ spec:
     - match: Host(`podrick.el-jefe.me`) && PathPrefix(`/devops-api`)
       kind: Rule
       middlewares:
+        # 2026-10-06: CrowdSec bouncer on the API path too (the HTML Ingress above
+        # already had it). Cross-namespace ref needs allowCrossNamespace in Traefik.
+        - name: crowdsec-bouncer
+          namespace: kube-system
         - name: strip-devops-api-prefix
       services:
         - name: devops-portfolio-api
@@ -70,6 +74,9 @@ spec:
   routes:
   - kind: Rule
     match: Host(`podrick.el-jefe.me`) && PathPrefix(`/api`)
+    middlewares:
+    - name: crowdsec-bouncer
+      namespace: kube-system
     services:
     - name: devops-portfolio-api
       port: 5001

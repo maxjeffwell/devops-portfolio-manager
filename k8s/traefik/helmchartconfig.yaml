@@ -38,6 +38,12 @@ spec:
         crowdsec-bouncer:
           moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
           version: v1.3.5
+    providers:
+      kubernetesCRD:
+        # 2026-10-06: IngressRoutes in app namespaces (podrick-api*, educationelly-
+        # graphql-api) now reference kube-system/crowdsec-bouncer directly; the
+        # Ingress annotation form already crossed namespaces, the CRD form needs this.
+        allowCrossNamespace: true
     service:
       spec:
         externalTrafficPolicy: Local

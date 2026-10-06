@@ -131,6 +131,8 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # 2026-10-06: direct public origin, was the only such Ingress without the bouncer.
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls: 'true'
 spec:
   ingressClassName: traefik

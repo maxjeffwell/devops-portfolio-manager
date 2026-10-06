@@ -13,6 +13,10 @@ spec:
   - kind: Rule
     match: Host(`educationelly-graphql-k8s.el-jefe.me`) && PathPrefix(`/api`)
     middlewares:
+    # 2026-10-06: CrowdSec bouncer on the API path too (the HTML Ingress for this
+    # host already had it). Cross-namespace ref needs allowCrossNamespace in Traefik.
+    - name: crowdsec-bouncer
+      namespace: kube-system
     - name: strip-api-prefix
     services:
     - name: educationelly-graphql-server
