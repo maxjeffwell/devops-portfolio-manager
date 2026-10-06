@@ -11,13 +11,13 @@
 #   m920s        i7-8700   cpu1's HT sibling is cpu7      -> -l1 + kernel
 #                           isolcpus=1,7 (one reactor owns the whole core;
 #                           /etc/default/grub.d/91-isolcpus.cfg)
-#   neonmarmoset i7-1260P  siblings are adjacent (0-1)    -> -l2 + kernel
-#                           isolcpus=2,3 (one reactor owns the whole P-core;
-#                           cpu1 would share a core with cpu0's housekeeping)
-#   The wrapper's per-node CORES list is then only a fallback/record; with
-#   isolcpus the chart's own -l1 is already right for every node except neon.
 #   elitedesk    i5-9500T  no HT                          -> -l1 (chart value)
 #   m720q        i5-8400T  no HT                          -> -l1 (chart value)
+#   neonmarmoset (i7-1260P, was -l2 + isolcpus=2,3) is a Mayastor CONSUMER only
+#                since 2026-10-06 (GPU node: pool, engine, isolcpus and hugepages
+#                removed); it keeps csi-node + agent-ha-node like debian-marmoset.
+#   The wrapper's per-node CORES list is then only a fallback/record; with
+#   isolcpus the chart's own -l1 is already right for every engine node.
 #
 # "-l" has no env override in io-engine, hence the arg rewrite. Check
 # /sys/devices/system/cpu/cpuN/topology/thread_siblings_list before adding a node.
@@ -39,13 +39,12 @@ spec:
             - -c
             - |
               case "$MY_NODE_NAME" in
-                elitedesk|m720q|m920s|neonmarmoset)
+                elitedesk|m720q|m920s)
                   export ENABLE_INTERRUPT_MODE=true NVME_IOQ_POLL_PERIOD=100us
                   echo "interrupt mode ON for $MY_NODE_NAME" ;;
               esac
               case "$MY_NODE_NAME" in
                 m920s)        CORES=1 ;;
-                neonmarmoset) CORES=2 ;;
                 *)            CORES= ;;
               esac
               if [ -n "$CORES" ]; then
