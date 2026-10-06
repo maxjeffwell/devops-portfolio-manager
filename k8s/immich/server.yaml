@@ -86,7 +86,13 @@ spec:
               gpu.intel.com/i915: "1"
             limits:
               cpu: "4"
-              memory: 4Gi
+              # 2026-10-06: 4Gi -> 8Gi. OOMKilled at 12:36Z on m920s: working set went
+              # 0.7 -> 4.0 GiB in six minutes after a web session started a job burst
+              # (face-detection jobs were running at the next boot), and the replacement
+              # instance settled at 3.9 GiB with the CPU idle -- V8 keeps the heap after a
+              # burst. 13 earlier instances peaked ~1 GiB, so the request stays 1Gi; the
+              # limit only caps bursts and m920s has the room (36.9Gi, 48% requested).
+              memory: 8Gi
               gpu.intel.com/i915: "1"
           volumeMounts:
             - { name: library,         mountPath: /data }
