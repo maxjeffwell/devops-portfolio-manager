@@ -58,7 +58,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "increase((sum by (id, title, subTitle, detail__kind, arc__color) (label_replace((label_replace(label_replace(label_replace(label_replace((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\"}), \"detail__kind\", \"$1\", \"server_kind\", \"(.*)\"), \"subTitle\", \"$1\", \"server_namespace\", \"(.*)\"), \"title\", \"$1\", \"server_name\", \"(.*)\"), \"id\", \"$1\", \"server_id\", \"(.*)\") or label_replace(label_replace(label_replace(label_replace((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\"}), \"detail__kind\", \"$1\", \"client_kind\", \"(.*)\"), \"subTitle\", \"$1\", \"client_namespace\", \"(.*)\"), \"title\", \"$1\", \"client_name\", \"(.*)\"), \"id\", \"$1\", \"client_id\", \"(.*)\")  ), \"arc__color\", \"1\", \"link_id\", \"(.*)\")) )[$__range:$__interval])  > 0",
+          "expr": "increase((sum by (id, title, subTitle, detail__kind, arc__color) (label_replace((label_replace(label_replace(label_replace(label_replace((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"}), \"detail__kind\", \"$1\", \"server_kind\", \"(.*)\"), \"subTitle\", \"$1\", \"server_namespace\", \"(.*)\"), \"title\", \"$1\", \"server_name\", \"(.*)\"), \"id\", \"$1\", \"server_id\", \"(.*)\") or label_replace(label_replace(label_replace(label_replace((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"}), \"detail__kind\", \"$1\", \"client_kind\", \"(.*)\"), \"subTitle\", \"$1\", \"client_namespace\", \"(.*)\"), \"title\", \"$1\", \"client_name\", \"(.*)\"), \"id\", \"$1\", \"client_id\", \"(.*)\")  ), \"arc__color\", \"1\", \"link_id\", \"(.*)\")) )[$__range:$__interval])  > 0",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
@@ -72,7 +72,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "increase((sum by (id, source, target, mainStat) ((label_replace(label_replace(label_replace(label_replace((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\"}), \"id\", \"$1\", \"link_id\", \"(.*)\"), \"source\", \"$1\", \"client_id\", \"(.*)\"), \"target\", \"$1\", \"server_id\", \"(.*)\"), \"mainStat\", \"$1\", \"server_port\", \"(.*)\"))) )[$__range:$__interval]) > 0",
+          "expr": "increase((sum by (id, source, target, mainStat) ((label_replace(label_replace(label_replace(label_replace((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"}), \"id\", \"$1\", \"link_id\", \"(.*)\"), \"source\", \"$1\", \"client_id\", \"(.*)\"), \"target\", \"$1\", \"server_id\", \"(.*)\"), \"mainStat\", \"$1\", \"server_port\", \"(.*)\"))) )[$__range:$__interval]) > 0",
           "format": "table",
           "hide": false,
           "instant": true,
@@ -143,7 +143,7 @@
             "uid": "mimir"
           },
           "editorMode": "code",
-          "expr": "sum by (server_port) (increase((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\"})[$__range:$__interval])) > 0",
+          "expr": "sum by (server_port) (increase((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"})[$__range:$__interval])) > 0",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -235,7 +235,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk(8, sum by (client_name) ((rate(caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\"}[$__range:$__interval]))))",
+          "expr": "topk(8, sum by (client_name) ((rate(caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"}[$__range:$__interval]))))",
           "format": "time_series",
           "instant": true,
           "legendFormat": "__auto",
@@ -316,6 +316,113 @@
       ],
       "title": "Top Throughput Connections",
       "type": "stat"
+    },
+    {
+      "type": "table",
+      "title": "Connections (client \u2192 server:port, throughput over 5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mimir"
+      },
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "table",
+          "instant": true,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mimir"
+          },
+          "expr": "sum by (client_namespace, client_kind, client_name, server_namespace, server_kind, server_name, server_port) (rate((caretta_links_observed{client_namespace=~\"$namespace\", client_kind=~\"$kind\", client_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"} or caretta_links_observed{server_namespace=~\"$namespace\", server_kind=~\"$kind\", server_name=~\"$workload\", server_port=~\"$port\", client_kind!~\"$hide_kind\", server_kind!~\"$hide_kind\"})[5m])) > 0"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "client_namespace": "client ns",
+              "client_kind": "client kind",
+              "client_name": "client",
+              "server_namespace": "server ns",
+              "server_kind": "server kind",
+              "server_name": "server",
+              "server_port": "port",
+              "Value": "bytes/s"
+            },
+            "indexByName": {
+              "client_namespace": 0,
+              "client_kind": 1,
+              "client_name": 2,
+              "server_namespace": 3,
+              "server_kind": 4,
+              "server_name": 5,
+              "server_port": 6,
+              "Value": 7
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "bytes/s",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "count"
+          ],
+          "countRows": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "bytes/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "Bps"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "schemaVersion": 37,
@@ -327,6 +434,41 @@
   ],
   "templating": {
     "list": [
+      {
+        "name": "hide_kind",
+        "label": "Hide kinds",
+        "type": "custom",
+        "includeAll": false,
+        "multi": false,
+        "query": "external|node,external,node,none",
+        "current": {
+          "text": "external|node",
+          "value": "external|node"
+        },
+        "options": [
+          {
+            "text": "external|node",
+            "value": "external|node",
+            "selected": true
+          },
+          {
+            "text": "external",
+            "value": "external",
+            "selected": false
+          },
+          {
+            "text": "node",
+            "value": "node",
+            "selected": false
+          },
+          {
+            "text": "none",
+            "value": "none",
+            "selected": false
+          }
+        ],
+        "description": "Workload kinds removed from the map. 'external' = non-cluster IPs (Cloudflare, Tailscale peers, internet); 'node' = node-level endpoints such as the kube-apiserver :6443. Pick 'none' to see everything."
+      },
       {
         "allValue": "(.*)",
         "current": {
@@ -465,5 +607,6 @@
   "uid": "caretta-service-map",
   "version": 1,
   "weekStart": "",
-  "refresh": "30s"
+  "refresh": "30s",
+  "description": "eBPF service map from Caretta (per-node agents scraped by Alloy into Mimir). Nodes are workloads (Deployment/StatefulSet/DaemonSet/CNPG Cluster...), not pods. 'Hide kinds' defaults to external IPs + node endpoints so the in-cluster traffic is readable; set it to 'none' for everything."
 }
