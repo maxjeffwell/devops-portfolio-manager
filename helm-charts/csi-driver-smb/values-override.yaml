@@ -3,8 +3,6 @@
 # Deliberately minimal. Verified-correct chart defaults that must NOT be
 # overridden are documented in
 # docs/superpowers/specs/2026-08-01-csi-driver-smb-design.md:
-#   linux.tolerations  [{operator: Exists}]  -> required for marmoset's
-#                                               workload=gpu:NoSchedule taint
 #   linux.kubelet      /var/lib/kubelet      -> k3s here uses the standard path
 #   linux.dnsPolicy    ClusterFirstWithHostNet -> required so the node plugin can
 #                                               resolve asustor-smb.home.arpa
@@ -49,3 +47,13 @@ controller:
 
 node:
   logLevel: 2
+
+# Chart default tolerates every taint ({operator: Exists}), which put the node
+# plugin on marmoset despite its workload=gpu:NoSchedule taint. Nothing that can
+# mount an SMB claim can schedule on marmoset (the taint keeps all ordinary
+# workloads off it), so the pod there was idle. 2026-10-06 (user decision):
+# no tolerations -> the DaemonSet skips marmoset. Every other node is either
+# untainted or carries only a PreferNoSchedule taint (dm/neon gpu-priority,
+# VPS role=edge), which does not block DaemonSet placement.
+linux:
+  tolerations: []

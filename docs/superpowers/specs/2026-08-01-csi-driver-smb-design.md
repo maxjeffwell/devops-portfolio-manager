@@ -83,10 +83,12 @@ iSCSI LUN store `.@iscsi`).
 - Destination namespace: `kube-system`
 - `syncPolicy.automated` with `prune: true`, `selfHeal: true`, `CreateNamespace=false`
 
-Chart defaults are correct for this cluster and need no toleration overrides:
-`linux.tolerations` defaults to `- operator: Exists`, so the node DaemonSet lands on `marmoset`
-despite its `workload=gpu:NoSchedule` taint, and the controller already tolerates control-plane
-taints. `linux.kubelet` is also correct as shipped — this k3s install uses the standard
+Chart defaults are mostly correct for this cluster. `linux.tolerations` defaults to
+`- operator: Exists`, which originally put the node DaemonSet on `marmoset` despite its
+`workload=gpu:NoSchedule` taint; **superseded 2026-10-06 (user decision):** the override sets
+`linux.tolerations: []` so the node plugin skips `marmoset`, where the taint already keeps every
+SMB-capable workload off. The controller tolerates control-plane taints by default.
+`linux.kubelet` is also correct as shipped — this k3s install uses the standard
 `/var/lib/kubelet`, not `/var/lib/rancher/k3s/agent/kubelet`, which does not exist. And
 `feature.enableGetVolumeStats` is already `true` by default with no override — but this is
 weaker than it sounds. `GetVolumeStats` statfs's the underlying CIFS mount, and SMB has no
