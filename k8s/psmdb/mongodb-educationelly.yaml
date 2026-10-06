@@ -69,10 +69,13 @@ spec:
             - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
+                # 2026-10-06 (user): debian-marmoset and neonmarmoset are the Iris Xe
+                # GPU nodes now and take fewer general workloads; MongoDB lives on the
+                # three k3s servers. The rs0-1 member moved debian-marmoset -> m920s.
                 values:
-                - debian-marmoset
                 - elitedesk
                 - m720q
+                - m920s
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
@@ -123,6 +126,13 @@ spec:
         resources:
           requests:
             storage: 5Gi
+        # openebs-lvmpv = VG openebs-vg, which exists on elitedesk and m720q only;
+        # on m920s that VG is entirely the Mayastor pool (CSIStorageCapacity 0).
+        # The m920s member (rs0-1) therefore uses a PVC pre-created by hand with
+        # storageClassName openebs-lvmpv-vg0 (same name the StatefulSet expects,
+        # mongod-data-<cluster>-rs0-1). A StatefulSet never replaces an existing
+        # PVC, so this survives pod recreation -- but if that PVC is ever deleted,
+        # recreate it by hand BEFORE the pod, or it will be Pending forever.
         storageClassName: openebs-lvmpv
   sharding:
     enabled: false
