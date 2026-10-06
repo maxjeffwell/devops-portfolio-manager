@@ -302,7 +302,10 @@ kube-prometheus-stack:
 
     persistence:
       enabled: true
-      existingClaim: grafana-data
+      # 2026-10-06: grafana-data (lvmpv, node-local on debian-marmoset) -> grafana-data-v2
+      # (lvmpv on a server node; landed on elitedesk). dm/neon are GPU nodes and keep no
+      # local volumes. Hand-created PVC (as before); data copied pod-to-pod, 124 files.
+      existingClaim: grafana-data-v2
 
     # init-chown-data is added by the chart when persistence is enabled.
     # monitoring-quota requires resource specs on all containers.
