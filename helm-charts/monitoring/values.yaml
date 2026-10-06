@@ -1028,7 +1028,12 @@ alloy:
         # m720q -- a 13.8Gi node -- to 99.9% of allocatable in memory requests.
         # The 2560Mi limit is what covers the peak; the request only needs to
         # cover steady state.
-        memory: 1280Mi
+        # 2026-10-06: 1280Mi -> 1536Mi. 14d p95 (steady state) is now 1466-1511Mi
+        # on m720q/m920s/neon/VPS and 1885Mi on elitedesk (peaks 2085Mi), so the
+        # request had slipped under typical usage on five of seven nodes. Still
+        # typical-not-peak; m720q is 28.7Gi since the 9/24 RAM upgrade, so the
+        # old 13.8Gi concern no longer applies. Limit unchanged (3072Mi).
+        memory: 1536Mi
       limits:
         # 2026-09-16: was 2560Mi. elitedesk hit that ceiling 4508 times in 31h
         # (cgroup memory.events max=4508, peak working set 2327Mi = 91% of the

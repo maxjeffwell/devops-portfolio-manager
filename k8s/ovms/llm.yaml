@@ -183,8 +183,11 @@ spec:
             requests:
               cpu: "1"
               # Initial: int4 weights ~0.9 GB + 1 GB KV cache (cache_size: 1) + runtime.
-              # Re-measure the working set after the first real requests and match it.
-              memory: 3Gi
+              # 2026-10-06 re-measured: working set 14d p95 3.2-3.9Gi across the last
+              # three instances (RSS only ~0.6Gi -- the rest is the memory-mapped
+              # weights, which the kubelet counts toward the working set and eviction).
+              # 3Gi -> 4Gi to match; limit 5Gi unchanged.
+              memory: 4Gi
               gpu.intel.com/i915: "1"
             limits:
               memory: 5Gi
