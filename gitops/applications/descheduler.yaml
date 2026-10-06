@@ -1,0 +1,40 @@
+---
+# Descheduler (kubernetes-sigs): LowNodeUtilization + RemoveDuplicates across the
+# three servers only, so pods drift back onto m920s after an outage without a
+# manual rebalance. Added 2026-10-06 (user decision). Values:
+# helm-charts/descheduler/values-override.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: descheduler
+  namespace: argocd
+  labels:
+    app: descheduler
+    infrastructure: "true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/descheduler/
+      chart: descheduler
+      targetRevision: 0.37.0
+      helm:
+        valueFiles:
+          - $values/helm-charts/descheduler/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

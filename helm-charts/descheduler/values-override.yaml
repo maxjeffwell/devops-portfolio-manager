@@ -1,0 +1,62 @@
+# Overrides for the upstream descheduler chart (kubernetes-sigs, 0.37.0).
+#
+# Why (2026-10-06, user decision): every m920s outage empties it (taint-based
+# eviction after ~5 min NotReady) and the scheduler never moves pods back —
+# three manual rebalances in one day. LowNodeUtilization does that pass
+# automatically.
+#
+# Scope: ONLY the three servers (control-plane label). dm/neon are GPU nodes
+# (keep non-GPU work off them), marmoset is the NoSchedule laptop, the VPS is
+# the edge; none of them should be "underutilized" targets or eviction sources.
+# Evicted pods are re-placed by kube-scheduler as usual.
+kind: Deployment
+deschedulingInterval: 10m
+replicas: 1
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+
+deschedulerPolicyAPIVersion: "descheduler/v1alpha2"
+deschedulerPolicy:
+  nodeSelector: "node-role.kubernetes.io/control-plane=true"
+  # gentle: a few pods per pass, every 10 min, instead of a storm after an outage
+  maxNoOfPodsToEvictPerNode: 4
+  maxNoOfPodsToEvictPerNamespace: 2
+  profiles:
+    - name: rebalance-servers
+      pluginConfig:
+        - name: DefaultEvictor
+          args:
+            # Never evict pods with PVCs: local-PV pods (CNPG/PSMDB members,
+            # Prometheus/Tempo/Kafka stores) can only come back to the same node,
+            # and Mayastor-volume pods carry a detach/attach cost; both are moved
+            # by hand when wanted. emptyDir pods ARE evictable (ephemeral by nature).
+            podProtections:
+              defaultDisabled:
+                - "PodsWithLocalStorage"
+              extraEnabled:
+                - "PodsWithPVC"
+            nodeFit: true
+        - name: RemoveDuplicates
+        - name: LowNodeUtilization
+          args:
+            # % of allocatable REQUESTS. A server below all thresholds is
+            # "underutilized" (m920s after an outage: ~19% cpu / 26% mem / 17 pods);
+            # pods are evicted from servers above all targetThresholds until the
+            # underutilized one is above its thresholds.
+            thresholds:
+              cpu: 35
+              memory: 35
+              pods: 35
+            targetThresholds:
+              cpu: 60
+              memory: 60
+              pods: 60
+      plugins:
+        balance:
+          enabled:
+            - RemoveDuplicates
+            - LowNodeUtilization
