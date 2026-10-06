@@ -31,11 +31,13 @@ spec:
         backup.velero.io/backup-volumes-excludes: library,tmp
     spec:
       # 2026-10-02 deliberate GPU placement (user decision): QSV transcoding uses
-      # elitedesk's UHD 630. The Xe iGPUs are taken (OVMS on debian-marmoset;
+      # a gen9 UHD 630. The Xe iGPUs are taken (OVMS on debian-marmoset;
       # jellyfin + immich-ml on neonmarmoset). Nothing here is node-local (library
       # is NFS, tmp is an emptyDir), so this pin is the only thing holding it here.
+      # 2026-10-06 (user): elitedesk -> m920s (identical CoffeeLake UHD 630, same
+      # GPU plugin manifest, render gid 992) to take 1Gi/500m off elitedesk.
       nodeSelector:
-        kubernetes.io/hostname: elitedesk
+        kubernetes.io/hostname: m920s
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true
