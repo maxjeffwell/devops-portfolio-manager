@@ -16,3 +16,14 @@ lvmController:
     enabled: false
 analytics:
   enabled: false
+lvmNode:
+  # 2026-10-06 (user: "we have to use steering now that neonmarmoset and
+  # debian-marmoset are prioritized for their gpus"): the node agent runs only on
+  # nodes labelled storage.el-jefe.me/lvm-localpv=true (chart 1.10.0 has no
+  # affinity knob, only this selector). Labelled: elitedesk, m720q, m920s,
+  # vmi3610371, and debian-marmoset for as long as it still holds local volumes
+  # (grafana-data + the two 10/1 jellyfin rollback claims). neonmarmoset had no
+  # volumes and is a GPU node; marmoset is excluded by its taint. Labels are set
+  # with kubectl (not in git), like the gpu-priority taints.
+  nodeSelector:
+    storage.el-jefe.me/lvm-localpv: "true"
