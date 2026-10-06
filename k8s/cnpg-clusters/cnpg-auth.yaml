@@ -109,7 +109,7 @@ spec:
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: mayastor-2-sata
+    storageClass: mayastor-2-sata-thin  # 2026-10-06: thin so CNPG scale-up snapshot clones can provision (Mayastor refuses thick clones)
   # 2026-09-16: cpu 250m -> 100m. 14-day peak is 27m, so 250m reserved ~9x the
   # real peak and it was the single largest slice of elitedesk's CPU-request
   # saturation (95.9% of allocatable while ~26% busy). Memory left at 256Mi:
