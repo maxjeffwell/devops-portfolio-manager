@@ -48,6 +48,13 @@ spec:
       # After a failover, restart the deployment once neon is back to move it home.
       # 2026-10-02 later (user decision): HOME moved back to debian-marmoset -- neon
       # lacks the room. Preferred (not required) so it can still fail over to neon.
+      # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
+      # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
+      tolerations:
+        - key: gpu-priority
+          operator: Equal
+          value: "true"
+          effect: PreferNoSchedule
       nodeSelector:
         gpu-node: "true"
         intel-gpu-gen: xe

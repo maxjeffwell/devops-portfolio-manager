@@ -95,6 +95,13 @@ spec:
         app: ovms-llm
         portfolio: "true"
     spec:
+      # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
+      # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
+      tolerations:
+        - key: gpu-priority
+          operator: Equal
+          value: "true"
+          effect: PreferNoSchedule
       nodeSelector:
         gpu-node: "true"
         intel-gpu-gen: xe
