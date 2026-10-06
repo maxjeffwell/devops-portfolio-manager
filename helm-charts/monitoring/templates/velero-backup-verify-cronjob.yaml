@@ -121,8 +121,16 @@ spec:
               if [ "$RESTORE_STATUS" = "Completed" ] || [ "$RESTORE_STATUS" = "PartiallyFailed" ]; then
                 echo "✓ Test restore completed with status: $RESTORE_STATUS"
 
-                # Clean up test namespace
+                # Clean up test namespace.
+                # Velero restores each PV with its ORIGINAL reclaim policy, and the
+                # Mayastor classes are Retain, so deleting the namespace alone left the
+                # restored CNPG PVs Released with live 2-replica volumes behind them
+                # (6 x 5Gi after the 2026-10-04 run). Flip them to Delete first so the
+                # PVC cascade frees the backend volumes.
                 echo "Cleaning up test namespace..."
+                for pv in $(kubectl get pv -o json | jq -r '.items[] | select(.spec.claimRef.namespace=="velero-test-restore") | .metadata.name'); do
+                  kubectl patch pv "$pv" -p '{"spec":{"persistentVolumeReclaimPolicy":"Delete"}}' >/dev/null && echo "  reclaim=Delete on $pv"
+                done
                 kubectl delete namespace velero-test-restore --wait=false
 
                 # Delete the restore object
