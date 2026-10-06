@@ -17,8 +17,11 @@
 # selector, the endpoints controller replaces 10.0.0.9 with (nonexistent)
 # pods and the whole tailnet loses its control server.
 #
-# Not synced by ArgoCD on purpose; apply by hand. headplane's config is the
-# Secret headplane-config, which is NOT stored here.
+# 2026-10-06 (user decision): synced by the `headscale` ArgoCD app
+# (gitops/applications/headscale.yaml, prune + selfHeal). Before that it was
+# applied by hand on purpose. headplane's config Secret headplane-config is
+# rendered by the ExternalSecret in k8s/platform-external-secrets/ from the
+# Doppler key HEADPLANE_COOKIE_SECRET -- it is NOT stored here.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

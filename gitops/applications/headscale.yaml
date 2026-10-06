@@ -1,0 +1,41 @@
+---
+# k3s side of Headscale: headplane UI + the selectorless `headscale` Service /
+# Endpoints / Ingresses that front the NATIVE headscale on dm. Headscale itself
+# is NOT in the cluster (moved out 2026-08-08) -- see k8s/headscale/headscale.yaml.
+#
+# 2026-10-06 (user decision): brought under ArgoCD. Until then the directory was
+# applied by hand on purpose after the 2026-07-11 headscale<->k3s circular outage.
+# The `headscale` Service in git has NO selector; ArgoCD applies git verbatim, so
+# the manual Endpoints (10.0.0.9:8081) stay in place. Never add a selector.
+# headplane's config Secret comes from k8s/platform-external-secrets/.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: headscale
+  namespace: argocd
+  labels:
+    app: headscale
+    infrastructure: "true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/headscale
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: headscale
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
