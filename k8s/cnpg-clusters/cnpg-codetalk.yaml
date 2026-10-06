@@ -8,7 +8,8 @@ metadata:
   namespace: default
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:14
-  instances: 1
+  # 2026-10-06: 2 instances (user decision) — replica joins via pg_basebackup.
+  instances: 2
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
@@ -16,15 +17,15 @@ spec:
       portfolio: 'true'
   affinity:
     enablePodAntiAffinity: true
+    # 2026-10-06: hostname list replaced by the real constraint (a Mayastor engine
+    # node = elitedesk/m720q/m920s) so the second instance can land on m920s.
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
         nodeSelectorTerms:
         - matchExpressions:
-          - key: kubernetes.io/hostname
+          - key: openebs.io/engine
             operator: In
-            values:
-            - elitedesk
-            - m720q
+            values: [mayastor]
     podAntiAffinityType: required
     tolerations:
     - effect: NoSchedule

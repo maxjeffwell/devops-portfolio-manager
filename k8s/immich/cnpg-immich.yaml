@@ -17,7 +17,10 @@ spec:
   # created under the re-created mayastor-2 class (tier=internal pool affinity),
   # instance 2 was promoted, and scaling back removed instance 1 and its
   # usb-pool-backed volume.
-  instances: 1
+  # 2026-10-06: 2 instances (user: immich/bookmarked/codetalk "should have replicas").
+  # The replica joins via pg_basebackup; required pod anti-affinity puts it on
+  # another Mayastor engine node (m920s is the least loaded).
+  instances: 2
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
