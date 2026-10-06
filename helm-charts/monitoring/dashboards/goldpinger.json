@@ -1,1055 +1,663 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": "-- Grafana --",
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "editable": true,
-  "gnetId": null,
-  "graphTooltip": 0,
-  "hideControls": false,
-  "links": [],
-  "refresh": "5m",
-  "rows": [
-    {
-      "collapse": false,
-      "height": "300",
-      "panels": [
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": true,
-          "colors": [
-            "rgba(55, 174, 50, 0.97)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(245, 54, 54, 0.9)"
-          ],
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "format": "none",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "id": 9,
-          "interval": null,
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "span": 2,
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
-          },
-          "tableColumn": "",
-          "targets": [
-            {
-              "expr": "(count(goldpinger_nodes_health_total{status='healthy'}) + count(goldpinger_nodes_health_total{status='unhealthy'})) /2",
-              "format": "time_series",
-              "intervalFactor": 2,
-              "legendFormat": "",
-              "metric": "goldpinger_nodes_health",
-              "refId": "A",
-              "step": 600
-            }
-          ],
-          "thresholds": "31,32",
-          "title": "Goldpinger Nodes",
-          "type": "singlestat",
-          "valueFontSize": "150%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
-            }
-          ],
-          "valueName": "avg"
-        },
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": true,
-          "colors": [
-            "rgba(55, 174, 50, 0.97)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(245, 54, 54, 0.9)"
-          ],
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "format": "none",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "id": 20,
-          "interval": null,
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "span": 2,
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": true
-          },
-          "tableColumn": "",
-          "targets": [
-            {
-              "expr": "sum(increase(goldpinger_errors_total{goldpinger_instance=~\"$instance\"}[30m]))",
-              "format": "time_series",
-              "intervalFactor": 2,
-              "legendFormat": "",
-              "metric": "goldpinger_nodes_health",
-              "refId": "A",
-              "step": 600
-            }
-          ],
-          "thresholds": "1,2",
-          "title": "Increase in # Errors [30m]",
-          "type": "singlestat",
-          "valueFontSize": "150%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
-            }
-          ],
-          "valueName": "avg"
-        },
-        {
-          "columns": [
-            {
-              "text": "Current",
-              "value": "current"
-            },
-            {
-              "text": "Max",
-              "value": "max"
-            },
-            {
-              "text": "Avg",
-              "value": "avg"
-            }
-          ],
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fontSize": "100%",
-          "id": 11,
-          "links": [],
-          "pageSize": null,
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": null,
-            "desc": false
-          },
-          "span": 8,
-          "styles": [
-            {
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "pattern": "Time",
-              "type": "date"
-            },
-            {
-              "colorMode": "value",
-              "colors": [
-                "rgba(50, 172, 45, 0.97)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(245, 54, 54, 0.9)"
-              ],
-              "decimals": 2,
-              "link": false,
-              "pattern": "/.*/",
-              "thresholds": [
-                "1",
-                "2"
-              ],
-              "type": "number",
-              "unit": "short"
-            }
-          ],
-          "targets": [
-            {
-              "expr": "sum(goldpinger_nodes_health_total{status='unhealthy'}) by (goldpinger_instance)",
-              "format": "table",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 40
-            }
-          ],
-          "title": "Unhealthy seen by instance",
-          "transform": "table",
-          "type": "table"
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "id": 12,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 6,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\", status=\"unhealthy\"}[30m])) by (goldpinger_instance)",
-              "format": "time_series",
-              "interval": "5m",
-              "intervalFactor": 1,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "metric": "goldpinger_nodes_health",
-              "refId": "A",
-              "step": 300
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Unhealthy nodes increase [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 2,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "id": 10,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 2,
-          "points": true,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 6,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\",status=\"unhealthy\"}[30m])) by (goldpinger_instance) /  (sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\",status=\"healthy\"}[30m])) by (goldpinger_instance) + sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\",status=\"unhealthy\"}[30m])) by (goldpinger_instance))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 1,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "metric": "goldpinger_nodes_health",
-              "refId": "A",
-              "step": 60
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "% Unhealthy nodes reported",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 2,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "percentunit",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "repeat": null,
-      "repeatIteration": null,
-      "repeatRowId": null,
-      "showTitle": true,
-      "title": "Overall Health",
-      "titleSize": "h6"
-    },
-    {
-      "collapse": false,
-      "height": "400",
-      "panels": [
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "id": 6,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.99, sum(rate(goldpinger_peers_response_time_s_bucket{goldpinger_instance=~\"$instance\",call_type=~\"$call_type\"}[30m])) by (goldpinger_instance, le))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 120
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "99% response time from node [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": false,
-            "sort": 2,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "id": 16,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum(rate(goldpinger_peers_response_time_s_bucket{goldpinger_instance=~\"$instance\",call_type=~\"$call_type\"}[30m])) by (goldpinger_instance, le))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 120
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "95% response time from node [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": false,
-            "sort": 2,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "id": 17,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.50, sum(rate(goldpinger_peers_response_time_s_bucket{goldpinger_instance=~\"$instance\",call_type=~\"$call_type\"}[30m])) by (goldpinger_instance, le))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 120
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "50% response time from node [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": false,
-            "sort": 2,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "repeat": null,
-      "repeatIteration": null,
-      "repeatRowId": null,
-      "showTitle": true,
-      "title": "Connections to peers",
-      "titleSize": "h6"
-    },
-    {
-      "collapse": false,
-      "height": "400",
-      "panels": [
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "height": "",
-          "id": 13,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.99, sum(rate(goldpinger_kube_master_response_time_s_bucket{goldpinger_instance=~\"$instance\"}[30m])) by (goldpinger_instance, le))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 120
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "99% response time from k8s api [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": false,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "height": "",
-          "id": 18,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.95, sum(rate(goldpinger_kube_master_response_time_s_bucket{goldpinger_instance=~\"$instance\"}[30m])) by (goldpinger_instance, le))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 120
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "95% response time from k8s api [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": false,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "$datasource",
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {},
-          "height": "",
-          "id": 19,
-          "legend": {
-            "alignAsTable": true,
-            "avg": false,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": false,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "histogram_quantile(0.50, sum(rate(goldpinger_kube_master_response_time_s_bucket{goldpinger_instance=~\"$instance\"}[30m])) by (goldpinger_instance, le))",
-              "format": "time_series",
-              "interval": "1m",
-              "intervalFactor": 2,
-              "legendFormat": "{{ goldpinger_instance }}",
-              "refId": "A",
-              "step": 120
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "50% response time from k8s api [30m]",
-          "tooltip": {
-            "msResolution": true,
-            "shared": false,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "repeat": null,
-      "repeatIteration": null,
-      "repeatRowId": null,
-      "showTitle": true,
-      "title": "Connections to Kubernetes API",
-      "titleSize": "h6"
-    }
-  ],
-  "schemaVersion": 14,
-  "style": "dark",
+  "uid": "goldpinger",
+  "title": "Goldpinger",
   "tags": [
     "goldpinger",
     "network",
     "cluster-health"
   ],
+  "editable": true,
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "timezone": "browser",
+  "graphTooltip": 1,
+  "description": "Upstream bloomberg/goldpinger dashboard (extras/goldpinger-dashboard.json) converted to the modern schema with the datasource pinned to 'Prometheus' (kube-prometheus; Goldpinger is scraped via ServiceMonitor, so Mimir has no goldpinger_* series).",
   "templating": {
     "list": [
       {
-        "current": {
-          "text": "Prometheus",
-          "value": "prometheus"
-        },
-        "hide": 0,
-        "label": "datasource",
-        "name": "datasource",
-        "options": [],
-        "query": "prometheus",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "type": "datasource"
-      },
-      {
-        "allValue": ".*",
-        "current": {},
-        "datasource": "$datasource",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Instance",
-        "multi": true,
         "name": "instance",
-        "options": [],
-        "query": "label_values(goldpinger_instance)",
-        "refresh": 1,
-        "regex": "",
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
+        "label": "Instance",
         "type": "query",
-        "useTags": false
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(goldpinger_nodes_health_total, goldpinger_instance)",
+          "refId": "var"
+        },
+        "definition": "label_values(goldpinger_nodes_health_total, goldpinger_instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
       },
       {
-        "allValue": ".*",
-        "current": {},
-        "datasource": "$datasource",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Call Type",
-        "multi": true,
         "name": "call_type",
-        "options": [],
-        "query": "label_values(call_type)",
-        "refresh": 1,
-        "regex": "",
-        "sort": 1,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
+        "label": "Call type",
         "type": "query",
-        "useTags": false
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(goldpinger_peers_response_time_s_bucket, call_type)",
+          "refId": "var"
+        },
+        "definition": "label_values(goldpinger_peers_response_time_s_bucket, call_type)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
       }
     ]
   },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
+  "annotations": {
+    "list": []
   },
-  "timepicker": {
-    "refresh_intervals": [
-      "5s",
-      "10s",
-      "30s",
-      "1m",
-      "5m",
-      "15m",
-      "30m",
-      "1h",
-      "2h",
-      "1d"
-    ],
-    "time_options": [
-      "5m",
-      "15m",
-      "1h",
-      "6h",
-      "12h",
-      "24h",
-      "2d",
-      "7d",
-      "30d"
-    ]
-  },
-  "timezone": "browser",
-  "title": "Goldpinger",
-  "version": 0,
-  "uid": "goldpinger",
-  "description": "Upstream bloomberg/goldpinger dashboard (extras/goldpinger-dashboard.json). Goldpinger is scraped by kube-prometheus via its ServiceMonitor, so the datasource defaults to 'Prometheus' (kube-prometheus), not Mimir."
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Goldpinger Nodes",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(count(goldpinger_nodes_health_total{status='healthy'}) + count(goldpinger_nodes_health_total{status='unhealthy'})) /2",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "type": "stat",
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 31.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "Increase in # Errors [30m]",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(goldpinger_errors_total{goldpinger_instance=~\"$instance\"}[30m]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "type": "stat",
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Unhealthy seen by instance",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 16,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(goldpinger_nodes_health_total{status='unhealthy'}) by (goldpinger_instance)",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "type": "table",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "goldpinger_instance": "instance",
+              "Value": "unhealthy"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "unhealthy",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Unhealthy nodes increase [30m]",
+      "gridPos": {
+        "x": 24,
+        "y": 0,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\", status=\"unhealthy\"}[30m])) by (goldpinger_instance)",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "% Unhealthy nodes reported",
+      "gridPos": {
+        "x": 36,
+        "y": 0,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\",status=\"unhealthy\"}[30m])) by (goldpinger_instance) /  (sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\",status=\"healthy\"}[30m])) by (goldpinger_instance) + sum(increase(goldpinger_nodes_health_total{goldpinger_instance=~\"$instance\",status=\"unhealthy\"}[30m])) by (goldpinger_instance))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "99% response time from node [30m]",
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 8,
+        "h": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99, sum(rate(goldpinger_peers_response_time_s_bucket{goldpinger_instance=~\"$instance\",call_type=~\"$call_type\"}[30m])) by (goldpinger_instance, le))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "95% response time from node [30m]",
+      "gridPos": {
+        "x": 8,
+        "y": 10,
+        "w": 8,
+        "h": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(goldpinger_peers_response_time_s_bucket{goldpinger_instance=~\"$instance\",call_type=~\"$call_type\"}[30m])) by (goldpinger_instance, le))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "50% response time from node [30m]",
+      "gridPos": {
+        "x": 16,
+        "y": 10,
+        "w": 8,
+        "h": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum(rate(goldpinger_peers_response_time_s_bucket{goldpinger_instance=~\"$instance\",call_type=~\"$call_type\"}[30m])) by (goldpinger_instance, le))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "99% response time from k8s api [30m]",
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 8,
+        "h": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99, sum(rate(goldpinger_kube_master_response_time_s_bucket{goldpinger_instance=~\"$instance\"}[30m])) by (goldpinger_instance, le))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "95% response time from k8s api [30m]",
+      "gridPos": {
+        "x": 8,
+        "y": 23,
+        "w": 8,
+        "h": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(goldpinger_kube_master_response_time_s_bucket{goldpinger_instance=~\"$instance\"}[30m])) by (goldpinger_instance, le))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "50% response time from k8s api [30m]",
+      "gridPos": {
+        "x": 16,
+        "y": 23,
+        "w": 8,
+        "h": 13
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum(rate(goldpinger_kube_master_response_time_s_bucket{goldpinger_instance=~\"$instance\"}[30m])) by (goldpinger_instance, le))",
+          "legendFormat": "{{ goldpinger_instance }}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
 }
