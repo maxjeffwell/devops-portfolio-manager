@@ -432,7 +432,8 @@ kube-prometheus-stack:
           timeInterval: 30s
       # InfluxDB 2.7 (Flux). Bucket k8s-allocation = k8s-allocation-producer ->
       # Kafka -> analytics-service (added 2026-10-06). Token comes from the
-      # ESO-managed influxdb-credentials secret via envValueFrom below; Grafana
+      # ESO-managed influxdb-credentials secret (READ-ONLY grafana-read-token,
+      # Doppler INFLUXDB_GRAFANA_READ_TOKEN) via envValueFrom below; Grafana
       # expands ${INFLUXDB_GRAFANA_TOKEN} when it reads the provisioning file.
       - name: InfluxDB
         type: influxdb
@@ -448,11 +449,17 @@ kube-prometheus-stack:
         secureJsonData:
           token: ${INFLUXDB_GRAFANA_TOKEN}
 
+    # grafana-data-v2 is a ReadWriteOnce local LVM volume: a rolling update
+    # deadlocks (new pod cannot mount while the old one holds it). Recreate
+    # stops the old pod first. Hit 2026-10-06 on the first pod-template change.
+    deploymentStrategy:
+      type: Recreate
+
     envValueFrom:
       INFLUXDB_GRAFANA_TOKEN:
         secretKeyRef:
           name: influxdb-credentials
-          key: admin-token
+          key: grafana-read-token
 
     # Liveness probe tuning — Grafana startup may take several minutes on first
     # init (SQLite migrations). Subsequent starts with persistent storage are faster.
