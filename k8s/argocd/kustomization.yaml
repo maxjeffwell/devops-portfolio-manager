@@ -26,7 +26,7 @@ patches:
   # NO node affinity (2026-09-30). The 9/26 "control-plane Exists" rule was a
   # stand-in for "always-on home box"; the scheduler already balances by
   # requests across every schedulable node, and the nodes that must NOT host
-  # infrastructure are excluded by taints (marmoset workload=gpu, VPS
+  # infrastructure are excluded by taints (marmoset workload=laptop, VPS
   # role=edge), not by lists here. Only the nfs=broken toleration remains so a
   # node tainted during an NFS incident keeps its Argo CD pods.
   - target:

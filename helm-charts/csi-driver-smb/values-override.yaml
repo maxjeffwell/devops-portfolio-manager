@@ -49,7 +49,8 @@ node:
   logLevel: 2
 
 # Chart default tolerates every taint ({operator: Exists}), which put the node
-# plugin on marmoset despite its workload=gpu:NoSchedule taint. Nothing that can
+# plugin on marmoset despite its NoSchedule taint (workload=gpu, renamed
+# workload=laptop 2026-10-06). Nothing that can
 # mount an SMB claim can schedule on marmoset (the taint keeps all ordinary
 # workloads off it), so the pod there was idle. 2026-10-06 (user decision):
 # no tolerations -> the DaemonSet skips marmoset. Every other node is either

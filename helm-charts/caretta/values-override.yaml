@@ -34,7 +34,8 @@ resources:
 
 # Chart default tolerates only control-plane/master taints. Added here so the
 # map covers every node:
-#   - marmoset: workload=gpu:NoSchedule (GPU node; runs only DaemonSets)
+#   - marmoset: workload=laptop:NoSchedule (daily-driver laptop; runs only
+#     tolerating DaemonSets; renamed from workload=gpu 2026-10-06)
 #   - debian-marmoset / neonmarmoset: gpu-priority=true:PreferNoSchedule and
 #     vmi3610371: role=edge:PreferNoSchedule do not block DaemonSets, listed
 #     anyway so intent is explicit.
@@ -47,7 +48,7 @@ tolerations:
     effect: NoSchedule
   - key: workload
     operator: Equal
-    value: gpu
+    value: laptop
     effect: NoSchedule
   - key: gpu-priority
     operator: Equal

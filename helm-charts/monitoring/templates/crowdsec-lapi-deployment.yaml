@@ -18,14 +18,15 @@ spec:
       labels:
         app: crowdsec-lapi
     spec:
-      # The mayastor PV only schedules on the on-prem pool nodes; debian-marmoset
-      # is memory-saturated, so the LAPI lands on marmoset, which carries the
-      # workload=gpu:NoSchedule taint. Tolerate it. (mayastor is nvmf/network-
+      # Historical: the LAPI once had to land on marmoset, which carries a
+      # NoSchedule taint (workload=gpu, renamed workload=laptop 2026-10-06 --
+      # marmoset is the daily-driver laptop). The toleration is kept so the LAPI
+      # can still fall back there in a memory crunch. (mayastor is nvmf/network-
       # attached, so the volume attaches regardless of which node holds the replica.)
       tolerations:
         - key: workload
           operator: Equal
-          value: gpu
+          value: laptop
           effect: NoSchedule
       containers:
         - name: crowdsec

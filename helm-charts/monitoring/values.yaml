@@ -1048,8 +1048,11 @@ alloy:
     hostPID: true
     priorityClassName: monitoring
     tolerations:
+      # marmoset (daily-driver laptop) carries workload=laptop:NoSchedule (renamed
+      # from workload=gpu 2026-10-06 when the GPU operator left); alloy must still
+      # collect there.
       - key: workload
-        value: gpu
+        value: laptop
         effect: NoSchedule
     volumes:
       extra:
