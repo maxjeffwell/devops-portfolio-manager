@@ -56,7 +56,10 @@ spec:
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: mayastor-2
+    # 2026-10-06: thin — CNPG scales up by cloning the latest VolumeSnapshot and
+    # Mayastor refuses thick clones; existing PVC keeps mayastor-2, the new
+    # instance gets a thin clone (same pools, repl=2).
+    storageClass: mayastor-2-thin
   # 2026-09-07 right-sizing. Measured 2-day peaks across the cnpg clusters:
   # cpu 23m against a 250m request, memory 319Mi against a 256Mi request. So the
   # cpu reservation was ~10x too big while memory was slightly too small.

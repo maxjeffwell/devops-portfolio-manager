@@ -72,7 +72,11 @@ spec:
   storage:
     resizeInUseVolumes: true
     size: 10Gi
-    storageClass: mayastor-2
+    # 2026-10-06: thin. CNPG scales up by cloning the latest online VolumeSnapshot
+    # into the new instance's PVC, and Mayastor refuses thick clones
+    # ("Cloned snapshot volumes must be thin provisioned"). Existing PVCs keep
+    # their class; only new instances get a thin clone. Same pools, repl=2.
+    storageClass: mayastor-2-thin
   resources:
     requests:
       cpu: 250m
