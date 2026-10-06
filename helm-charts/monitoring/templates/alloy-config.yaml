@@ -251,6 +251,37 @@ data:
       job_name        = "wireguard"
     }
 
+    // --- Caretta eBPF service map (2026-10-06) ---
+    // One caretta agent per node publishes caretta_links_observed on :7117.
+    // discovery.kubernetes.pods is already scoped to THIS node, so every Alloy
+    // replica scrapes exactly its local agent. All labels are kept: the Grafana
+    // node-graph panel builds node ids from client_id/server_id/link_id.
+    // Mimir is the only Prometheus datasource in Grafana, so this must land here
+    // (kube-prometheus's Prometheus does not feed Mimir).
+    discovery.relabel "caretta" {
+      targets = discovery.kubernetes.pods.targets
+      rule {
+        source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_label_app", "__meta_kubernetes_pod_container_port_name"]
+        regex         = "caretta;caretta;prom-metrics"
+        action        = "keep"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        target_label  = "node"
+      }
+      rule {
+        source_labels = ["__meta_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+    }
+
+    prometheus.scrape "caretta" {
+      targets         = discovery.relabel.caretta.output
+      forward_to      = [prometheus.remote_write.mimir.receiver]
+      scrape_interval = "15s"
+      job_name        = "caretta"
+    }
+
     // --- Traefik Access Log Collection ---
     // 2026-09-25: Traefik runs 2 replicas, each writing its own
     // /var/log/traefik/<pod>/access.log (hostPath, subPathExpr) -- the old

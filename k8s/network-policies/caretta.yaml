@@ -1,7 +1,8 @@
-# Caretta agents publish the service map on :7117; only Prometheus (monitoring
-# namespace) may scrape it. 2026-10-06: the bundled caretta-vm (and the
-# node-gateway allow-list K8Studio's port-forward needed) is gone; Prometheus
-# scrapes the agents directly via k8s/caretta/podmonitor.yaml.
+# Caretta agents publish the service map on :7117; only Alloy (monitoring
+# namespace, one replica per node, scrapes its local agent into Mimir) may
+# reach it. 2026-10-06: the bundled caretta-vm (and the node-gateway allow-list
+# K8Studio's port-forward needed) is gone; scrape config lives in
+# helm-charts/monitoring/templates/alloy-config.yaml (prometheus.scrape "caretta").
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -19,6 +20,6 @@ spec:
               kubernetes.io/metadata.name: monitoring
           podSelector:
             matchLabels:
-              app.kubernetes.io/name: prometheus
+              app.kubernetes.io/name: alloy
       ports:
         - { port: 7117, protocol: TCP }

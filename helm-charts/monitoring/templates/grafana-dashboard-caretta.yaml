@@ -1,8 +1,9 @@
 {{- if index .Values "kube-prometheus-stack" "grafana" "enabled" }}
 # Caretta service map (eBPF, groundcover). Upstream chart dashboard with its
-# datasource pointed at Mimir; the agents are scraped by Prometheus via the
-# PodMonitor in k8s/caretta/ (2026-10-06, replaced Caretta's bundled VM that
-# only K8Studio used). Source JSON: ../dashboards/caretta.json
+# datasource pointed at Mimir; the agents are scraped by Alloy into Mimir
+# (alloy-config.yaml, prometheus.scrape "caretta"; 2026-10-06, replaced
+# Caretta's bundled VM that only K8Studio used). Source JSON:
+# ../dashboards/caretta.json
 apiVersion: v1
 kind: ConfigMap
 metadata:
