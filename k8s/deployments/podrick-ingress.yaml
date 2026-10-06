@@ -6,7 +6,12 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    # 2026-10-06 (user decision): the DevOps dashboard had no login. Shared admin
+    # basic-auth (kube-system/admin-basic-auth). The browser reuses the credential
+    # for the dashboard's same-origin /api calls (podrick-api IngressRoute below).
+    # /devops-api (devops-api-ingress + podrick-api-route) stays open: el-jefe.me
+    # calls it cross-origin for the public portfolio widgets.
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,kube-system-admin-basic-auth@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
@@ -76,6 +81,9 @@ spec:
     match: Host(`podrick.el-jefe.me`) && PathPrefix(`/api`)
     middlewares:
     - name: crowdsec-bouncer
+      namespace: kube-system
+    # same credential as the dashboard UI (same host + realm -> browser reuses it)
+    - name: admin-basic-auth
       namespace: kube-system
     services:
     - name: devops-portfolio-api

@@ -1,0 +1,24 @@
+# Shared admin basic-auth for operator-facing UIs that have no login of their own:
+# the Traefik dashboard (traefik.el-jefe.me, via its own Middleware in the POP repo),
+# the DevOps dashboard (podrick.el-jefe.me) and the TenantFlow platform
+# (tenantflow.el-jefe.me / k8s-platform.el-jefe.me). 2026-10-06 (user): until now
+# all three were served to the internet unauthenticated.
+#
+# Users come from Secret kube-system/traefik-dashboard-auth (ExternalSecret in
+# k8s/platform-external-secrets/, Doppler TRAEFIK_DASHBOARD_HTPASSWD, user `admin`),
+# so one credential opens every admin UI. Ingress annotation form:
+#   traefik.ingress.kubernetes.io/router.middlewares: kube-system-admin-basic-auth@kubernetescrd
+# IngressRoute form: {name: admin-basic-auth, namespace: kube-system} (allowCrossNamespace on).
+#
+# Hand-applied like crowdsec-bouncer-middleware.yaml next to it:
+#   kubectl apply -f k8s/traefik/admin-basic-auth-middleware.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-basic-auth
+  namespace: kube-system
+spec:
+  basicAuth:
+    secret: traefik-dashboard-auth
+    realm: el-jefe-admin
+    removeHeader: true
