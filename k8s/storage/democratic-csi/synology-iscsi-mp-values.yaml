@@ -77,10 +77,13 @@ driver:
 
 node:
   # 2026-09-24: broadened from the debian-marmoset-only pilot to m720q as well.
+  # 2026-10-06 (user): the three k3s servers, and OFF debian-marmoset (GPU node).
   # A node can host the plugin only if it has open-iscsi + multipath-tools
   # installed with /etc/iscsi/iscsid.conf and /etc/multipath.conf mirrored
-  # from debian-marmoset. Consumers of the SC may pin to either node; do NOT
-  # add a node here before its host stack is in place.
+  # from debian-marmoset (verified identical on all three servers 10/6; m920s
+  # additionally needed `systemctl enable --now iscsid`). Consumers of the SC
+  # (qdrant, gotify) pin to this same node list; do NOT add a node here before
+  # its host stack is in place.
   nodeSelector: {}
   affinity:
     nodeAffinity:
@@ -90,8 +93,9 @@ node:
               - key: kubernetes.io/hostname
                 operator: In
                 values:
-                  - debian-marmoset
+                  - elitedesk
                   - m720q
+                  - m920s
   tolerations: []
   driver:
     # 2026-09-30: explicit request; the node csi-driver runs 125-148Mi (7d p95)

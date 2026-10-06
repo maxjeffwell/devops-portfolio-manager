@@ -33,6 +33,7 @@ spec:
       # node plugin runs on these nodes (see
       # k8s/storage/democratic-csi/synology-iscsi-mp-values.yaml). The
       # scheduler picks between them (was a hard m720q pin, 2026-09-24).
+      # 2026-10-06: plugin moved to the three servers (debian-marmoset is a GPU node).
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -40,7 +41,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: ["debian-marmoset", "m720q"]
+                    values: ["elitedesk", "m720q", "m920s"]
       priorityClassName: portfolio-critical
       restartPolicy: Always
       schedulerName: default-scheduler

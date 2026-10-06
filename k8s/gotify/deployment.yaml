@@ -19,7 +19,8 @@ spec:
         app: gotify
     spec:
       # democratic-csi-mp node plugin only runs on these nodes (its DaemonSet
-      # is hostname-pinned); anywhere else the PVC fails MountDevice
+      # is hostname-pinned); anywhere else the PVC fails MountDevice.
+      # 2026-10-06: the three servers (debian-marmoset is a GPU node now).
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -27,7 +28,7 @@ spec:
               - matchExpressions:
                   - key: kubernetes.io/hostname
                     operator: In
-                    values: ["debian-marmoset", "m720q"]
+                    values: ["elitedesk", "m720q", "m920s"]
       containers:
         - name: gotify
           image: gotify/server
