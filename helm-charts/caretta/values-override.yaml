@@ -19,6 +19,19 @@ rbac:
   pspEnabled: false
   sccEnabled: false
 
+# Chart default (150m / 300Mi limits) OOM-killed every agent on first start
+# (2026-10-06, exit 137 on all 7 nodes before publishing a single metric): the
+# agent caches every Pod/ReplicaSet/Deployment/Service in the cluster to resolve
+# socket owners, and this cluster has ~600 pods. Sized with headroom; actual
+# steady-state use recorded in memory once observed.
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
 # Chart default tolerates only control-plane/master taints. Added here so the
 # map covers every node:
 #   - marmoset: workload=gpu:NoSchedule (GPU node; runs only DaemonSets)
