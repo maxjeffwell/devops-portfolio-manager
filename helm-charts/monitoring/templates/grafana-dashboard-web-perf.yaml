@@ -1,0 +1,19 @@
+{{- if index .Values "kube-prometheus-stack" "grafana" "enabled" }}
+# Web Performance (RUM): real-user Core Web Vitals (p75, ratings, pages,
+# devices) for code-talk, educationelly, educationelly-graphql, bookmarked,
+# firebook and intervalai, plus Beyla server latency from Mimir.
+# Data path: rum.js in each app -> analytics-service POST /analytics/rum ->
+# Kafka web.vitals -> analytics-service -> InfluxDB bucket web-perf
+# (datasource uid influxdb). Added 2026-10-06. Source JSON:
+# ../dashboards/web-perf.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-web-perf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  web-perf.json: |-
+{{ .Files.Get "dashboards/web-perf.json" | indent 4 }}
+{{- end }}
