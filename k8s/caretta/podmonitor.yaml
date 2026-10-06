@@ -19,7 +19,7 @@ spec:
     matchLabels:
       app: caretta
   podMetricsEndpoints:
-    - port: prometheus
+    - port: prom-metrics   # container port name in the caretta DaemonSet
       path: /metrics
       interval: 15s
       scrapeTimeout: 10s
