@@ -1,7 +1,10 @@
 ---
 # Bulk RWX tier over the SMB CSI driver, backed by the k8s-smb shared folder on
-# /volume1 (md1 RAID1 HDDs, ~2TB free). Use for large, throughput-over-latency
-# workloads: model caches, dataset staging, media processing scratch.
+# ASUSTOR /volume1 = md1, 2x4 TB HDD RAID1 (~3.6 TiB usable, ~1.3 TB free as of
+# 2026-09-16) fronted by a 2x500 GB NVMe dm-cache. The NAS's other volume,
+# /volume2 (2x1 TB NVMe RAID1, 950 GB), holds garage/docker/iSCSI and is NOT
+# behind this class. Use for large, throughput-over-latency workloads: model
+# caches, dataset staging, media processing scratch.
 # (The former smb-asustor class on the 120G Corsair USB SSD was retired
 # 2026-09-06 when that drive left the NAS; it never had a claim.)
 # Same smbcreds; PVCs become subdirectories directly under //…/k8s-smb.
