@@ -57,6 +57,8 @@ spec:
             - containerPort: 8086
               name: http
           env:
+            - name: GOMEMLIMIT
+              value: "1200MiB"
             - name: DOCKER_INFLUXDB_INIT_MODE
               value: "setup"
             - name: DOCKER_INFLUXDB_INIT_USERNAME
@@ -77,12 +79,17 @@ spec:
                 secretKeyRef:
                   name: influxdb-credentials
                   key: admin-token
+          # 2026-10-06: OOMKilled at 512Mi once the k8s-allocation (Kafka, ~280
+          # points/min) and web-perf feeds plus Grafana Flux dashboards arrived.
+          # Baseline was ~160Mi idle, ~300-360Mi with the feeds; Flux queries and
+          # TSM compactions burst above that. GOMEMLIMIT (~80% of the limit)
+          # makes the Go GC reclaim before the cgroup kill.
           resources:
             requests:
               cpu: 50m
-              memory: 128Mi
+              memory: 384Mi
             limits:
-              memory: 512Mi
+              memory: 1536Mi
           volumeMounts:
             - name: data
               mountPath: /var/lib/influxdb2
