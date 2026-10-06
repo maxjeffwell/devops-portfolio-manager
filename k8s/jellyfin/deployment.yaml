@@ -47,9 +47,13 @@ spec:
       # are on node-local openebs-lvmpv and could not reschedule if evicted.
       # After a failover, restart the deployment once neon is back to move it home.
       # 2026-10-02 later (user decision): HOME moved back to debian-marmoset -- neon
-      # lacks the room. Preferred (not required) so it can still fail over to neon.
+      # lacked the room. Preferred (not required) so it can still fail over.
       # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
       # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
+      # 2026-10-06 (user decision): HOME = neonmarmoset again, restoring the 10/2
+      # split (neon: jellyfin + ovms-embeddings; dm: immich-ml + ovms-llm). The
+      # gpu-priority sweep freed ~1.7Gi of requests on neon, so it fits. dm stays
+      # the failover. gpu-failback.yaml HOME_NODE must match this preference.
       tolerations:
         - key: gpu-priority
           operator: Equal
@@ -64,7 +68,7 @@ spec:
             - weight: 100
               preference:
                 matchExpressions:
-                  - { key: kubernetes.io/hostname, operator: In, values: [debian-marmoset] }
+                  - { key: kubernetes.io/hostname, operator: In, values: [neonmarmoset] }
       priorityClassName: portfolio-critical
       securityContext:
         runAsNonRoot: true
