@@ -7,10 +7,11 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     # 2026-10-06 (user decision): the DevOps dashboard had no login. Shared admin
-    # basic-auth (kube-system/admin-basic-auth). The browser reuses the credential
-    # for the dashboard's same-origin /api calls (podrick-api IngressRoute below).
-    # /devops-api (devops-api-ingress + podrick-api-route) stays open: el-jefe.me
-    # calls it cross-origin for the public portfolio widgets.
+    # basic-auth (kube-system/admin-basic-auth) on EVERY podrick route: the UI, /api
+    # and /devops-api (the dashboard's own same-origin calls; the browser reuses the
+    # credential per host+realm). 7 days of access logs showed no caller of
+    # /devops-api other than the dashboard itself -- the el-jefe.me CORS allowance
+    # on devops-api-ingress is legacy and does not need an open route.
     traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,kube-system-admin-basic-auth@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
@@ -53,9 +54,11 @@ spec:
     - match: Host(`podrick.el-jefe.me`) && PathPrefix(`/devops-api`)
       kind: Rule
       middlewares:
-        # 2026-10-06: CrowdSec bouncer on the API path too (the HTML Ingress above
-        # already had it). Cross-namespace ref needs allowCrossNamespace in Traefik.
+        # 2026-10-06: CrowdSec bouncer + admin basic-auth on the API path too (the
+        # HTML Ingress above has them). Cross-namespace ref needs allowCrossNamespace.
         - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: admin-basic-auth
           namespace: kube-system
         - name: strip-devops-api-prefix
       services:
@@ -100,7 +103,7 @@ metadata:
   namespace: default
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,default-devops-api-cors@kubernetescrd,default-devops-api-stripprefix@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,kube-system-admin-basic-auth@kubernetescrd,default-devops-api-cors@kubernetescrd,default-devops-api-stripprefix@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: '200'
 spec:
   ingressClassName: traefik
