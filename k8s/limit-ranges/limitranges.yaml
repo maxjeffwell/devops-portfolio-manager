@@ -67,18 +67,6 @@ apiVersion: v1
 kind: LimitRange
 metadata:
   name: default-requests
-  namespace: gpu-operator
-spec:
-  limits:
-    - type: Container
-      defaultRequest:
-        cpu: 10m
-        memory: 64Mi
----
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: default-requests
   namespace: headscale
 spec:
   limits:
