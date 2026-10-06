@@ -101,7 +101,7 @@ spec:
                 --from-backup "$LATEST_BACKUP" \
                 --include-namespaces default \
                 --namespace-mappings default:velero-test-restore \
-                --exclude-resources cronjobs.batch,orders.acme.cert-manager.io,challenges.acme.cert-manager.io,certificaterequests.cert-manager.io,clusters.postgresql.cnpg.io,backups.postgresql.cnpg.io,scheduledbackups.postgresql.cnpg.io,clusters.apps.kubeblocks.io,components.apps.kubeblocks.io,instancesets.workloads.kubeblocks.io \
+                --exclude-resources cronjobs.batch,orders.acme.cert-manager.io,challenges.acme.cert-manager.io,certificaterequests.cert-manager.io,clusters.postgresql.cnpg.io,backups.postgresql.cnpg.io,scheduledbackups.postgresql.cnpg.io,clusters.apps.kubeblocks.io,components.apps.kubeblocks.io,instancesets.workloads.kubeblocks.io,services \
                 --selector 'app.kubernetes.io/managed-by notin (kubeblocks)' \
                 --wait
 
@@ -113,7 +113,10 @@ spec:
               echo ""
               echo "Restore summary:"
               velero restore describe "$TEST_RESTORE" --details 2>/dev/null | grep -E "Phase:|Total items|Items restored|Errors:|Warnings:" || true
-              velero restore logs "$TEST_RESTORE" 2>/dev/null | grep -E 'level=(error|warn)' | sed -E 's/.*msg="([^"]*)".*/\1/' | sort | uniq -c | sort -rn | head -40 || true
+              # Greedy match up to the trailing ` logSource=` key: API-server errors embed
+              # escaped quotes (Service \"x\" is invalid ...), and a [^"]* match used to
+              # cut the message at the first backslash (2026-10-04 run showed `Service \`).
+              velero restore logs "$TEST_RESTORE" 2>/dev/null | grep -E 'level=(error|warn)' | sed -E 's/.*msg="(.*)" logSource=.*/\1/' | sort | uniq -c | sort -rn | head -40 || true
 
               if [ "$RESTORE_STATUS" = "Completed" ] || [ "$RESTORE_STATUS" = "PartiallyFailed" ]; then
                 echo "✓ Test restore completed with status: $RESTORE_STATUS"

@@ -12,6 +12,13 @@
 #                     volume is snapshot-capable, so weekly-offsite (snapshotMoveData) would
 #                     otherwise CSI-snapshot + upload ~16G to Backblaze weekly. Label is set
 #                     by prometheus-operator, so it survives PVC recreation.
+#   - pvcLabels:      the Mimir monolithic /data volume. Durable state (blocks, ruler,
+#                     alertmanager) lives in Garage buckets per mimir-monolithic-config;
+#                     the PVC holds only the TSDB head, store-gateway sync cache and
+#                     compactor scratch. Head-block compaction deletes chunk dirs mid-walk,
+#                     and kopia treats the resulting readdirent ENOENT as fatal → PVB
+#                     Canceled → backup PartiallyFailed (daily-backup 2026-10-03). Nothing
+#                     restorable is lost by skipping it.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -38,5 +45,10 @@ data:
     - conditions:
         pvcLabels:
           operator.prometheus.io/name: prometheus-kube-prometheus-prometheus
+      action:
+        type: skip
+    - conditions:
+        pvcLabels:
+          app.kubernetes.io/name: mimir
       action:
         type: skip
