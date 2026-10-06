@@ -1,6 +1,8 @@
 ---
-# Caretta: eBPF service-dependency map (groundcover). Consumed by K8Studio
-# CloudMaps via its auto port-forward to caretta-vm:8428. Added 2026-10-06.
+# Caretta: eBPF service-dependency map (groundcover). Added 2026-10-06 for
+# K8Studio; since K8Studio's removal the agents are scraped by Prometheus
+# (k8s/caretta/podmonitor.yaml, third source below) and shown in Grafana
+# (monitoring chart: grafana-dashboard-caretta).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -23,6 +25,9 @@ spec:
     - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
       targetRevision: main
       ref: values
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      path: k8s/caretta
   destination:
     server: https://kubernetes.default.svc
     namespace: caretta

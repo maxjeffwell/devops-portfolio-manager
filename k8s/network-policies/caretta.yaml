@@ -1,38 +1,7 @@
-# Caretta (eBPF service map for K8Studio CloudMaps) -- namespace caretta.
-# 2026-10-06 (user): the bundled Victoria Metrics (caretta-vm:8428) had no
-# NetworkPolicy at all. Nothing in-cluster needs to reach it: the VM SCRAPES the
-# agents (pull, scrape.yml in caretta-vm-scrapeconfig), it has no Grafana
-# datasource, and K8Studio reads the map through `kubectl port-forward`.
-#
-# Port-forward traffic enters the pod from the kubelet of the node hosting it,
-# with the node's cni0 gateway address as source (observed: 10.42.2.1 while
-# caretta-vm-0 ran on m920s). Those gateways are the only ingress admitted, one
-# /32 per node so the policy survives the pod moving. Pod CIDRs are static
-# (10.42.<n>.0/24 per node); add a line if a node joins.
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: caretta-vm-ingress
-  namespace: caretta
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: victoria-metrics-single
-      app.kubernetes.io/instance: caretta
-  policyTypes: [Ingress]
-  ingress:
-    - from:
-        - ipBlock: { cidr: 10.42.0.1/32 }   # neonmarmoset
-        - ipBlock: { cidr: 10.42.1.1/32 }   # marmoset
-        - ipBlock: { cidr: 10.42.2.1/32 }   # m920s
-        - ipBlock: { cidr: 10.42.3.1/32 }   # debian-marmoset
-        - ipBlock: { cidr: 10.42.4.1/32 }   # elitedesk
-        - ipBlock: { cidr: 10.42.5.1/32 }   # m720q
-        - ipBlock: { cidr: 10.42.6.1/32 }   # vmi3610371
-      ports:
-        - { port: 8428, protocol: TCP }
----
-# The agents expose /metrics on 7117; only caretta-vm should scrape them.
+# Caretta agents publish the service map on :7117; only Prometheus (monitoring
+# namespace) may scrape it. 2026-10-06: the bundled caretta-vm (and the
+# node-gateway allow-list K8Studio's port-forward needed) is gone; Prometheus
+# scrapes the agents directly via k8s/caretta/podmonitor.yaml.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -45,9 +14,11 @@ spec:
   policyTypes: [Ingress]
   ingress:
     - from:
-        - podSelector:
+        - namespaceSelector:
             matchLabels:
-              app.kubernetes.io/name: victoria-metrics-single
-              app.kubernetes.io/instance: caretta
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
       ports:
         - { port: 7117, protocol: TCP }

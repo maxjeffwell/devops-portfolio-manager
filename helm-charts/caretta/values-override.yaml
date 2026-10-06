@@ -2,9 +2,11 @@
 #
 # Caretta = eBPF service-dependency map: a privileged DaemonSet reads kernel
 # socket data on every node and publishes `caretta_links_observed` on :7117.
-# Installed 2026-10-06 so K8Studio's CloudMaps can draw traffic roads. K8Studio
-# discovers Caretta and port-forwards to its bundled Victoria Metrics (caretta-vm
-# :8428), so that subchart STAYS; the bundled Grafana is redundant with ours.
+# Installed 2026-10-06 for K8Studio; K8Studio was removed the same day. The
+# agents are now scraped by the cluster Prometheus (k8s/caretta/podmonitor.yaml,
+# third source of the ArgoCD app) and the upstream dashboard lives in our
+# Grafana (helm-charts/monitoring: grafana-dashboard-caretta). The bundled
+# Victoria Metrics + Grafana are therefore both disabled.
 #
 # All 7 nodes run kernel 6.12+/6.14 with BTF (/sys/kernel/btf/vmlinux) and
 # debugfs mounted, verified 2026-10-06 -- CO-RE eBPF works everywhere.
@@ -60,16 +62,14 @@ tolerations:
     effect: PreferNoSchedule
 
 victoria-metrics-single:
-  # Keep: K8Studio reads the map from here. No PV on purpose -- the map is a
-  # live view of currently observed links; losing history on a pod restart is
-  # acceptable and avoids another PVC. Flip persistentVolume.enabled to true
-  # (16Gi default) if historical traffic matters later.
-  enabled: true
+  # Off since 2026-10-06: it only served K8Studio's port-forward. Prometheus
+  # scrapes the agents directly (PodMonitor) and keeps the history.
+  enabled: false
   rbac:
     # subchart (0.8.48) still templates a PodSecurityPolicy unless told not to
     pspEnabled: false
 
 grafana:
-  # We already run Grafana (monitoring ns). Point a datasource at
-  # http://caretta-vm.caretta.svc:8428 there if the Caretta dashboard is wanted.
+  # We already run Grafana (monitoring ns); the upstream dashboard is loaded
+  # there via the grafana_dashboard sidecar ConfigMap.
   enabled: false
