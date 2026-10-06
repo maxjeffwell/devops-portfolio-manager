@@ -58,8 +58,10 @@ env:
       value: "vertex-kafka-kafka-bootstrap.microservices.svc:9092"
     - name: KAFKA_CLIENT_ID
       value: "graphql-gateway"
-    - name: KAFKA_GROUP_ID
-      value: "graphql-gateway-group"
+    # KAFKA_GROUP_ID deliberately NOT set (removed 2026-10-06): every replica must
+    # receive every event for its own subscription buffer, so the gateway derives a
+    # per-pod group (graphql-gateway-<pod name>, no offset commits). A shared fixed
+    # id here would split the partitions between the two replicas.
     - name: KAFKA_AI_EVENTS_TOPIC
       value: "ai.gateway.events"
     - name: ARGOCD_SERVER
