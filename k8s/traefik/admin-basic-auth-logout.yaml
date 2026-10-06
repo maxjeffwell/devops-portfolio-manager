@@ -1,0 +1,25 @@
+# "Logout" for the Basic-auth admin login (podrick, tenantflow). Basic auth has
+# no session: the browser caches the credential per (host, realm) and resends
+# it silently. A /logout route guarded by THIS middleware -- same realm, a user
+# list that can never match -- always answers 401, which makes browsers drop
+# the cached credential (cancel the prompt and you are logged out).
+# Hand-applied like admin-basic-auth-middleware.yaml (2026-10-06). The hash
+# below is of a random throwaway password nobody knows; it is not a secret.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: traefik-logout-auth
+  namespace: kube-system
+type: Opaque
+stringData:
+  users: "logout:$apr1$9WPVZZV9$a/7q4T8EKm3pUwF/I4Oa8/"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admin-basic-auth-logout
+  namespace: kube-system
+spec:
+  basicAuth:
+    secret: traefik-logout-auth
+    realm: el-jefe-admin

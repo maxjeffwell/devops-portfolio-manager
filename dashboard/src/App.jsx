@@ -53,6 +53,12 @@ function Navigation() {
         <NavLink to="/analytics" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
           Analytics
         </NavLink>
+        {/* Basic-auth "logout": /logout is a Traefik route that always answers 401 for the
+            admin realm, so the browser forgets the cached credential. Plain <a> on purpose:
+            it must leave the SPA and hit the edge. */}
+        <a href="/logout" className="nav-link" title="Forget the admin login in this browser">
+          Logout
+        </a>
       </div>
       {mobileMenuOpen && <div className="nav-overlay" onClick={() => setMobileMenuOpen(false)} />}
     </nav>

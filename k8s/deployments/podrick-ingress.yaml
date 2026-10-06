@@ -32,6 +32,33 @@ spec:
     - podrick.el-jefe.me
     secretName: podrick-tls
 ---
+# /logout: Basic auth has no session, so this route is guarded by
+# kube-system/admin-basic-auth-logout (same realm, a user list that never
+# matches) and always returns 401 -> the browser drops the cached admin
+# credential. Higher priority than the catch-all dashboard route.
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: podrick-logout
+  namespace: default
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`podrick.el-jefe.me`) && Path(`/logout`)
+      kind: Rule
+      priority: 300
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: admin-basic-auth-logout
+          namespace: kube-system
+      services:
+        - name: devops-portfolio-dashboard
+          port: 80
+  tls:
+    secretName: podrick-tls
+---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
