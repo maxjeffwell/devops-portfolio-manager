@@ -416,6 +416,20 @@ kube-prometheus-stack:
         url: http://pyroscope.monitoring.svc.cluster.local:4040
         editable: true
         isDefault: false
+      # kube-prometheus's own Prometheus (15d, 50Gi). Mimir holds ONLY what Alloy
+      # scrapes; everything collected via ServiceMonitor/PodMonitor (goldpinger,
+      # kube-state-metrics, operator targets...) is only here. Added 2026-10-06 for
+      # the Goldpinger dashboard; Mimir stays the default datasource.
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus
+        access: proxy
+        url: http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+        editable: true
+        isDefault: false
+        jsonData:
+          httpMethod: POST
+          timeInterval: 30s
 
     # Liveness probe tuning — Grafana startup may take several minutes on first
     # init (SQLite migrations). Subsequent starts with persistent storage are faster.

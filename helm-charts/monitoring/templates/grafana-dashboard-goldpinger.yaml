@@ -1,0 +1,16 @@
+{{- if index .Values "kube-prometheus-stack" "grafana" "enabled" }}
+# Goldpinger (bloomberg) upstream dashboard. Goldpinger metrics live in
+# kube-prometheus's Prometheus (ServiceMonitor k8s/goldpinger/, also feeds the
+# PrometheusRule alerts), NOT in Mimir -- hence the 'Prometheus' datasource
+# added in values.yaml (2026-10-06). Source JSON: ../dashboards/goldpinger.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-goldpinger
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  goldpinger.json: |-
+{{ .Files.Get "dashboards/goldpinger.json" | indent 4 }}
+{{- end }}
