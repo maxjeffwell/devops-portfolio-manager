@@ -1,27 +1,10 @@
-# --- Jellyfin state on debian-marmoset (openebs-lvmpv, thin, openebs-vg) ---
-# /config — jellyfin.db, metadata, plugins, logs. ~3.6 GB copied from the
-# ASUSTOR instance on 2026-09-15; 20Gi leaves room for years of metadata.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: jellyfin-config
-  namespace: jellyfin
-  labels:
-    app: jellyfin
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
-  storageClassName: openebs-lvmpv
----
-# 2026-10-01: /config moved to Mayastor (mayastor-2-thin: 2 replicas on NVMe-tier
-# pools, thin) so jellyfin is no longer node-local to debian-marmoset. Data copied
-# from jellyfin-config (above) with a one-off Job on dm, which can attach both
-# since 10/1 (dm = Mayastor consumer node). The old lvmpv claim is kept in git for
-# rollback until the new volume has proven itself; then delete it here, the
-# Retained PV, and the lvmvolume CR in ns openebs.
+# --- Jellyfin state ---
+# /config — jellyfin.db, metadata, plugins, logs (~3.6 GB copied from the ASUSTOR
+# instance on 2026-09-15). 2026-10-01: moved to Mayastor (mayastor-2-thin, 2
+# replicas on NVMe-tier pools, thin) so jellyfin is not node-local to any GPU node.
+# 2026-10-06: the node-local lvmpv rollback claims (jellyfin-config 20Gi,
+# jellyfin-cache 10Gi, both on debian-marmoset) were deleted -- dm/neon are GPU
+# nodes and keep no local volumes; the Mayastor volume had proven itself for 5 days.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -37,22 +20,7 @@ spec:
       storage: 20Gi
   storageClassName: mayastor-2-thin
 ---
-# /cache — image cache, trickplay, fonts. Regenerable; excluded from Velero.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: jellyfin-cache
-  namespace: jellyfin
-  labels:
-    app: jellyfin
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: openebs-lvmpv
----
+# /cache (image cache, trickplay, fonts) is a 10Gi emptyDir in deployment.yaml.
 # --- Media: static NFS PVs from ASUSTOR 192.168.50.149 (RTL8157 5GbE), read-only.
 # Capacity on static NFS PVs is metadata only (governs PVC binding, not enforced).
 # nconnect=8 must match the other .149 mounts on the node (channels-dvr uses 8);
