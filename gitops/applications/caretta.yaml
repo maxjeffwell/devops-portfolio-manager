@@ -1,0 +1,40 @@
+---
+# Caretta: eBPF service-dependency map (groundcover). Consumed by K8Studio
+# CloudMaps via its auto port-forward to caretta-vm:8428. Added 2026-10-06.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: caretta
+  namespace: argocd
+  labels:
+    app: caretta
+    infrastructure: "true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.groundcover.com/
+      chart: caretta
+      targetRevision: 0.0.16
+      helm:
+        valueFiles:
+          - $values/helm-charts/caretta/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: caretta
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

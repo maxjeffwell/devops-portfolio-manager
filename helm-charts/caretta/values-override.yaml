@@ -1,0 +1,61 @@
+# Overrides for the upstream caretta chart (groundcover, v0.0.16).
+#
+# Caretta = eBPF service-dependency map: a privileged DaemonSet reads kernel
+# socket data on every node and publishes `caretta_links_observed` on :7117.
+# Installed 2026-10-06 so K8Studio's CloudMaps can draw traffic roads. K8Studio
+# discovers Caretta and port-forwards to its bundled Victoria Metrics (caretta-vm
+# :8428), so that subchart STAYS; the bundled Grafana is redundant with ours.
+#
+# All 7 nodes run kernel 6.12+/6.14 with BTF (/sys/kernel/btf/vmlinux) and
+# debugfs mounted, verified 2026-10-06 -- CO-RE eBPF works everywhere.
+
+image:
+  # chart default is Always; no reason to re-pull on every pod restart
+  pullPolicy: IfNotPresent
+
+rbac:
+  # PodSecurityPolicy was removed in k8s 1.25 (this cluster is 1.34); SCC is
+  # OpenShift-only. Both would render objects the API server rejects.
+  pspEnabled: false
+  sccEnabled: false
+
+# Chart default tolerates only control-plane/master taints. Added here so the
+# map covers every node:
+#   - marmoset: workload=gpu:NoSchedule (GPU node; runs only DaemonSets)
+#   - debian-marmoset / neonmarmoset: gpu-priority=true:PreferNoSchedule and
+#     vmi3610371: role=edge:PreferNoSchedule do not block DaemonSets, listed
+#     anyway so intent is explicit.
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+  - key: workload
+    operator: Equal
+    value: gpu
+    effect: NoSchedule
+  - key: gpu-priority
+    operator: Equal
+    value: "true"
+    effect: PreferNoSchedule
+  - key: role
+    operator: Equal
+    value: edge
+    effect: PreferNoSchedule
+
+victoria-metrics-single:
+  # Keep: K8Studio reads the map from here. No PV on purpose -- the map is a
+  # live view of currently observed links; losing history on a pod restart is
+  # acceptable and avoids another PVC. Flip persistentVolume.enabled to true
+  # (16Gi default) if historical traffic matters later.
+  enabled: true
+  rbac:
+    # subchart (0.8.48) still templates a PodSecurityPolicy unless told not to
+    pspEnabled: false
+
+grafana:
+  # We already run Grafana (monitoring ns). Point a datasource at
+  # http://caretta-vm.caretta.svc:8428 there if the Caretta dashboard is wanted.
+  enabled: false
