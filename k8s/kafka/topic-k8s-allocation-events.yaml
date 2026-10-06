@@ -1,0 +1,16 @@
+# KafkaTopic k8s.allocation.events — k8s-allocation-producer (microservices-platform) -> analytics-service
+# -> InfluxDB bucket k8s-allocation. Hand-applied like analytics.events (no ArgoCD app
+# syncs k8s/kafka/). Created 2026-10-06.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  labels:
+    strimzi.io/cluster: vertex-kafka
+  name: k8s.allocation.events
+  namespace: microservices
+spec:
+  config:
+    retention.ms: 604800000
+    compression.type: producer
+  partitions: 3
+  replicas: 1

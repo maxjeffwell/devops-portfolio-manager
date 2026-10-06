@@ -1,0 +1,18 @@
+{{- if index .Values "kube-prometheus-stack" "grafana" "enabled" }}
+# K8s Resource Allocation (InfluxDB): requests vs usage vs allocatable per node,
+# pod spread, GPU slots, workload efficiency, HPA and scheduling/eviction events.
+# Data path: k8s-allocation-producer (microservices-platform) -> Kafka topics
+# k8s.allocation + k8s.allocation.events -> analytics-service -> InfluxDB bucket
+# k8s-allocation (datasource uid influxdb). Added 2026-10-06. Source JSON:
+# ../dashboards/k8s-allocation.json
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-k8s-allocation
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  k8s-allocation.json: |-
+{{ .Files.Get "dashboards/k8s-allocation.json" | indent 4 }}
+{{- end }}

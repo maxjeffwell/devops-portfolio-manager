@@ -430,6 +430,29 @@ kube-prometheus-stack:
         jsonData:
           httpMethod: POST
           timeInterval: 30s
+      # InfluxDB 2.7 (Flux). Bucket k8s-allocation = k8s-allocation-producer ->
+      # Kafka -> analytics-service (added 2026-10-06). Token comes from the
+      # ESO-managed influxdb-credentials secret via envValueFrom below; Grafana
+      # expands ${INFLUXDB_GRAFANA_TOKEN} when it reads the provisioning file.
+      - name: InfluxDB
+        type: influxdb
+        uid: influxdb
+        access: proxy
+        url: http://influxdb.monitoring.svc.cluster.local:8086
+        editable: true
+        isDefault: false
+        jsonData:
+          version: Flux
+          organization: homenet
+          defaultBucket: k8s-allocation
+        secureJsonData:
+          token: ${INFLUXDB_GRAFANA_TOKEN}
+
+    envValueFrom:
+      INFLUXDB_GRAFANA_TOKEN:
+        secretKeyRef:
+          name: influxdb-credentials
+          key: admin-token
 
     # Liveness probe tuning — Grafana startup may take several minutes on first
     # init (SQLite migrations). Subsequent starts with persistent storage are faster.
