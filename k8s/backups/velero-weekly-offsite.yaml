@@ -50,3 +50,6 @@ spec:
       # to the Neon tenant IDs stored in neon-storage, synced by
       # garage-offsite-sync). Neon PVCs hold ~150 MB total (2026-09-27).
       - neon
+      # qdrant: 5 Gi iSCSI PVC, ~174 MB of vectors. Its only off-site copy since
+      # k8up was removed 2026-10-06 (k8up kept 6 monthly points in garage, on-site).
+      - qdrant
