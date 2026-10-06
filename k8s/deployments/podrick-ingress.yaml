@@ -102,7 +102,10 @@ metadata:
   name: devops-api-ingress
   namespace: default
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    # websecure only (2026-10-06): a basic-auth challenge must never be issued over
+    # plaintext. The web entrypoint already 301s to https before routing anyway.
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,kube-system-admin-basic-auth@kubernetescrd,default-devops-api-cors@kubernetescrd,default-devops-api-stripprefix@kubernetescrd
     traefik.ingress.kubernetes.io/router.priority: '200'
 spec:
