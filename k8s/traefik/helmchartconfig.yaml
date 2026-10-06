@@ -6,6 +6,19 @@ metadata:
 spec:
   valuesContent: |-
     ports:
+      # 2026-10-06: entrypoint-level HTTP->HTTPS redirect. Before this, Traefik had
+      # NO redirect of its own -- the 301 everyone saw was Cloudflare's "Always Use
+      # HTTPS", so direct-to-origin clients (edge.el-jefe.me is public DNS) got the
+      # admin basic-auth challenge and app pages over plaintext :80. The redirect
+      # runs before any router, so no router can answer in the clear. Cloudflare
+      # reaches the origin over TLS (no loop) and Let's Encrypt follows redirects to
+      # https during HTTP-01, so the letsencrypt-prod solver keeps working.
+      web:
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
       websecure:
         forwardedHeaders:
           trustedIPs:
