@@ -9,10 +9,15 @@ metadata:
   name: igpu
   namespace: tdarr
 spec:
+  # metadata/allocationMode/count are the API server defaults, spelled out so
+  # ArgoCD's diff matches the stored object (otherwise permanently OutOfSync).
+  metadata: {}
   spec:
     devices:
       requests:
         - name: gpu
           exactly:
             deviceClassName: gpu.intel.com
+            allocationMode: ExactCount
+            count: 1
             adminAccess: true
