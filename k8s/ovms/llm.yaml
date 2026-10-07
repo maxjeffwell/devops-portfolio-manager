@@ -114,6 +114,10 @@ spec:
           type: RuntimeDefault
         # GID 992 = `render` group (same on every iGPU node), owns /dev/dri/renderD128.
         supplementalGroups: [992]
+      # 2026-10-07: Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml)
+      # instead of the device plugin's gpu.intel.com/i915.
+      resourceClaims:
+        - {name: igpu, resourceClaimTemplateName: igpu}
       volumes:
         - name: models
           persistentVolumeClaim:
@@ -188,10 +192,9 @@ spec:
               # weights, which the kubelet counts toward the working set and eviction).
               # 3Gi -> 4Gi to match; limit 5Gi unchanged.
               memory: 4Gi
-              gpu.intel.com/i915: "1"
             limits:
               memory: 5Gi
-              gpu.intel.com/i915: "1"
+            claims: [{name: igpu}]
           livenessProbe:
             httpGet: { path: /v2/health/live, port: 8000 }
             initialDelaySeconds: 30

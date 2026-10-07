@@ -39,6 +39,10 @@ spec:
         # GID 992 = `render` group on debian-marmoset, owns /dev/dri/renderD128.
         # Required for Iris Xe access via the Intel GPU device plugin.
         supplementalGroups: [992]
+      # 2026-10-07: Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml)
+      # instead of the device plugin's gpu.intel.com/i915.
+      resourceClaims:
+        - {name: igpu, resourceClaimTemplateName: igpu}
       volumes:
         - name: models
           persistentVolumeClaim:
@@ -153,7 +157,6 @@ spec:
               # 2026-10-02: 7Gi -> 5Gi. The LLM (~2.2Gi working set) moved to ovms-llm.
               # Re-measure with all three remaining models loaded and match it.
               memory: 5Gi
-              gpu.intel.com/i915: "1"
             limits:
               # fp16 e5-large (~1.1GB) + OVMS runtime needs >1500Mi; the old
               # limit OOMKilled the pod repeatedly (exit 137) on model load.
@@ -161,7 +164,7 @@ spec:
               # 2026-10-01: 6Gi -> 7Gi for the qwen3-embedding-0.6b graph; -> 8Gi after
               # measuring 6293Mi resident with all four graphs loaded (88% of 7Gi).
               memory: 8Gi
-              gpu.intel.com/i915: "1"
+            claims: [{name: igpu}]
           livenessProbe:
             httpGet: { path: /v2/health/live, port: 8000 }
             initialDelaySeconds: 30

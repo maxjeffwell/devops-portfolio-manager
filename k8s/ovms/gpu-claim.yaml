@@ -1,0 +1,15 @@
+# 2026-10-07: Intel GPU DRA (app intel-gpu-dra) replaces the device plugin's
+# gpu.intel.com/i915 on the Iris Xe nodes. adminAccess lets OVMS share each
+# iGPU with jellyfin/tdarr/immich-ml (Intel's driver has no consumable capacity).
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: igpu
+spec:
+  spec:
+    devices:
+      requests:
+        - name: gpu
+          exactly:
+            deviceClassName: gpu.intel.com
+            adminAccess: true
