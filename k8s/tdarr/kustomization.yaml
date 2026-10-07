@@ -5,3 +5,4 @@ resources:
   - storage.yaml
   - server.yaml
   - node-debian-marmoset.yaml
+  - networkpolicy.yaml

@@ -1,0 +1,16 @@
+# Tdarr runs with auth=false and can modify the (rw) media library through its
+# API, so nothing outside this namespace may reach it. Only Tdarr pods (the
+# debian-marmoset node -> server :8266) are allowed in. The web UI stays
+# reachable via `kubectl port-forward -n tdarr svc/tdarr 8265` (port-forward
+# enters through the pod's own network namespace, not the pod network).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tdarr-namespace-only
+  namespace: tdarr
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
