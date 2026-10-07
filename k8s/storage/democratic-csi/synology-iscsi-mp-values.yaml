@@ -9,7 +9,12 @@
 #   helm upgrade --install democratic-csi-mp democratic-csi/democratic-csi \
 #     --version 0.15.1 -n democratic-csi --create-namespace \
 #     -f synology-iscsi-mp-values.yaml \
+#     --post-renderer ./post-render.sh \
 #     --set driver.config.httpConnection.password='<DSM_API_PASSWORD>'
+#
+# post-render.sh sets mountPropagation HostToContainer on the driver-registrar
+# kubelet-dir mount (chart hardcodes it private → pins Mayastor mounts, see
+# script header). ALWAYS pass it, or the next upgrade reintroduces the bug.
 #
 # See also:
 #   memory: democratic-csi-pilot-2026-05-17 (install context)
