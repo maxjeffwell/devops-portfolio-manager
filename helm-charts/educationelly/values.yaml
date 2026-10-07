@@ -13,11 +13,11 @@ strategy:
 image:
   server:
     repository: maxjeffwell/educationelly-server
-    tag: 20261006-231354-ae3b805
+    tag: 20261007-062907-54dbdab
     pullPolicy: Always
   client:
     repository: maxjeffwell/educationelly-client
-    tag: 20261006-231354-ae3b805
+    tag: 20261007-062907-54dbdab
     pullPolicy: Always
 service:
   server:
