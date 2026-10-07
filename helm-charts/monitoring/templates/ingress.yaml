@@ -24,6 +24,38 @@ spec:
             name: {{ .Values.ingress.grafanaService }}
             port:
               number: {{ .Values.ingress.grafanaPort }}
+  tls:
+  # Both hosts stay on this certificate (cert-manager issues monitoring-tls from
+  # this Ingress); prometheus-ingress below reuses the secret without its own
+  # issuer annotation, so there is exactly one Certificate.
+  - hosts:
+    - {{ .Values.ingress.grafanaHost }}
+    - {{ .Values.ingress.prometheusHost }}
+    secretName: monitoring-tls
+---
+# Prometheus split out 2026-10-07: it was public with NO auth (anyone could
+# query every cluster metric, incl. the Caretta service map). Traefik
+# middlewares apply per Ingress, so it needs its own to get basic-auth without
+# putting a second login in front of Grafana. Same chain as podrick/tenantflow:
+# CrowdSec bouncer, then the shared admin basic-auth (kube-system).
+# Clients: Radar (local) must send the admin credential
+# (--prometheus-header-from-env Authorization=...); nothing in-cluster uses
+# this hostname (they use the Service).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: monitoring
+    portfolio: "true"
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,kube-system-admin-basic-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
   - host: {{ .Values.ingress.prometheusHost }}
     http:
       paths:
@@ -36,7 +68,6 @@ spec:
               number: {{ .Values.ingress.prometheusPort }}
   tls:
   - hosts:
-    - {{ .Values.ingress.grafanaHost }}
     - {{ .Values.ingress.prometheusHost }}
     secretName: monitoring-tls
 {{- end }}
