@@ -816,6 +816,12 @@ garage:
   # across nodes, readiness-probed Service endpoints => one node down costs 0.
   replicas: 2
   antiAffinity: true
+  # 2026-10-07: servers only. garage-0 had slipped onto debian-marmoset (GPU
+  # node, gpu-priority PreferNoSchedule taint is soft); dm + neon are kept for
+  # GPU work and the VPS/laptop are not storage hosts. This excludes node
+  # CLASSES; it does not pick between the three servers (scheduler decides).
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: "true"
   # These pods are GATEWAY members (zero blocks) of the federated Garage
   # cluster and run with hostNetwork so native members (incl. the two NAS
   # boxes, which cannot route to pod IPs) can reach their RPC port. Every
