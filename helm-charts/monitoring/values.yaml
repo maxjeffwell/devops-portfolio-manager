@@ -1195,6 +1195,11 @@ crowdsec:
   # docs/superpowers/specs/2026-06-03-crowdsec-lapi-in-cluster-migration-design.md
   lapi:
     enabled: true
+    # 2026-10-07: api.crowdsec.net returned 403 on `cscli capi register` after a day
+    # of restarts (config used to be ephemeral -> a new registration per start).
+    # /etc/crowdsec is now persisted; set false once CAPI accepts registration
+    # again -> one registration, kept on the PVC. Bouncers are fail-open meanwhile.
+    disableOnlineApi: true
     image:
       repository: crowdsecurity/crowdsec
       tag: "v1.7.6"

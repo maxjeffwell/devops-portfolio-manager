@@ -18,16 +18,18 @@ spec:
       labels:
         app: crowdsec-lapi
     spec:
-      # Historical: the LAPI once had to land on marmoset, which carries a
-      # NoSchedule taint (workload=gpu, renamed workload=laptop 2026-10-06 --
-      # marmoset is the daily-driver laptop). The toleration is kept so the LAPI
-      # can still fall back there in a memory crunch. (mayastor is nvmf/network-
-      # attached, so the volume attaches regardless of which node holds the replica.)
-      tolerations:
-        - key: workload
-          operator: Equal
-          value: laptop
-          effect: NoSchedule
+      # 2026-10-07: servers only. The marmoset (workload=laptop) toleration is
+      # gone -- marmoset is the daily-driver laptop and only runs DaemonSets --
+      # and an m920s drain had left the LAPI on debian-marmoset (GPU node).
+      # mayastor is nvmf/network-attached, so the volume follows the pod.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: In
+                    values: ["true"]
       containers:
         - name: crowdsec
           image: "{{ .Values.crowdsec.lapi.image.repository }}:{{ .Values.crowdsec.lapi.image.tag }}"
@@ -58,9 +60,23 @@ spec:
               value: "{{ .Values.crowdsec.lapi.collections }}"
             - name: CROWDSEC_BYPASS_DB_VOLUME_CHECK
               value: "true"
+            # 2026-10-07: with /etc/crowdsec ephemeral every restart did a fresh
+            # `cscli capi register`; after a day of drains api.crowdsec.net
+            # answered 403 and the entrypoint exited (crash loop). Toggle while
+            # CAPI refuses registration; the bouncers stay fail-open meanwhile.
+            - name: DISABLE_ONLINE_API
+              value: {{ .Values.crowdsec.lapi.disableOnlineApi | default false | quote }}
           volumeMounts:
+            # Volume ROOT = the existing crowdsec.db; do not add a subPath here.
             - name: lapi-data
               mountPath: /var/lib/crowdsec/data
+            # Persist the config dir (incl. online_api_credentials.yaml) so the
+            # CAPI machine registers ONCE. The image seeds an empty /etc/crowdsec
+            # from /staging on first start. (Also visible as
+            # /var/lib/crowdsec/data/etc-crowdsec; crowdsec ignores it.)
+            - name: lapi-data
+              mountPath: /etc/crowdsec
+              subPath: etc-crowdsec
           readinessProbe:
             httpGet:
               path: /health
