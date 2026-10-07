@@ -1,0 +1,17 @@
+# OpenEBS LVM LocalPV snapshot class used by Velero (velero.io/csi-volumesnapshot-class label).
+# Hand-applied (not part of any Helm release / ArgoCD app); exported to git 2026-10-07.
+#
+# deletionPolicy Delete (was Retain until 2026-10-07): Velero manages snapshot
+# lifecycles itself -- it flips a snapshot it keeps to Retain during the backup and
+# deletes it when the backup expires; with snapshotMoveData (weekly-offsite) the
+# snapshot is temporary and removed after upload. Retain made those deletions leave
+# the backend snapshot on the pool (the 68 orphans of 2026-09-25 came from this class
+# when CNPG used it). Backend audit before the switch: 0 orphan snapshots.
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: openebs-lvmpv-snapclass
+  labels:
+    velero.io/csi-volumesnapshot-class: 'true'
+driver: local.csi.openebs.io
+deletionPolicy: Delete
