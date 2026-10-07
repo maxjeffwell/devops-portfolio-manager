@@ -2,19 +2,19 @@
 # TVE (Spectrum) authenticates against the home egress IP, so this can never
 # run on the cloud nodes.
 #
-# PINNED to elitedesk by hostname (2026-09-30). This is an ADDRESS pin, not
-# steering: the service is reached through hostPort 8089 on whichever node runs
-# the pod, so the node IS the client-facing address. Clients add the server
-# manually as 192.168.50.115:8089 (elitedesk bond0; eno1 192.168.50.116 and
-# tailnet 100.64.0.8 also answer). When the pin was dropped on 2026-09-30 the
-# pod moved m920s -> elitedesk on an unrelated restart and the documented
-# address 192.168.50.155:8089 went dead; moving a hostPort service means
-# re-pointing every client. Changing the node = change the pin AND the clients.
+# 2026-10-07: RUNS ON debian-marmoset for its Iris Xe (Intel GPU DRA,
+# gpu-claim.yaml) but is still REACHED AT ELITEDESK: service.yaml has
+# externalIPs 192.168.50.115 / .116 / 100.64.0.8 port 8089, so kube-proxy on
+# elitedesk forwards the address clients already use (192.168.50.115:8089) to
+# the pod wherever it runs. The hostPort is gone; the address no longer follows
+# the node. Clients see elitedesk's pod-network IP as the source (SNAT), which
+# networkpolicy.yaml already allows (10.42.0.0/16). Same home egress IP as
+# elitedesk (97.103.12.66, checked) so Spectrum TVE is unaffected.
+# History: hostPort + hostname pin m920s 9/25 -> elitedesk 9/30 (moving it
+# meant re-pointing every client); elitedesk UHD 630 VAAPI until 2026-10-07.
 #
-# Pod network + container hostPort 8089: portmap binds the node port and DNATs
-# to the pod — unlike hostNetwork, traffic traverses the pod veth so
-# networkpolicy.yaml is actually enforced. Trade-off: no bonjour/mDNS
-# discovery (upstream docker docs use --net=host purely for that).
+# Pod network, no hostNetwork: networkpolicy.yaml is enforced. Trade-off: no
+# bonjour/mDNS discovery (upstream docker docs use --net=host purely for that).
 #
 # Standby discipline: same sources configured, recording passes DISABLED.
 # Both servers share the same Spectrum TVE ~3-stream cap (enforced at the
@@ -48,12 +48,20 @@ spec:
         # daily backup as every later item hit the exhausted context.
         backup.velero.io/backup-volumes-excludes: primary,recordings
     spec:
-      # Hostname pin = the hostPort address clients use (see header). elitedesk
-      # has the i915 + GpuDevicePlugin and is a Mayastor csi node, so the other
-      # two placement facts are satisfied. (History: hard m920s pin 9/25 -> soft
-      # m920s 9/26 -> soft neonmarmoset 9/30 -> none 9/30 -> elitedesk 9/30.)
+      # debian-marmoset: Iris Xe via DRA (shared with immich-ml/ovms-llm/
+      # tdarr-node through adminAccess claims), Mayastor csi node, ASUSTOR NFS
+      # exports cover 192.168.50.0/24. The client address stays on elitedesk
+      # (service.yaml), so this pin is placement only, not an address.
       nodeSelector:
-        kubernetes.io/hostname: elitedesk
+        kubernetes.io/hostname: debian-marmoset
+      tolerations:
+        - key: gpu-priority
+          operator: Equal
+          value: "true"
+          effect: PreferNoSchedule
+      resourceClaims:
+        - name: igpu
+          resourceClaimTemplateName: igpu
       containers:
         - name: channels-dvr
           # :tve, not :latest — the default image is Alpine WITHOUT Chrome;
@@ -65,7 +73,6 @@ spec:
               value: America/New_York
           ports:
             - containerPort: 8089
-              hostPort: 8089
               name: http
           volumeMounts:
             - name: data
@@ -83,10 +90,10 @@ spec:
               # days; no cpu limit, so this only corrects the scheduler's view.
               cpu: 400m
               memory: 512Mi
-              gpu.intel.com/i915: "1"
             limits:
               memory: 4Gi
-              gpu.intel.com/i915: "1"
+            claims:
+              - name: igpu
           readinessProbe:
             tcpSocket:
               port: 8089

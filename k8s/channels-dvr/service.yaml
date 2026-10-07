@@ -1,0 +1,21 @@
+# 2026-10-07: keeps the client-facing address on elitedesk while the pod runs
+# on debian-marmoset (deployment.yaml header). kube-proxy DNATs traffic for
+# these IPs on port 8089 to the pod: 192.168.50.115 = elitedesk bond0 (the
+# address clients were set up with), .116 = elitedesk eno1, 100.64.0.8 =
+# elitedesk tailnet. Replaces the old container hostPort.
+apiVersion: v1
+kind: Service
+metadata:
+  name: channels-dvr
+spec:
+  selector:
+    app: channels-dvr
+  ports:
+    - name: http
+      port: 8089
+      targetPort: http
+      protocol: TCP
+  externalIPs:
+    - 192.168.50.115
+    - 192.168.50.116
+    - 100.64.0.8

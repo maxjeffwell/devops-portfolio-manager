@@ -9,5 +9,7 @@ resources:
   - pvc-data.yaml
   - pvc-recordings.yaml
   - networkpolicy.yaml
+  - gpu-claim.yaml
+  - service.yaml
   - deployment.yaml
   - cronjob-db-sync.yaml
