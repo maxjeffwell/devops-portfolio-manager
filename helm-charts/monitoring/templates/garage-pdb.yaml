@@ -1,0 +1,19 @@
+{{- if and .Values.garage.enabled (gt (int .Values.garage.replicas) 1) }}
+# 2026-10-07: keep >= 1 Garage S3 gateway through drains. The 2 gateways run
+# on different servers (required anti-affinity, control-plane nodeSelector), so
+# an evicted one can always restart on the third server. Rendered only with > 1
+# replica (a single replica + minAvailable 1 would block every drain).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: garage
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: garage
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: object-storage
+      app.kubernetes.io/name: garage
+{{- end }}

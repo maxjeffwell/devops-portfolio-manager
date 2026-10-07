@@ -512,6 +512,10 @@ kube-prometheus-stack:
   # AlertManager Configuration
   alertmanager:
     enabled: true
+    # 2026-10-07: 2 replicas (m720q, m920s) had no PDB; keep >= 1 through drains.
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
     config:
       global:
         resolve_timeout: 5m
