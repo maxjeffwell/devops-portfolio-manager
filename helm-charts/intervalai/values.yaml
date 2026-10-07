@@ -122,7 +122,8 @@ resources:
 autoscaling:
   enabled: true
   minReplicas: 2
-  maxReplicas: 2
+  # 2026-10-07: 2 -> 4 (min == max pinned the HPA; same fix as bookmarked accb55c).
+  maxReplicas: 4
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
