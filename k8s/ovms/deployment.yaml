@@ -60,8 +60,8 @@ spec:
               # Sync each model from garage once (marker = a file that only exists after a full sync).
               # e5-large: OpenVINO IR for the embeddings graph. interval_ai: TensorFlow SavedModel
               # (intervalai-server's 51-feature regressor, moved here from Triton 2026-09-30).
-              # bge-reranker-base (2026-10-07): flat layout like qwen; rerank graph in the ConfigMap.
-              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen3-embedding-0.6b:openvino_model.bin" "bge-reranker-base:openvino_model.bin"; do
+              # qwen3-reranker-0.6b (2026-10-07): flat layout like qwen; rerank graph in the ConfigMap.
+              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen3-embedding-0.6b:openvino_model.bin" "qwen3-reranker-0.6b:openvino_model.bin"; do
                 name=${m%%:*}; marker=${m#*:}
                 if [ -f "/models/$name/$marker" ]; then
                   echo "$name already present, skipping sync"
