@@ -91,6 +91,14 @@ serviceMonitor:
   relabelings:
     - sourceLabels: [__meta_kubernetes_pod_node_name]
       targetLabel: node
+  # device label arrives as "_hostdev_disk_by-id_nvme-Samsung_..." (exporter
+  # replaces / with _); strip the mount-path prefix so graphs/alerts show the
+  # drive's model_serial. USB kernel names (sdb...) pass through unchanged.
+  metricRelabelings:
+    - sourceLabels: [device]
+      regex: _hostdev_disk_by-id_(.+)
+      targetLabel: device
+      replacement: $1
 
 prometheusRules:
   enabled: true
