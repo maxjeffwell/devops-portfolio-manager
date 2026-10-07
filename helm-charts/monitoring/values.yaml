@@ -115,7 +115,8 @@ tempoRedis:
   enabled: true
   image:
     repository: docker.dragonflydb.io/dragonflydb/dragonfly
-    tag: "latest"
+    # pinned 2026-10-07 (was latest); v2.0.0 = running digest 7426fdb3
+    tag: "v2.0.0"
   # No node pin (2026-10-02): no local volume, scheduler places it.
   nodeSelector: {}
   resources:

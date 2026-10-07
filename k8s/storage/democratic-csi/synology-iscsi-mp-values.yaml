@@ -26,6 +26,12 @@ controller:
   externalSnapshotter:
     enabled: true
   driver:
+    # 2026-10-07: pinned by digest (chart default `latest`). This is the build that
+    # was running -- NEWER than the v1.9.0 release tag (different digest), so not
+    # moved to v1.9.0. To upgrade: choose a release tag, test, update both copies.
+    image:
+      registry: ghcr.io/democratic-csi/democratic-csi
+      tag: latest@sha256:944d0e65077efbd9c1fdf23997eec8fac4b4bfb7c3de400f63e33a0a849c5ced
     # 2026-09-30: explicit request. Without it the namespace LimitRange filled
     # 10m/64Mi while the controller csi-driver runs 107-150Mi (7d p95); the
     # scheduler was undercounting it by ~90Mi. No limit on purpose.
@@ -98,6 +104,12 @@ node:
                   - m920s
   tolerations: []
   driver:
+    # 2026-10-07: pinned by digest (chart default `latest`). This is the build that
+    # was running -- NEWER than the v1.9.0 release tag (different digest), so not
+    # moved to v1.9.0. To upgrade: choose a release tag, test, update both copies.
+    image:
+      registry: ghcr.io/democratic-csi/democratic-csi
+      tag: latest@sha256:944d0e65077efbd9c1fdf23997eec8fac4b4bfb7c3de400f63e33a0a849c5ced
     # 2026-09-30: explicit request; the node csi-driver runs 125-148Mi (7d p95)
     # on both nodes against the LimitRange default of 64Mi. No limit on purpose.
     resources:

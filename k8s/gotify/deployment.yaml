@@ -31,7 +31,8 @@ spec:
                     values: ["elitedesk", "m720q", "m920s"]
       containers:
         - name: gotify
-          image: gotify/server
+          # pinned 2026-10-07 (was untagged = latest); = running digest 44fc5bbd
+          image: gotify/server:3.1.1
           env:
             - name: TZ
               value: "UTC"
