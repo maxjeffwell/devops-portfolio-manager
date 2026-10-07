@@ -14,8 +14,9 @@
 #     which need `-d sat` (";sat" suffix below).
 # Physical disks use /hostdev/disk/by-id/... (the chart mounts host /dev at
 # /hostdev; the privileged container's own /dev has the nodes but not udev's
-# by-id symlinks). m720q's USB disks use kernel names: both RTL9201 enclosures
-# report the SAME USB serial, so by-id cannot tell them apart.
+# by-id symlinks). m720q's RTL9201 enclosures both report the SAME USB serial,
+# so by-id cannot tell them apart -> they use /hostdev/disk/by-path (USB port);
+# swapping their ports swaps their labels.
 # Not covered: marmoset (daily-driver laptop, only node agents run there) and
 # vmi3610371 (VPS virtual disk, no SMART).
 # Every entry carries an explicit ;type -- smartctl's `auto` guesses the type from
@@ -48,9 +49,12 @@ extraInstances:
       devices:
         - /hostdev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_1TB_S4EWNX0WA55367V;nvme
         - /hostdev/disk/by-id/ata-WDC_WDS100T1R0A-68A4W0_25083C801066;sat
-        - /dev/sdb;sat   # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
-        - /dev/sdc;sat   # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
-        - /dev/sdd;sat   # CT2000BX500 2513E9B2FE4B, ASM1053 (mayastor m720q-usb-pool)
+        # USB disks: never /dev/sdX -- letters reshuffle on every boot/replug
+        # (10/7: the 2 TB went sdd -> sde -> sdb) and the container's own /dev
+        # keeps stale nodes ("No such device"). Ports = rear hub 5.x.
+        - /hostdev/disk/by-id/usb-SABRENT_SABRENT_DB9876543214E-0:0;sat    # CT2000BX500 2513E9B2FE4B, Sabrent JMS561U (mayastor m720q-usb-pool)
+        - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:5.3:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
+        - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:5.4:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
   - nodeSelector:
       kubernetes.io/hostname: m920s
     resources:
@@ -93,10 +97,10 @@ serviceMonitor:
       targetLabel: node
   # device label arrives as "_hostdev_disk_by-id_nvme-Samsung_..." (exporter
   # replaces / with _); strip the mount-path prefix so graphs/alerts show the
-  # drive's model_serial. USB kernel names (sdb...) pass through unchanged.
+  # drive's model_serial (by-path entries keep their port path).
   metricRelabelings:
     - sourceLabels: [device]
-      regex: _hostdev_disk_by-id_(.+)
+      regex: _hostdev_disk_by-(?:id|path)_(.+)
       targetLabel: device
       replacement: $1
 
