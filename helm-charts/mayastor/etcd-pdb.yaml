@@ -1,0 +1,23 @@
+# Quorum budget for Mayastor's 3-member etcd (2026-10-07). Hand-applied, NOT
+# rendered by the mayastor Helm release (values keep etcd.pdb.create: false):
+# upgrading that release is avoided while it has unreviewed drift.
+# maxUnavailable 1 = drains of one server proceed (its member is evicted and
+# comes back with the node, its PVC is local), but a second member can never be
+# evicted at the same time, so quorum (2 of 3) is always kept.
+# (8/23 removed the old chart PDB because it allowed 0 disruptions; this one
+# allows 1.)  Apply: kubectl apply -f helm-charts/mayastor/etcd-pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mayastor-etcd
+  namespace: openebs
+  labels:
+    app.kubernetes.io/name: etcd
+    app.kubernetes.io/instance: mayastor
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: etcd
+      app.kubernetes.io/instance: mayastor
+      app.kubernetes.io/name: etcd
