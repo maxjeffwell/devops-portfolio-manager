@@ -22,6 +22,8 @@ spec:
         kubernetes.io/hostname: neonmarmoset
       tolerations:
         - {key: gpu-priority, operator: Equal, value: "true", effect: PreferNoSchedule}
+      resourceClaims:
+        - {name: igpu, resourceClaimTemplateName: igpu}
       containers:
         - name: tdarr
           image: ghcr.io/haveagitgat/tdarr:2.94.03
@@ -49,8 +51,9 @@ spec:
             - {name: healthcheckgpuWorkers, value: "0"}
             - {name: healthcheckcpuWorkers, value: "1"}
           resources:
-            requests: {cpu: 500m, memory: 1Gi, gpu.intel.com/i915: "1"}
-            limits: {memory: 4Gi, gpu.intel.com/i915: "1"}
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {memory: 4Gi}
+            claims: [{name: igpu}]
           volumeMounts:
             - {name: data, mountPath: /app/server, subPath: server}
             - {name: data, mountPath: /app/configs, subPath: configs}

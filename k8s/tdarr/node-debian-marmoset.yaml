@@ -21,6 +21,8 @@ spec:
         kubernetes.io/hostname: debian-marmoset
       tolerations:
         - {key: gpu-priority, operator: Equal, value: "true", effect: PreferNoSchedule}
+      resourceClaims:
+        - {name: igpu, resourceClaimTemplateName: igpu}
       containers:
         - name: tdarr-node
           image: ghcr.io/haveagitgat/tdarr_node:2.94.03
@@ -42,8 +44,9 @@ spec:
             - {name: healthcheckgpuWorkers, value: "0"}
             - {name: healthcheckcpuWorkers, value: "1"}
           resources:
-            requests: {cpu: 500m, memory: 512Mi, gpu.intel.com/i915: "1"}
-            limits: {memory: 3Gi, gpu.intel.com/i915: "1"}
+            requests: {cpu: 500m, memory: 512Mi}
+            limits: {memory: 3Gi}
+            claims: [{name: igpu}]
           volumeMounts:
             - {name: configs, mountPath: /app/configs}
             - {name: logs, mountPath: /app/logs}

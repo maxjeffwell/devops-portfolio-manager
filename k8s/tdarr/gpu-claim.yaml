@@ -1,0 +1,18 @@
+# 2026-10-07: Intel GPU DRA (app intel-gpu-dra) replaces the device plugin's
+# gpu.intel.com/i915 on the Iris Xe nodes. Intel's driver has no consumable
+# capacity, so a normal claim would take the whole iGPU from jellyfin/OVMS/
+# immich-ml; adminAccess claims let several namespaces use the same device.
+# Every pod gets its own generated claim; the pod's nodeSelector picks the GPU.
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: igpu
+  namespace: tdarr
+spec:
+  spec:
+    devices:
+      requests:
+        - name: gpu
+          exactly:
+            deviceClassName: gpu.intel.com
+            adminAccess: true

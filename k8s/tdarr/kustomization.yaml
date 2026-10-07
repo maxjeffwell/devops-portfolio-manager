@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - storage.yaml
+  - gpu-claim.yaml
   - server.yaml
   - node-debian-marmoset.yaml
   - networkpolicy.yaml

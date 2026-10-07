@@ -4,3 +4,6 @@ metadata:
   name: tdarr
   labels:
     app.kubernetes.io/part-of: tdarr
+    # 2026-10-07: allows adminAccess ResourceClaims (gpu-claim.yaml) so tdarr
+    # can share the Iris Xe with other namespaces under Intel GPU DRA.
+    resource.kubernetes.io/admin-access: "true"
