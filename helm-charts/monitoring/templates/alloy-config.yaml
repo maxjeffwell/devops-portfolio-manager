@@ -412,9 +412,44 @@ data:
         max_allowed_payload_size = "5MiB"
       }
       output {
-        logs   = [loki.write.default.receiver]
+        logs   = [loki.process.faro.receiver]
         traces = [otelcol.processor.batch.tempo.input]
       }
+    }
+
+    // Faro browser telemetry arrives as logfmt lines with no stream labels,
+    // so Loki filed it all under service_name=unknown_service. Promote the
+    // app name, kind and environment to labels -- but only ALLOW-LISTED
+    // values: app_name comes from the client payload and the endpoint is
+    // public, so a script could otherwise mint unlimited label values. A
+    // value that does not match simply never becomes a label. To add an app
+    // that initialises Faro, extend the app_name alternation. (2026-10-07)
+    loki.process "faro" {
+      stage.static_labels {
+        values = { source = "faro" }
+      }
+
+      stage.regex {
+        expression = "(?:^|\\s)app_name=(?P<faro_app>bookmarked-client)(?:\\s|$)"
+      }
+
+      stage.regex {
+        expression = "(?:^|\\s)kind=(?P<faro_kind>event|measurement|log|exception)(?:\\s|$)"
+      }
+
+      stage.regex {
+        expression = "(?:^|\\s)app_environment=(?P<faro_env>production|development|staging)(?:\\s|$)"
+      }
+
+      stage.labels {
+        values = {
+          service_name = "faro_app",
+          kind         = "faro_kind",
+          environment  = "faro_env",
+        }
+      }
+
+      forward_to = [loki.write.default.receiver]
     }
 
     // --- Beyla eBPF Auto-Instrumentation ---
