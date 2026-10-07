@@ -1,0 +1,39 @@
+---
+# 2026-10-07: second descheduler release, moves non-GPU pods off dm/neon
+# (gpu-priority taint). See helm-charts/descheduler/values-gpu-nodes.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: descheduler-gpu-nodes
+  namespace: argocd
+  labels:
+    app: descheduler-gpu-nodes
+    infrastructure: "true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://kubernetes-sigs.github.io/descheduler/
+      chart: descheduler
+      targetRevision: 0.37.0
+      helm:
+        releaseName: descheduler-gpu-nodes
+        valueFiles:
+          - $values/helm-charts/descheduler/values-gpu-nodes.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

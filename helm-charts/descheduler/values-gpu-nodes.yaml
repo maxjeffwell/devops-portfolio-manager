@@ -1,0 +1,49 @@
+# Second descheduler release (ArgoCD app descheduler-gpu-nodes, chart 0.37.0).
+#
+# Why (2026-10-07): the m920s drain spilled argocd-application-controller-0,
+# crowdsec-lapi and the neon-cluster broker/compute onto debian-marmoset.
+# gpu-priority=true is only PreferNoSchedule on dm/neon, so the scheduler uses
+# them when the servers are full, and nothing ever moves those pods back.
+#
+# What: RemovePodsViolatingNodeTaints for the gpu-priority taint ONLY
+# (includedTaints; the VPS also has a PreferNoSchedule taint, role=edge, which
+# must not be touched). Pods that tolerate gpu-priority (the GPU workloads)
+# are never evicted. No policy nodeSelector on purpose: nodeFit has to see the
+# servers to decide whether the pod fits elsewhere, otherwise it would evict
+# into a full cluster and the pod would bounce straight back.
+fullnameOverride: descheduler-gpu-nodes
+kind: Deployment
+deschedulingInterval: 10m
+replicas: 1
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+deschedulerPolicyAPIVersion: "descheduler/v1alpha2"
+deschedulerPolicy:
+  maxNoOfPodsToEvictPerNode: 2
+  maxNoOfPodsToEvictPerNamespace: 1
+  profiles:
+    - name: off-gpu-nodes
+      pluginConfig:
+        - name: DefaultEvictor
+          args:
+            # Same protections as the server profile: PVC pods (Mayastor detach
+            # cost, local PVs) are moved by hand.
+            podProtections:
+              defaultDisabled:
+                - "PodsWithLocalStorage"
+              extraEnabled:
+                - "PodsWithPVC"
+            nodeFit: true
+        - name: RemovePodsViolatingNodeTaints
+          args:
+            includePreferNoSchedule: true
+            includedTaints:
+              - gpu-priority=true
+      plugins:
+        deschedule:
+          enabled:
+            - RemovePodsViolatingNodeTaints
