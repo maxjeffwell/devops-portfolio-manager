@@ -82,6 +82,10 @@ spec:
         supplementalGroups: [992]
         seccompProfile:
           type: RuntimeDefault
+      # 2026-10-07: Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml)
+      # instead of the device plugin's gpu.intel.com/i915.
+      resourceClaims:
+        - { name: igpu, resourceClaimTemplateName: igpu }
       initContainers:
         # Recover encoding.xml if it's missing or corrupt (Jellyfin silently
         # falls back to HardwareAccelerationType=none on a bad file), and keep
@@ -144,7 +148,6 @@ spec:
               # the .NET server), so reserve a whole core for CFS weight.
               cpu: "1"
               memory: 1Gi
-              gpu.intel.com/i915: "1"
             limits:
               # dm is a 16 GiB laptop already ~62 % committed; 3Gi keeps ~4Gi
               # of real headroom while Jellyfin transcodes. QSV does the codec
@@ -152,7 +155,8 @@ spec:
               # (tone mapping, subtitle burn-in); 8 of dm's 16 cores for that.
               cpu: "8"
               memory: 3Gi
-              gpu.intel.com/i915: "1"
+            claims:
+              - { name: igpu }
           volumeMounts:
             - { name: config,        mountPath: /config }
             - { name: cache,         mountPath: /cache }

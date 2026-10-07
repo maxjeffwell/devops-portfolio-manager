@@ -4,3 +4,5 @@ metadata:
   name: jellyfin
   labels:
     portfolio: "true"
+    # 2026-10-07: allows adminAccess ResourceClaims (gpu-claim.yaml).
+    resource.kubernetes.io/admin-access: "true"

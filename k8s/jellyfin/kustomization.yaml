@@ -4,6 +4,7 @@ namespace: jellyfin
 resources:
   - namespace.yaml
   - storage.yaml
+  - gpu-claim.yaml
   - middleware-ratelimit.yaml
   - networkpolicy.yaml
   - configmap-encoding.yaml
