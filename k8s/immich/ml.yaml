@@ -1,6 +1,7 @@
 # Immich machine learning (CLIP smart search, face detection/recognition, OCR)
 # on an Intel iGPU via OpenVINO. The -openvino image needs /dev/dri, which the
-# Intel GPU device plugin injects for gpu.intel.com/i915; that request is what
+# Intel GPU DRA driver injects via the igpu adminAccess claim (2026-10-07; was the
+# device plugin's gpu.intel.com/i915); the hostname nodeSelector is what
 # limits scheduling to the i915 nodes. 2026-10-02: Xe iGPU nodes only (see
 # nodeSelector) -- 96 EUs vs the UHD 630's 24. The render
 # group is gid 992 on every iGPU node. Models download from Hugging Face on first
@@ -52,6 +53,10 @@ spec:
         supplementalGroups: [992]
         seccompProfile:
           type: RuntimeDefault
+      # 2026-10-07: Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml)
+      # instead of the device plugin's gpu.intel.com/i915.
+      resourceClaims:
+        - { name: igpu, resourceClaimTemplateName: igpu }
       containers:
         - name: ml
           image: ghcr.io/immich-app/immich-machine-learning:v3.2.4-openvino   # 2026-10-06: kept in step with the server
@@ -74,14 +79,14 @@ spec:
             requests:
               cpu: 500m
               memory: 1Gi
-              gpu.intel.com/i915: "1"
             limits:
               cpu: "4"
               # OpenVINO uses more RAM than the CPU path. Measured 9/16: ~3.0Gi steady
               # with CLIP visual + buffalo_l detect/recognise + OCR loaded; 4Gi got
               # OOM-killed once, so 6Gi (elitedesk has 15Gi real headroom).
               memory: 6Gi
-              gpu.intel.com/i915: "1"
+            claims:
+              - { name: igpu }
           volumeMounts:
             - { name: cache, mountPath: /cache }
             - { name: tmp, mountPath: /tmp }

@@ -15,6 +15,7 @@ resources:
   - gpu-plugin-m920s.yaml
   - gpu-plugin-m720q.yaml
   - gpu-plugin-neonmarmoset.yaml
+  - gpu-claim.yaml
   - storage.yaml
   - barman-cloud-b2.yaml
   - cnpg-immich.yaml

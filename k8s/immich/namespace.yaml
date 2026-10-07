@@ -4,3 +4,5 @@ metadata:
   name: immich
   labels:
     portfolio: "true"
+    # 2026-10-07: allows adminAccess ResourceClaims (gpu-claim.yaml, immich-ml).
+    resource.kubernetes.io/admin-access: "true"
