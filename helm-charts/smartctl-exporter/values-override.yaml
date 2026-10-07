@@ -18,6 +18,9 @@
 # report the SAME USB serial, so by-id cannot tell them apart.
 # Not covered: marmoset (daily-driver laptop, only node agents run there) and
 # vmi3610371 (VPS virtual disk, no SMART).
+# Every entry carries an explicit ;type -- smartctl's `auto` guesses the type from
+# the path (/dev/nvme*, /dev/sd*) and fails on /hostdev/disk/by-id/... paths
+# ("Unable to detect device type", seen 2026-10-07).
 # Adding a disk to a node = add it to that node's list here.
 
 image:
@@ -32,8 +35,8 @@ nodeSelector:
   kubernetes.io/hostname: elitedesk
 config:
   devices:
-    - /hostdev/disk/by-id/nvme-WDC_PC_SN730_SDBQNTY-512G-1001_200105471610
-    - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB512HBJQ-000L7_S4ENNF0M725578
+    - /hostdev/disk/by-id/nvme-WDC_PC_SN730_SDBQNTY-512G-1001_200105471610;nvme
+    - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB512HBJQ-000L7_S4ENNF0M725578;nvme
 
 extraInstances:
   - nodeSelector:
@@ -43,8 +46,8 @@ extraInstances:
       limits: {memory: 128Mi}
     config:
       devices:
-        - /hostdev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_1TB_S4EWNX0WA55367V
-        - /hostdev/disk/by-id/ata-WDC_WDS100T1R0A-68A4W0_25083C801066
+        - /hostdev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_1TB_S4EWNX0WA55367V;nvme
+        - /hostdev/disk/by-id/ata-WDC_WDS100T1R0A-68A4W0_25083C801066;sat
         - /dev/sdb;sat   # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
         - /dev/sdc;sat   # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
         - /dev/sdd;sat   # CT2000BX500 2513E9B2FE4B, ASM1053 (mayastor m720q-usb-pool)
@@ -55,11 +58,11 @@ extraInstances:
       limits: {memory: 128Mi}
     config:
       devices:
-        - /hostdev/disk/by-id/nvme-KBG40ZNS512G_NVMe_KIOXIA_512GB_Y0NPG048QUN1
-        - /hostdev/disk/by-id/nvme-PC711_NVMe_SK_hynix_1TB____ANB2N589911502H1X
-        - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB256HAHQ-00000_S444NE0M642371
-        - /hostdev/disk/by-id/ata-Corsair_Neutron_GTX_SSD_1315791200009714007A
-        - /hostdev/disk/by-id/ata-CT120BX300SSD1_1742E1052242
+        - /hostdev/disk/by-id/nvme-KBG40ZNS512G_NVMe_KIOXIA_512GB_Y0NPG048QUN1;nvme
+        - /hostdev/disk/by-id/nvme-PC711_NVMe_SK_hynix_1TB____ANB2N589911502H1X;nvme
+        - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB256HAHQ-00000_S444NE0M642371;nvme
+        - /hostdev/disk/by-id/ata-Corsair_Neutron_GTX_SSD_1315791200009714007A;sat
+        - /hostdev/disk/by-id/ata-CT120BX300SSD1_1742E1052242;sat
   - nodeSelector:
       kubernetes.io/hostname: debian-marmoset
     resources:
@@ -67,7 +70,7 @@ extraInstances:
       limits: {memory: 128Mi}
     config:
       devices:
-        - /hostdev/disk/by-id/nvme-UMIS_RPETJ512MGE2QDQ_SS0L25217X8LC28401GE
+        - /hostdev/disk/by-id/nvme-UMIS_RPETJ512MGE2QDQ_SS0L25217X8LC28401GE;nvme
   - nodeSelector:
       kubernetes.io/hostname: neonmarmoset
     resources:
@@ -75,7 +78,7 @@ extraInstances:
       limits: {memory: 128Mi}
     config:
       devices:
-        - /hostdev/disk/by-id/nvme-WD_PC_SN740_SDDQNQD-512G-1001_22200S814328
+        - /hostdev/disk/by-id/nvme-WD_PC_SN740_SDDQNQD-512G-1001_22200S814328;nvme
 
 resources:
   requests: {cpu: 10m, memory: 32Mi}
