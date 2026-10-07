@@ -21,6 +21,9 @@ spec:
   # The primary then STAYS on the promoted instance (the SATA-backed standby)
   # until the next switchover.
   primaryUpdateMethod: switchover
+  # 2026-10-07: same class as the other CNPG clusters. Without it the instances
+  # ran at priority 0 and could not preempt anything when a node was drained.
+  priorityClassName: portfolio-critical
   imageName: ghcr.io/cloudnative-pg/postgresql:17
   primaryUpdateStrategy: unsupervised
   # storageClass only applies to PVCs created after the change: the existing

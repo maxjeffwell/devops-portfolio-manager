@@ -27,6 +27,11 @@ spec:
       # dead m920s still took the vault down. Allowed on any Mayastor storage
       # node (all Mayastor csi-node nodes reach B2 and run the Velero node-agent).
       # 2026-09-30: m920s preference removed; scheduler-placed.
+      #
+      # 2026-10-07: portfolio-critical so the scheduler preempts lower-priority
+      # pods for it. During the m920s drain every Mayastor node was full on CPU
+      # requests and the vault sat Pending at priority 0 for ~3.7 h.
+      priorityClassName: portfolio-critical
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
