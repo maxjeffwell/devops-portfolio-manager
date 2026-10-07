@@ -1,0 +1,60 @@
+# Live cert-manager ClusterIssuers, exported from the cluster 2026-10-07.
+# Until now the only git definitions were in a legacy educationELLy kustomize
+# tree (now deleted), and letsencrypt-prod-dns had no git copy at all.
+# Record of the live objects (hand-applied; NOT synced by ArgoCD). They hold
+# only REFERENCES to secrets (ACME account keys, DNS API token), no values.
+# Usage at export: letsencrypt-prod-dns 24 Certificates, letsencrypt-prod 13.
+# Apply: kubectl apply -f k8s/cert-manager/cluster-issuers.yaml
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+  labels:
+    app: educationelly
+    environment: production
+spec:
+  acme:
+    email: admin@el-jefe.me
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - http01:
+        ingress:
+          class: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-dns
+spec:
+  acme:
+    email: admin@el-jefe.me
+    privateKeySecretRef:
+      name: letsencrypt-prod-dns
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+    - dns01:
+        cloudflare:
+          apiTokenSecretRef:
+            key: api-token
+            name: cloudflare-api-token-secret
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  labels:
+    app: educationelly
+    environment: production
+spec:
+  acme:
+    email: admin@el-jefe.me
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
