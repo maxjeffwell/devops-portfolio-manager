@@ -91,7 +91,11 @@ resources:
 autoscaling:
   enabled: true
   minReplicas: 2
-  maxReplicas: 2
+  # 2026-10-07: 2 -> 4. max had been cut to 2 in Feb "to match VPS capacity"
+  # (single-VPS era); with min raised to 2 on 10/1 for availability, min == max
+  # pinned the HPA (it could never scale; hpa_fixed). Home servers have the
+  # room: each extra pod = 200m CPU / 256Mi requests, only while avg CPU > 80%.
+  maxReplicas: 4
   targetCPUUtilizationPercentage: 80
 
 pdb:
