@@ -60,7 +60,8 @@ spec:
               # Sync each model from garage once (marker = a file that only exists after a full sync).
               # e5-large: OpenVINO IR for the embeddings graph. interval_ai: TensorFlow SavedModel
               # (intervalai-server's 51-feature regressor, moved here from Triton 2026-09-30).
-              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen3-embedding-0.6b:openvino_model.bin"; do
+              # bge-reranker-base (2026-10-07): flat layout like qwen; rerank graph in the ConfigMap.
+              for m in "e5-large:1/openvino_model.bin" "interval_ai:1/saved_model.pb" "qwen3-embedding-0.6b:openvino_model.bin" "bge-reranker-base:openvino_model.bin"; do
                 name=${m%%:*}; marker=${m#*:}
                 if [ -f "/models/$name/$marker" ]; then
                   echo "$name already present, skipping sync"
@@ -68,7 +69,7 @@ spec:
                 fi
                 echo "Syncing s3://ovms-models/$name -> /models/$name ..."
                 # In-cluster Garage (2026-10-02): ~53 MB/s vs ~3.4 MiB/s via public s3.el-jefe.me.
-                aws --endpoint-url=http://garage.monitoring.svc.cluster.local:3900 s3 sync "s3://ovms-models/$name" "/models/$name"
+                aws --endpoint-url=http://garage.monitoring.svc.cluster.local:3900 s3 sync "s3://ovms-models/$name" "/models/$name" --exclude ".git/*"
                 # List the marker's dir: the qwen models are flat (no 1/), and a failed ls under set -e kills the init container.
                 ls -la "/models/$name/$(dirname "$marker")/"
               done
