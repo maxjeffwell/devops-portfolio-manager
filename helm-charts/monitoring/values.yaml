@@ -1004,6 +1004,12 @@ loki:
 # Alloy - Log collector (DaemonSet on all nodes)
 alloy:
   enabled: true
+  # Chart 1.13.0 ships Alloy v1.20.0; pin the v1.20.1 patch (loki.write batch
+  # sizing and prometheus.remote_write WAL replay fixes). v1.20.0+ is needed
+  # for the Faro receiver to allow the SDK's idempotency-key header in CORS
+  # (bookmarked's Faro 2.x failed every preflight on v1.18.1). 2026-10-06.
+  image:
+    tag: v1.20.1
   alloy:
     clustering:
       enabled: true
