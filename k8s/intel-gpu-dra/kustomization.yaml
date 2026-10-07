@@ -19,3 +19,14 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/volumeMounts/1/mountPropagation
         value: HostToContainer
+  # The chart only renders --manage-binding=false inside its healthMonitoring
+  # block; with health monitoring off (no xpumd) the flag disappears and the
+  # binary default is DefaultManageBinding=true (cmd/kubelet-gpu-plugin/main.go),
+  # i.e. it may rebind the iGPU between i915 and vfio-pci. Keep it explicit.
+  - target:
+      kind: DaemonSet
+      name: intel-gpu-resource-driver-kubelet-plugin
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --manage-binding=false

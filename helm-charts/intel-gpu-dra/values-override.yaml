@@ -10,6 +10,11 @@
 # keep the device plugin.
 
 kubeletPlugin:
+  # Health monitoring (-m) needs Intel's xpumd daemon on /run/xpumd, which the
+  # chart does not deploy (xpumdEnabled: false): the plugin waits ~5 min for
+  # the socket, then panics and crash-loops (2026-10-07).
+  healthMonitoring:
+    enabled: false
   # manageBinding rebinds a GPU between i915 and vfio-pci when a claim asks for
   # the gpu-vfio.intel.com class. These iGPUs serve jellyfin/OVMS/tdarr/immich
   # through i915; a rebind would pull the GPU out from under them.

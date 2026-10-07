@@ -73,8 +73,6 @@ spec:
         command: ["/kubelet-gpu-plugin"]
         args:
         - --healthcheck-port=51516
-        - -m
-        - --manage-binding=false
         ports:
         - name: healthcheck
           containerPort: 51516
@@ -115,8 +113,6 @@ spec:
         # when using fake sysfs - mount at the same place as on host
         - name: sysfs
           mountPath: "/sysfs"
-        - name: xpumd-socket
-          mountPath: "/run/xpumd"
         securityContext:
           privileged: false
           capabilities:
@@ -141,9 +137,6 @@ spec:
       - name: sysfs
         hostPath:
           path: /sys
-      - name: xpumd-socket
-        hostPath:
-          path: /run/xpumd
       tolerations:
         - effect: PreferNoSchedule
           key: gpu-priority
