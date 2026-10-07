@@ -1,0 +1,28 @@
+# Scrape the Caretta eBPF agents (DaemonSet, :7117/metrics) with the cluster
+# Prometheus too (kube-prometheus-stack picks up any PodMonitor). Added
+# 2026-10-07 for Radar's Live Traffic: Radar reads ONE metrics URL
+# (prometheus.el-jefe.me = this Prometheus) for Caretta links, Beyla flows and
+# workload charts, so Caretta's links must be here as well. Other consumers of
+# the agents: Alloy -> Mimir (Grafana map) and the bundled caretta-vm.
+#
+# All labels are kept: client_id/server_id are what service-map views join on.
+# ~6.9k series (one per client->server->port link).
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: caretta
+  namespace: caretta
+  labels:
+    app.kubernetes.io/name: caretta
+spec:
+  selector:
+    matchLabels:
+      app: caretta
+  podMetricsEndpoints:
+    - port: prom-metrics   # container port name in the caretta DaemonSet
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node

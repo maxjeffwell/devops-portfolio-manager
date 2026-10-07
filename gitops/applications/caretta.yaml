@@ -25,6 +25,11 @@ spec:
     - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
       targetRevision: main
       ref: values
+    # 2026-10-07: PodMonitor so the cluster Prometheus (Radar's metrics URL) has
+    # Caretta's links too.
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      path: k8s/caretta
   destination:
     server: https://kubernetes.default.svc
     namespace: caretta
