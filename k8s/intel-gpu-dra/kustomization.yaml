@@ -1,0 +1,21 @@
+# Intel GPU DRA resource driver v0.11.0, rendered from the upstream chart (see
+# rendered-0.11.0.yaml header) because ArgoCD here has no kustomize --enable-helm
+# and the chart cannot set mountPropagation.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: intel-gpu-resource-driver
+resources:
+  - namespace.yaml
+  - rendered-0.11.0.yaml
+patches:
+  # The kubelet plugin mounts /var/lib/kubelet/plugins privately. neon and dm
+  # mount Mayastor volumes, whose CSI globalmounts live under that directory; a
+  # private copy pins them (stale jbd2 -> NodeUnstage timeout -> stuck
+  # VolumeAttachments on every drain). Same bug as democratic-csi 2026-10-07.
+  - target:
+      kind: DaemonSet
+      name: intel-gpu-resource-driver-kubelet-plugin
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/volumeMounts/1/mountPropagation
+        value: HostToContainer

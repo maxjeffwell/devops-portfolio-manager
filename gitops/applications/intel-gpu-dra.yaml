@@ -1,0 +1,35 @@
+---
+# Intel GPU DRA resource driver v0.11.0 on the Iris Xe nodes (neon, dm),
+# alongside the Intel GPU device plugin during the migration to DRA.
+# Source is the rendered chart + a kustomize patch (k8s/intel-gpu-dra), not the
+# OCI chart directly: the chart mounts /var/lib/kubelet/plugins privately and
+# has no value to fix it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: intel-gpu-dra
+  namespace: argocd
+  labels:
+    app: intel-gpu-dra
+    infrastructure: "true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/intel-gpu-dra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: intel-gpu-resource-driver
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

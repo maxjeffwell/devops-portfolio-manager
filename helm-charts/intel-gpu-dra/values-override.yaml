@@ -1,0 +1,30 @@
+# Intel GPU DRA resource driver (chart intel-gpu-resource-driver-chart 0.11.0).
+# RENDER INPUT ONLY: ArgoCD deploys k8s/intel-gpu-dra (rendered + patched).
+# After editing, regenerate k8s/intel-gpu-dra/rendered-0.11.0.yaml (command in
+# its header) and commit both.
+# 2026-10-07: first step off the Intel GPU device plugin. Runs ALONGSIDE the
+# device plugin (gpudeviceplugin-<node> CRs, sharedDevNum 4) during migration.
+# v0.11.0 because it is the last release for K8s 1.34 (v0.12.x needs 1.36+).
+#
+# Scope: the two Iris Xe (Alder Lake-P, i915) nodes only. The UHD 630 nodes
+# keep the device plugin.
+
+kubeletPlugin:
+  # manageBinding rebinds a GPU between i915 and vfio-pci when a claim asks for
+  # the gpu-vfio.intel.com class. These iGPUs serve jellyfin/OVMS/tdarr/immich
+  # through i915; a rebind would pull the GPU out from under them.
+  manageBinding:
+    enabled: false
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [neonmarmoset, debian-marmoset]
+  tolerations:
+    - key: gpu-priority
+      operator: Equal
+      value: "true"
+      effect: PreferNoSchedule
