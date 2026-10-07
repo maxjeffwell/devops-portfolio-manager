@@ -12,7 +12,7 @@ spec:
       targetRevision: main
       path: k8s/deployments
     # POP's own ingresses (pop-portfolio.el-jefe.me, portfolio-api). Still also
-    # holds 4 pre-existing non-POP ingresses (ai-gateway, argocd, keel,
+    # holds 3 pre-existing non-POP ingresses (ai-gateway, argocd,
     # traefik-dashboard) -- candidates to move out like the 2026-09-26 batch.
     - repoURL: https://github.com/maxjeffwell/portfolio-orchestration-platform.git
       targetRevision: main
