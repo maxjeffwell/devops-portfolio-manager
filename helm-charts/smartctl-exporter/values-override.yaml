@@ -1,0 +1,106 @@
+# Overrides for prometheus-community/prometheus-smartctl-exporter (chart 0.17.1,
+# exporter v0.14.0). Added 2026-10-07: drive health (SMART) into the cluster
+# Prometheus -> Grafana/Alertmanager (-> Gotify). Before this, smartd on the
+# hosts only mailed root locally, and it had silently stopped watching m720q's
+# USB SSDs.
+#
+# WHY EXPLICIT DEVICE LISTS (one DaemonSet instance per node) instead of the
+# exporter's auto-scan:
+#   - scan lists Mayastor's NVMe-oF controllers (/dev/nvme3..8, model "Mayastor
+#     NVMe controller", temp -273 C) and the iSCSI LUNs from the NAS (sd* on
+#     m920s, debian-marmoset, neonmarmoset, elitedesk) as if they were local disks;
+#     the by-id scan mode does not rename NVMe, so neither can be excluded by name;
+#   - scan MISSES m720q's RTL9201 USB SSDs ("Unknown USB bridge 0bda:9201"),
+#     which need `-d sat` (";sat" suffix below).
+# Physical disks use /hostdev/disk/by-id/... (the chart mounts host /dev at
+# /hostdev; the privileged container's own /dev has the nodes but not udev's
+# by-id symlinks). m720q's USB disks use kernel names: both RTL9201 enclosures
+# report the SAME USB serial, so by-id cannot tell them apart.
+# Not covered: marmoset (daily-driver laptop, only node agents run there) and
+# vmi3610371 (VPS virtual disk, no SMART).
+# Adding a disk to a node = add it to that node's list here.
+
+image:
+  tag: v0.14.0
+
+rbac:
+  # chart binds to a PodSecurityPolicy ClusterRole; PSP was removed in k8s 1.25
+  create: false
+
+# Base instance (idx 0) = elitedesk; the chart cannot disable the base instance.
+nodeSelector:
+  kubernetes.io/hostname: elitedesk
+config:
+  devices:
+    - /hostdev/disk/by-id/nvme-WDC_PC_SN730_SDBQNTY-512G-1001_200105471610
+    - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB512HBJQ-000L7_S4ENNF0M725578
+
+extraInstances:
+  - nodeSelector:
+      kubernetes.io/hostname: m720q
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+    config:
+      devices:
+        - /hostdev/disk/by-id/nvme-Samsung_SSD_970_EVO_Plus_1TB_S4EWNX0WA55367V
+        - /hostdev/disk/by-id/ata-WDC_WDS100T1R0A-68A4W0_25083C801066
+        - /dev/sdb;sat   # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
+        - /dev/sdc;sat   # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
+        - /dev/sdd;sat   # CT2000BX500 2513E9B2FE4B, ASM1053 (mayastor m720q-usb-pool)
+  - nodeSelector:
+      kubernetes.io/hostname: m920s
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+    config:
+      devices:
+        - /hostdev/disk/by-id/nvme-KBG40ZNS512G_NVMe_KIOXIA_512GB_Y0NPG048QUN1
+        - /hostdev/disk/by-id/nvme-PC711_NVMe_SK_hynix_1TB____ANB2N589911502H1X
+        - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB256HAHQ-00000_S444NE0M642371
+        - /hostdev/disk/by-id/ata-Corsair_Neutron_GTX_SSD_1315791200009714007A
+        - /hostdev/disk/by-id/ata-CT120BX300SSD1_1742E1052242
+  - nodeSelector:
+      kubernetes.io/hostname: debian-marmoset
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+    config:
+      devices:
+        - /hostdev/disk/by-id/nvme-UMIS_RPETJ512MGE2QDQ_SS0L25217X8LC28401GE
+  - nodeSelector:
+      kubernetes.io/hostname: neonmarmoset
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+    config:
+      devices:
+        - /hostdev/disk/by-id/nvme-WD_PC_SN740_SDDQNQD-512G-1001_22200S814328
+
+resources:
+  requests: {cpu: 10m, memory: 32Mi}
+  limits: {memory: 128Mi}
+
+serviceMonitor:
+  enabled: true
+  interval: 60s
+  scrapeTimeout: 30s
+  relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+
+prometheusRules:
+  enabled: true
+  rules:
+    smartCTLDDeviceTemperature:
+      # chart default 60 C is below normal NVMe load temps here (PM981a runs
+      # into the 60s; its throttle points were raised to 70/78 C on 10/6)
+      expr: smartctl_device_temperature{temperature_type="current"} > 70
+      for: 10m
+      annotations:
+        summary: Device has temperature higher than 70°C
+        description: Device {{ $labels.device }} on {{ $labels.node }} is above 70°C for 10m
+    smartCTLDInterfaceSlow:
+      # USB-SATA bridges report a link speed different from the drive's max by
+      # design -- permanent false positive on m720q
+      enabled: false
