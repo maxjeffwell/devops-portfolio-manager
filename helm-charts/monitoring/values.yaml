@@ -654,6 +654,12 @@ kube-prometheus-stack:
     enabled: false
   kubeProxy:
     enabled: false
+  # 2026-10-07: k3s runs etcd embedded in the server process -- no component=etcd
+  # pod, and :2381 is not exposed (etcd-expose-metrics off), so this Service had no
+  # endpoints and its ServiceMonitor/etcd rules never had data. Disabled like the
+  # other in-process k3s components above.
+  kubeEtcd:
+    enabled: false
 
   kube-state-metrics:
     # Deliberately NOT pinned to a node. It used to carry
