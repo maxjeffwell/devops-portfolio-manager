@@ -14,6 +14,9 @@ rules:
 - apiGroups: ["snapshot.storage.k8s.io"]
   resources: ["volumesnapshots"]
   verbs: ["get", "list", "delete"]
+- apiGroups: ["postgresql.cnpg.io"]
+  resources: ["backups"]
+  verbs: ["get", "list", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -39,6 +42,9 @@ rules:
 - apiGroups: ["snapshot.storage.k8s.io"]
   resources: ["volumesnapshots"]
   verbs: ["get", "list", "delete"]
+- apiGroups: ["postgresql.cnpg.io"]
+  resources: ["backups"]
+  verbs: ["get", "list", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -63,6 +69,9 @@ metadata:
 rules:
 - apiGroups: ["snapshot.storage.k8s.io"]
   resources: ["volumesnapshots"]
+  verbs: ["get", "list", "delete"]
+- apiGroups: ["postgresql.cnpg.io"]
+  resources: ["backups"]
   verbs: ["get", "list", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -160,6 +169,45 @@ spec:
                   fi
                 done < "$TMP"
               done
+              # 2026-10-07: also prune Backup RECORDS. Nothing else ever deleted them
+              # (325 by 10/7, back to 08-08). Safe: no finalizers, snapshots have no
+              # ownerRef to their Backup, and B2 data is expired by each ObjectStore's
+              # own retentionPolicy (30d), never by deleting the record. Records go
+              # once the data they describe has aged out:
+              #   volumeSnapshot completed > RETENTION_DAYS (its snapshot is gone)
+              #   plugin (B2) completed    > PLUGIN_RECORD_DAYS (30d retention + margin)
+              #   failed (any method)      > FAILED_RECORD_DAYS (alert stays visible)
+              PLUGIN_RECORD_DAYS="${PLUGIN_RECORD_DAYS:-35}"
+              FAILED_RECORD_DAYS="${FAILED_RECORD_DAYS:-3}"
+              RECORDS=0
+              for ns in default immich vaultwarden; do
+                echo "--- Backup records in ${ns} ---"
+                if ! kubectl get backups.postgresql.cnpg.io -n "$ns" \
+                     -o jsonpath='{range .items[*]}{.metadata.name}|{.metadata.creationTimestamp}|{.spec.method}|{.status.phase}{"\n"}{end}' > "$TMP"; then
+                  echo "  ERROR: list failed in ${ns}"
+                  FAILED=$((FAILED + 1))
+                  continue
+                fi
+                while IFS='|' read -r name created method phase; do
+                  [ -z "$name" ] && continue
+                  created_epoch=$(date -u -D "%Y-%m-%dT%H:%M:%SZ" -d "$created" +%s 2>/dev/null) || continue
+                  case "$phase" in
+                    failed) days="$FAILED_RECORD_DAYS" ;;
+                    completed)
+                      if [ "$method" = "plugin" ]; then days="$PLUGIN_RECORD_DAYS"; else days="$RETENTION_DAYS"; fi ;;
+                    *) continue ;;  # running/pending/unknown: never touch
+                  esac
+                  if [ "$created_epoch" -lt $((NOW - days * 86400)) ]; then
+                    if kubectl delete backups.postgresql.cnpg.io -n "$ns" "$name" --wait=false >/dev/null; then
+                      echo "  deleted record: $name (${method:-?}/${phase})"
+                      RECORDS=$((RECORDS + 1))
+                    else
+                      echo "  FAIL record: $name"
+                      FAILED=$((FAILED + 1))
+                    fi
+                  fi
+                done < "$TMP"
+              done
               rm -f "$TMP"
-              echo "Total deleted: ${TOTAL}, failures: ${FAILED}"
+              echo "Total deleted: ${TOTAL} snapshots, ${RECORDS} records, failures: ${FAILED}"
               [ "$FAILED" -eq 0 ] || exit 1
