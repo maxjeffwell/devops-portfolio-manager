@@ -20,6 +20,7 @@ namespace: argocd
 # verbatim on 2026-09-30 — first sync was a no-op.
 resources:
   - install.yaml
+  - pdb.yaml
 
 patches:
   # ── Placement ───────────────────────────────────────────────────────────
@@ -132,6 +133,60 @@ patches:
                   requests:
                     cpu: 50m
                     memory: 192Mi
+
+  # ── Two copies of the stateless parts (2026-10-07) ─────────────────────
+  # Until now every component was one pod and all seven sat on m920s: a drain
+  # or crash of that node took the UI, CLI and manifest rendering down with it.
+  # argocd-server and argocd-repo-server are stateless, so 2 replicas each, with
+  # a SOFT hostname spread (ScheduleAnyway: prefers different nodes, never pins
+  # one; the scheduler still decides). ARGOCD_API_SERVER_REPLICAS mirrors
+  # upstream's HA manifest (per-replica share of the login rate limit).
+  # Deliberately still 1: application-controller (2 needs sharding, pointless at
+  # ~45 apps), redis (a cache; HA = 3 redis + 3 haproxy), dex, notifications,
+  # applicationset. PDBs below keep >= 1 copy through drains.
+  - target:
+      kind: Deployment
+      name: argocd-server
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-server
+      spec:
+        replicas: 2
+        template:
+          spec:
+            topologySpreadConstraints:
+              - maxSkew: 1
+                topologyKey: kubernetes.io/hostname
+                whenUnsatisfiable: ScheduleAnyway
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: argocd-server
+            containers:
+              - name: argocd-server
+                env:
+                  - name: ARGOCD_API_SERVER_REPLICAS
+                    value: "2"
+  - target:
+      kind: Deployment
+      name: argocd-repo-server
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-repo-server
+      spec:
+        replicas: 2
+        template:
+          spec:
+            topologySpreadConstraints:
+              - maxSkew: 1
+                topologyKey: kubernetes.io/hostname
+                whenUnsatisfiable: ScheduleAnyway
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: argocd-repo-server
 
   # ── Config ──────────────────────────────────────────────────────────────
   # argocd-cm: local API accounts (radar, claude-mcp), kustomize load
