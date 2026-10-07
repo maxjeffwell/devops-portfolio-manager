@@ -152,6 +152,9 @@ spec:
                 values:
                 - neonmarmoset
                 - debian-marmoset
+                - elitedesk
+                - m720q
+                - m920s
 ---
 # Source: intel-gpu-resource-driver-chart/templates/device-class.yaml
 apiVersion: resource.k8s.io/v1

@@ -6,8 +6,8 @@
 # device plugin (gpudeviceplugin-<node> CRs, sharedDevNum 4) during migration.
 # v0.11.0 because it is the last release for K8s 1.34 (v0.12.x needs 1.36+).
 #
-# Scope: the two Iris Xe (Alder Lake-P, i915) nodes only. The UHD 630 nodes
-# keep the device plugin.
+# Scope: every Intel iGPU node -- Iris Xe (neon, dm) and UHD 630 (elitedesk,
+# m720q, m920s). The Intel GPU device plugin is retired (2026-10-07).
 
 kubeletPlugin:
   # Health monitoring (-m) needs Intel's xpumd daemon on /run/xpumd, which the
@@ -27,7 +27,8 @@ kubeletPlugin:
           - matchExpressions:
               - key: kubernetes.io/hostname
                 operator: In
-                values: [neonmarmoset, debian-marmoset]
+                # 2026-10-07: + the three UHD 630 servers (device plugin retired)
+                values: [neonmarmoset, debian-marmoset, elitedesk, m720q, m920s]
   tolerations:
     - key: gpu-priority
       operator: Equal
