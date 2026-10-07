@@ -1,0 +1,229 @@
+{{- define "alloy-receivers.config" }}
+    // Internet- and app-facing receivers ONLY (2026-10-07). Split out of the
+    // privileged hostPID Alloy DaemonSet so a bug in a receiver cannot reach a
+    // privileged container: faro.el-jefe.me (public, browser telemetry), OTLP
+    // traces and Pyroscope SDK profiles from apps (bookmarked-server).
+
+    loki.write "default" {
+      endpoint {
+        url = "http://10.0.0.4:3100/loki/api/v1/push"
+      }
+    }
+
+    otelcol.processor.batch "tempo" {
+      timeout             = "5s"
+      send_batch_size     = 1024
+      send_batch_max_size = 0
+      output {
+        traces = [otelcol.exporter.otlp.tempo.input]
+      }
+    }
+
+    otelcol.exporter.otlp "tempo" {
+      client {
+        endpoint = "tempo-monolithic.monitoring.svc.cluster.local:4317"
+        tls {
+          insecure = true
+        }
+        compression = "snappy"
+      }
+    }
+
+    pyroscope.write "endpoint" {
+      endpoint {
+        url = "http://pyroscope.monitoring.svc.cluster.local:4040"
+      }
+    }
+
+    // --- Pyroscope SDK Receiver (for app-instrumented profiles) ---
+    pyroscope.receive_http "default" {
+      http {
+        listen_address = "0.0.0.0"
+        listen_port    = 9999
+      }
+      forward_to = [pyroscope.write.endpoint.receiver]
+    }
+
+    // --- Faro Frontend Observability Receiver ---
+    faro.receiver "default" {
+      server {
+        listen_address = "0.0.0.0"
+        listen_port    = 12347
+        cors_allowed_origins = [
+          "https://bookmarked-k8s.el-jefe.me",
+          "https://el-jefe.me",
+          "https://www.el-jefe.me",
+          "https://educationelly-k8s.el-jefe.me",
+          "https://educationelly-graphql-k8s.el-jefe.me",
+          "https://intervalai-k8s.el-jefe.me",
+          "https://code-talk-k8s.el-jefe.me",
+          "https://firebook-k8s.el-jefe.me",
+          "https://showcase.el-jefe.me",
+          "http://localhost:3000",
+        ]
+        max_allowed_payload_size = "5MiB"
+      }
+      output {
+        logs   = [loki.process.faro.receiver]
+        traces = [otelcol.processor.batch.tempo.input]
+      }
+    }
+
+    // Faro browser telemetry arrives as logfmt lines with no stream labels,
+    // so Loki filed it all under service_name=unknown_service. Promote the
+    // app name, kind and environment to labels -- but only ALLOW-LISTED
+    // values: app_name comes from the client payload and the endpoint is
+    // public, so a script could otherwise mint unlimited label values. A
+    // value that does not match simply never becomes a label. To add an app
+    // that initialises Faro, extend the app_name alternation. (2026-10-07)
+    loki.process "faro" {
+      stage.static_labels {
+        values = { source = "faro" }
+      }
+
+      stage.regex {
+        expression = "(?:^|\\s)app_name=(?P<faro_app>bookmarked-client)(?:\\s|$)"
+      }
+
+      stage.regex {
+        expression = "(?:^|\\s)kind=(?P<faro_kind>event|measurement|log|exception)(?:\\s|$)"
+      }
+
+      stage.regex {
+        expression = "(?:^|\\s)app_environment=(?P<faro_env>production|development|staging)(?:\\s|$)"
+      }
+
+      stage.labels {
+        values = {
+          service_name = "faro_app",
+          kind         = "faro_kind",
+          environment  = "faro_env",
+        }
+      }
+
+      forward_to = [loki.write.default.receiver]
+    }
+
+    // --- OTLP Receiver (for future SDK-instrumented apps) ---
+    otelcol.receiver.otlp "default" {
+      grpc {
+        endpoint = "0.0.0.0:4317"
+      }
+      http {
+        endpoint = "0.0.0.0:4318"
+      }
+      output {
+        traces = [otelcol.processor.batch.tempo.input]
+      }
+    }
+{{- end }}
+{{- if .Values.alloy.enabled }}
+# Unprivileged Alloy for the receivers (2026-10-07). The main Alloy DaemonSet
+# is privileged + hostPID (Beyla eBPF) on every node; the Faro receiver behind
+# faro.el-jefe.me took public internet traffic in that same process. Receivers
+# now run here: non-root, read-only root FS, all capabilities dropped, no host
+# namespaces or hostPaths. Service prometheus-alloy-receivers selects these
+# pods, so clients (faro ingress, bookmarked-server OTLP/pyroscope) are
+# unchanged.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alloy-receivers-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: alloy-receivers
+data:
+  config.alloy: |
+{{ include "alloy-receivers.config" . }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alloy-receivers
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: alloy-receivers
+    app.kubernetes.io/component: receivers
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy-receivers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: alloy-receivers
+        app.kubernetes.io/component: receivers
+      annotations:
+        checksum/config: {{ include "alloy-receivers.config" . | sha256sum | trunc 16 | quote }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 473
+        runAsGroup: 473
+        fsGroup: 473
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: alloy-receivers
+      containers:
+        - name: alloy
+          image: "docker.io/grafana/alloy:{{ .Values.alloy.image.tag }}"
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/tmp/alloy
+            - --server.http.listen-addr=0.0.0.0:12345
+            - --stability.level=generally-available
+          ports:
+            - {name: http-metrics, containerPort: 12345}
+            - {name: otlp-grpc, containerPort: 4317}
+            - {name: otlp-http, containerPort: 4318}
+            - {name: pyroscope-http, containerPort: 9999}
+            - {name: faro, containerPort: 12347}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet: {path: /-/ready, port: 12345}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /-/healthy, port: 12345}
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
+          volumeMounts:
+            - {name: config, mountPath: /etc/alloy}
+            - {name: storage, mountPath: /tmp/alloy}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: config
+          configMap: {name: alloy-receivers-config}
+        - name: storage
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: alloy-receivers
+  namespace: {{ .Release.Namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alloy-receivers
+{{- end }}

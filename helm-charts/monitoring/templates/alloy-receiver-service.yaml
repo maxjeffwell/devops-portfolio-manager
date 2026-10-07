@@ -25,7 +25,8 @@ spec:
       port: 12347
       targetPort: 12347
       protocol: TCP
+  # 2026-10-07: the unprivileged alloy-receivers Deployment (alloy-receivers.yaml),
+  # no longer the privileged Alloy DaemonSet.
   selector:
-    app.kubernetes.io/instance: prometheus
-    app.kubernetes.io/name: alloy
+    app.kubernetes.io/name: alloy-receivers
 {{- end }}

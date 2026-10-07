@@ -369,14 +369,6 @@ data:
       }
     }
 
-    // --- Pyroscope SDK Receiver (for app-instrumented profiles) ---
-    pyroscope.receive_http "default" {
-      http {
-        listen_address = "0.0.0.0"
-        listen_port    = 9999
-      }
-      forward_to = [pyroscope.write.endpoint.receiver]
-    }
 
     // --- Pyroscope Self-Profiling (pprof scrape) ---
     pyroscope.scrape "pyroscope_self" {
@@ -392,65 +384,7 @@ data:
       }
     }
 
-    // --- Faro Frontend Observability Receiver ---
-    faro.receiver "default" {
-      server {
-        listen_address = "0.0.0.0"
-        listen_port    = 12347
-        cors_allowed_origins = [
-          "https://bookmarked-k8s.el-jefe.me",
-          "https://el-jefe.me",
-          "https://www.el-jefe.me",
-          "https://educationelly-k8s.el-jefe.me",
-          "https://educationelly-graphql-k8s.el-jefe.me",
-          "https://intervalai-k8s.el-jefe.me",
-          "https://code-talk-k8s.el-jefe.me",
-          "https://firebook-k8s.el-jefe.me",
-          "https://showcase.el-jefe.me",
-          "http://localhost:3000",
-        ]
-        max_allowed_payload_size = "5MiB"
-      }
-      output {
-        logs   = [loki.process.faro.receiver]
-        traces = [otelcol.processor.batch.tempo.input]
-      }
-    }
 
-    // Faro browser telemetry arrives as logfmt lines with no stream labels,
-    // so Loki filed it all under service_name=unknown_service. Promote the
-    // app name, kind and environment to labels -- but only ALLOW-LISTED
-    // values: app_name comes from the client payload and the endpoint is
-    // public, so a script could otherwise mint unlimited label values. A
-    // value that does not match simply never becomes a label. To add an app
-    // that initialises Faro, extend the app_name alternation. (2026-10-07)
-    loki.process "faro" {
-      stage.static_labels {
-        values = { source = "faro" }
-      }
-
-      stage.regex {
-        expression = "(?:^|\\s)app_name=(?P<faro_app>bookmarked-client)(?:\\s|$)"
-      }
-
-      stage.regex {
-        expression = "(?:^|\\s)kind=(?P<faro_kind>event|measurement|log|exception)(?:\\s|$)"
-      }
-
-      stage.regex {
-        expression = "(?:^|\\s)app_environment=(?P<faro_env>production|development|staging)(?:\\s|$)"
-      }
-
-      stage.labels {
-        values = {
-          service_name = "faro_app",
-          kind         = "faro_kind",
-          environment  = "faro_env",
-        }
-      }
-
-      forward_to = [loki.write.default.receiver]
-    }
 
     // --- Beyla eBPF Auto-Instrumentation ---
     beyla.ebpf "auto" {
@@ -525,18 +459,6 @@ data:
       ]
     }
 
-    // --- OTLP Receiver (for future SDK-instrumented apps) ---
-    otelcol.receiver.otlp "default" {
-      grpc {
-        endpoint = "0.0.0.0:4317"
-      }
-      http {
-        endpoint = "0.0.0.0:4318"
-      }
-      output {
-        traces = [otelcol.processor.batch.tempo.input]
-      }
-    }
 
     // --- Batch spans before export ---
     otelcol.processor.batch "tempo" {
