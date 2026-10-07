@@ -1,0 +1,261 @@
+{
+  "_id": "8Z0BEiIAx",
+  "name": "HEVC QSV: H.264 above 10 Mbps",
+  "description": "2026-10-07. Only H.264 with overall bitrate > 10 Mbps (older Rokus lack HEVC; typical ~8 Mbps web releases stay H.264 for direct play). hevc_qsv global_quality 18 (user-approved after q25/q22/q20/q18 tests on Homeland S07E02) preset slow, all audio/subtitle streams copied. Output must match duration within 0.5% (else fail, original kept) and be 10-85% of the original size: >85% = not worth it, flow ends, original kept; <10% = suspicious, fail. Then replace original.",
+  "tags": "",
+  "flowPlugins": [
+    {
+      "name": "Input File",
+      "sourceRepo": "Community",
+      "pluginName": "inputFile",
+      "version": "1.0.0",
+      "id": "BSM0OVy3i",
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "fileAccessChecks": "true",
+        "pauseNodeIfAccessChecksFail": "true"
+      }
+    },
+    {
+      "name": "Is H.264?",
+      "sourceRepo": "Community",
+      "pluginName": "checkVideoCodec",
+      "version": "1.0.0",
+      "id": "uAeV40dki",
+      "position": {
+        "x": 400,
+        "y": 120
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "codec": "h264"
+      }
+    },
+    {
+      "name": "Overall bitrate > 10 Mbps?",
+      "sourceRepo": "Community",
+      "pluginName": "checkOverallBitrate",
+      "version": "1.0.0",
+      "id": "HoVhQoYdF",
+      "position": {
+        "x": 400,
+        "y": 240
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "unit": "mbps",
+        "greaterThan": "10",
+        "lessThan": "1000"
+      }
+    },
+    {
+      "name": "Begin Command",
+      "sourceRepo": "Community",
+      "pluginName": "ffmpegCommandStart",
+      "version": "1.0.0",
+      "id": "X0u7p8Pv5",
+      "position": {
+        "x": 400,
+        "y": 360
+      },
+      "fpEnabled": true
+    },
+    {
+      "name": "HEVC via QSV q18 (Iris Xe)",
+      "sourceRepo": "Community",
+      "pluginName": "ffmpegCommandSetVideoEncoder",
+      "version": "1.0.0",
+      "id": "2pS6sjb6K",
+      "position": {
+        "x": 400,
+        "y": 480
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "outputCodec": "hevc",
+        "ffmpegPresetEnabled": "true",
+        "ffmpegPreset": "slow",
+        "ffmpegQualityEnabled": "true",
+        "ffmpegQuality": "18",
+        "hardwareEncoding": "true",
+        "hardwareType": "qsv",
+        "hardwareDecoding": "true",
+        "forceEncoding": "false"
+      }
+    },
+    {
+      "name": "Execute",
+      "sourceRepo": "Community",
+      "pluginName": "ffmpegCommandExecute",
+      "version": "1.0.0",
+      "id": "NAikqY5TM",
+      "position": {
+        "x": 400,
+        "y": 600
+      },
+      "fpEnabled": true
+    },
+    {
+      "name": "Health check output",
+      "sourceRepo": "Community",
+      "pluginName": "runHealthCheck",
+      "version": "1.0.0",
+      "id": "pwgBMqPrA",
+      "position": {
+        "x": 400,
+        "y": 720
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "type": "quick",
+        "gpuAcceleration": "qsv"
+      }
+    },
+    {
+      "name": "Duration within 0.5%?",
+      "sourceRepo": "Community",
+      "pluginName": "compareFileDurationRatio",
+      "version": "1.0.0",
+      "id": "BT4sLDt0Q",
+      "position": {
+        "x": 400,
+        "y": 840
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "greaterThan": "99.5",
+        "lessThan": "100.5"
+      }
+    },
+    {
+      "name": "Output 10-85% of original?",
+      "sourceRepo": "Community",
+      "pluginName": "compareFileSizeRatio",
+      "version": "2.0.0",
+      "id": "hFvtRYm7F",
+      "position": {
+        "x": 400,
+        "y": 960
+      },
+      "fpEnabled": true,
+      "inputsDB": {
+        "greaterThan": "10",
+        "lessThan": "85"
+      }
+    },
+    {
+      "name": "Replace Original File",
+      "sourceRepo": "Community",
+      "pluginName": "replaceOriginalFile",
+      "version": "1.0.0",
+      "id": "WRwXaUW0T",
+      "position": {
+        "x": 400,
+        "y": 1080
+      },
+      "fpEnabled": true
+    },
+    {
+      "name": "Fail Flow (keep original)",
+      "sourceRepo": "Community",
+      "pluginName": "failFlow",
+      "version": "1.0.0",
+      "id": "78PFSW9ED",
+      "position": {
+        "x": 750,
+        "y": 960
+      },
+      "fpEnabled": true
+    }
+  ],
+  "flowEdges": [
+    {
+      "source": "BSM0OVy3i",
+      "sourceHandle": "1",
+      "target": "uAeV40dki",
+      "targetHandle": null,
+      "id": "XfnqNqA7q"
+    },
+    {
+      "source": "uAeV40dki",
+      "sourceHandle": "1",
+      "target": "HoVhQoYdF",
+      "targetHandle": null,
+      "id": "4g7iKigQD"
+    },
+    {
+      "source": "HoVhQoYdF",
+      "sourceHandle": "1",
+      "target": "X0u7p8Pv5",
+      "targetHandle": null,
+      "id": "UV9FdreZ7"
+    },
+    {
+      "source": "X0u7p8Pv5",
+      "sourceHandle": "1",
+      "target": "2pS6sjb6K",
+      "targetHandle": null,
+      "id": "uUBmFh8zD"
+    },
+    {
+      "source": "2pS6sjb6K",
+      "sourceHandle": "1",
+      "target": "NAikqY5TM",
+      "targetHandle": null,
+      "id": "y78epaVqh"
+    },
+    {
+      "source": "NAikqY5TM",
+      "sourceHandle": "1",
+      "target": "pwgBMqPrA",
+      "targetHandle": null,
+      "id": "x3X7JWymR"
+    },
+    {
+      "source": "pwgBMqPrA",
+      "sourceHandle": "1",
+      "target": "BT4sLDt0Q",
+      "targetHandle": null,
+      "id": "JFVEcIwRT"
+    },
+    {
+      "source": "BT4sLDt0Q",
+      "sourceHandle": "1",
+      "target": "hFvtRYm7F",
+      "targetHandle": null,
+      "id": "cteXYr7Sa"
+    },
+    {
+      "source": "BT4sLDt0Q",
+      "sourceHandle": "2",
+      "target": "78PFSW9ED",
+      "targetHandle": null,
+      "id": "vK0v4Chl3"
+    },
+    {
+      "source": "BT4sLDt0Q",
+      "sourceHandle": "3",
+      "target": "78PFSW9ED",
+      "targetHandle": null,
+      "id": "JQwdnrxv1"
+    },
+    {
+      "source": "hFvtRYm7F",
+      "sourceHandle": "1",
+      "target": "WRwXaUW0T",
+      "targetHandle": null,
+      "id": "iC8XyVJ4Z"
+    },
+    {
+      "source": "hFvtRYm7F",
+      "sourceHandle": "2",
+      "target": "78PFSW9ED",
+      "targetHandle": null,
+      "id": "WmfZ6hgvZ"
+    }
+  ]
+}
