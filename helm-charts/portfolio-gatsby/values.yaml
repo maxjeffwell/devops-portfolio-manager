@@ -44,8 +44,13 @@ readinessProbe:
 autoscaling:
   enabled: false
 
+# 2026-10-07: NO PDB. The client is pinned to the single edge node (VPS), so
+# during a VPS drain neither copy can restart anywhere and a PDB can only make
+# the drain hang (the 8/23 zero-budget trap). The site is down during a VPS
+# drain regardless (edge Traefik goes too). Re-enable only with a 2nd edge node
+# plus required anti-affinity across edge nodes (then minAvailable: 1).
 pdb:
-  enabled: true
+  enabled: false
   maxUnavailable: 1
 
 env:
