@@ -50,6 +50,10 @@ spec:
         supplementalGroups: [992]
         seccompProfile:
           type: RuntimeDefault
+      # 2026-10-07: m920s UHD 630 via Intel GPU DRA (adminAccess claim,
+      # gpu-claim.yaml) instead of the retired device plugin's gpu.intel.com/i915.
+      resourceClaims:
+        - { name: igpu, resourceClaimTemplateName: igpu }
       containers:
         - name: server
           image: ghcr.io/immich-app/immich-server:v3.2.4   # 2026-10-06: v3.2.4 = the memory-leak fix (OOM on m920s under a job burst)
@@ -83,7 +87,6 @@ spec:
             requests:
               cpu: 500m
               memory: 1Gi
-              gpu.intel.com/i915: "1"
             limits:
               cpu: "4"
               # 2026-10-06: 4Gi -> 8Gi. OOMKilled at 12:36Z on m920s: working set went
@@ -93,7 +96,8 @@ spec:
               # burst. 13 earlier instances peaked ~1 GiB, so the request stays 1Gi; the
               # limit only caps bursts and m920s has the room (36.9Gi, 48% requested).
               memory: 8Gi
-              gpu.intel.com/i915: "1"
+            claims:
+              - { name: igpu }
           volumeMounts:
             - { name: library,         mountPath: /data }
             - { name: tmp,             mountPath: /tmp }

@@ -1,6 +1,6 @@
 # 2026-10-07: Intel GPU DRA (app intel-gpu-dra) replaces the device plugin's
-# gpu.intel.com/i915 on the Iris Xe nodes. Used by immich-ml (dm); immich-server
-# stays on the device plugin (m920s UHD 630). adminAccess lets immich-ml share
+# gpu.intel.com/i915. Used by immich-ml (dm Iris Xe) and immich-server (m920s
+# UHD 630, device plugin retired the same day). adminAccess lets immich-ml share
 # dm's iGPU with ovms-llm/tdarr-node (Intel's driver has no consumable capacity).
 apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
