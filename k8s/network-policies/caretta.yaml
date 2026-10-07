@@ -1,8 +1,13 @@
-# Caretta agents publish the service map on :7117; only Alloy (monitoring
-# namespace, one replica per node, scrapes its local agent into Mimir) may
-# reach it. 2026-10-06: the bundled caretta-vm (and the node-gateway allow-list
-# K8Studio's port-forward needed) is gone; scrape config lives in
-# helm-charts/monitoring/templates/alloy-config.yaml (prometheus.scrape "caretta").
+# Caretta network policies.
+#
+# Agents (DaemonSet, :7117 /metrics) are scraped by two consumers:
+#   - Alloy (monitoring ns) -> Mimir -> Grafana "Caretta Service Map"
+#   - caretta-vm (bundled Victoria Metrics, re-enabled 2026-10-07) -> Radar Live Traffic
+#
+# caretta-vm :8428 is read only through `kubectl port-forward` (Radar, manual
+# checks). A port-forward reaches the pod from its node's cni0 gateway
+# (10.42.<n>.1), so the VM admits exactly those 7 addresses (podCIDRs verified
+# 2026-10-07) and nothing else -- no Service consumers, no ingress.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -21,5 +26,32 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: alloy
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: victoria-metrics-single
+              app.kubernetes.io/instance: caretta
       ports:
         - { port: 7117, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: caretta-vm-ingress
+  namespace: caretta
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: victoria-metrics-single
+      app.kubernetes.io/instance: caretta
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - ipBlock: { cidr: 10.42.0.1/32 }   # neonmarmoset
+        - ipBlock: { cidr: 10.42.1.1/32 }   # marmoset
+        - ipBlock: { cidr: 10.42.2.1/32 }   # m920s
+        - ipBlock: { cidr: 10.42.3.1/32 }   # debian-marmoset
+        - ipBlock: { cidr: 10.42.4.1/32 }   # elitedesk
+        - ipBlock: { cidr: 10.42.5.1/32 }   # m720q
+        - ipBlock: { cidr: 10.42.6.1/32 }   # vmi3610371
+      ports:
+        - { port: 8428, protocol: TCP }

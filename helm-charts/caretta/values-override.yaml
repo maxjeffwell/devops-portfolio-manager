@@ -6,7 +6,8 @@
 # agents are now scraped by Alloy into Mimir (helm-charts/monitoring
 # alloy-config, prometheus.scrape "caretta") and the upstream dashboard lives
 # in our Grafana (helm-charts/monitoring: grafana-dashboard-caretta). The
-# bundled Victoria Metrics + Grafana are therefore both disabled.
+# bundled Grafana is disabled; the bundled Victoria Metrics is back on since
+# 2026-10-07 for Radar's Live Traffic (see victoria-metrics-single below).
 #
 # All 7 nodes run kernel 6.12+/6.14 with BTF (/sys/kernel/btf/vmlinux) and
 # debugfs mounted, verified 2026-10-06 -- CO-RE eBPF works everywhere.
@@ -62,9 +63,13 @@ tolerations:
     effect: PreferNoSchedule
 
 victoria-metrics-single:
-  # Off since 2026-10-06: it only served K8Studio's port-forward. Alloy
-  # scrapes the agents directly into Mimir, which keeps the history.
-  enabled: false
+  # Re-enabled 2026-10-07 for Radar's Live Traffic view: Radar's Caretta
+  # integration reads the bundled caretta-vm (:8428, via kubectl port-forward)
+  # and does not use a generic Prometheus/Mimir URL. Off 10/6-10/7 (K8Studio
+  # removed). Alloy still scrapes the agents into Mimir for the Grafana map;
+  # this VM is a second, live-only consumer. No PV on purpose -- the map is a
+  # live view; history lives in Mimir.
+  enabled: true
   rbac:
     # subchart (0.8.48) still templates a PodSecurityPolicy unless told not to
     pspEnabled: false
