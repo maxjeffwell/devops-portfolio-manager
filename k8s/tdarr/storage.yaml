@@ -1,0 +1,67 @@
+# Media libraries for Tdarr, READ-WRITE (Tdarr replaces originals after its
+# checks pass). Same ASUSTOR exports as Jellyfin's read-only PVs; the ASUSTOR
+# S97lvm-nfs script grants rw ONLY to 192.168.50.110 (neonmarmoset) and
+# .152/.153 (debian-marmoset) with root_squash; every other client stays ro.
+# Files are owned by uid 999 (Tdarr runs as PUID/PGID 999).
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tdarr-media-movies
+spec:
+  capacity: {storage: 2Ti}
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [vers=3, nolock, hard, nconnect=8]
+  nfs:
+    server: 192.168.50.149
+    path: /volume1/Movies
+  claimRef: {namespace: tdarr, name: media-movies}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-movies
+  namespace: tdarr
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: tdarr-media-movies
+  resources: {requests: {storage: 2Ti}}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: tdarr-media-tvshows
+spec:
+  capacity: {storage: 2Ti}
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [vers=3, nolock, hard, nconnect=8]
+  nfs:
+    server: 192.168.50.149
+    path: "/volume1/TV Shows"
+  claimRef: {namespace: tdarr, name: media-tvshows}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media-tvshows
+  namespace: tdarr
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: tdarr-media-tvshows
+  resources: {requests: {storage: 2Ti}}
+---
+# Tdarr server state (DB, configs, logs). Mayastor so Velero backs it up.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tdarr-server-data
+  namespace: tdarr
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: mayastor-2-thin
+  resources: {requests: {storage: 5Gi}}

@@ -1,0 +1,58 @@
+# Mapped Tdarr node on debian-marmoset's Iris Xe. /var/lib/tdarr-cache on that
+# host is an NFS mount of neonmarmoset's cache LV (fstab, nfs4, nconnect=4), so
+# server + both nodes see one cache. HostToContainer propagation lets the pod
+# pick up the NFS mount even if it is (re)mounted after the pod starts.
+# If neonmarmoset is down this node idles (cache + server live there).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tdarr-node-debian-marmoset
+  namespace: tdarr
+  labels: {app: tdarr-node}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: tdarr-node, node: debian-marmoset}}
+  template:
+    metadata:
+      labels: {app: tdarr-node, node: debian-marmoset}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: debian-marmoset
+      tolerations:
+        - {key: gpu-priority, operator: Equal, value: "true", effect: PreferNoSchedule}
+      containers:
+        - name: tdarr-node
+          image: ghcr.io/haveagitgat/tdarr_node:2.94.03
+          env:
+            - {name: TZ, value: America/New_York}
+            - {name: PUID, value: "999"}
+            - {name: PGID, value: "999"}
+            - {name: UMASK_SET, value: "002"}
+            - {name: nodeName, value: debian-marmoset-xe}
+            - {name: serverIP, value: tdarr.tdarr.svc.cluster.local}
+            - {name: serverPort, value: "8266"}
+            - {name: inContainer, value: "true"}
+            - {name: ffmpegVersion, value: "7"}
+            - {name: nodeType, value: mapped}
+            - {name: startPaused, value: "true"}
+            - {name: maxLogSizeMB, value: "10"}
+            - {name: transcodegpuWorkers, value: "1"}
+            - {name: transcodecpuWorkers, value: "0"}
+            - {name: healthcheckgpuWorkers, value: "0"}
+            - {name: healthcheckcpuWorkers, value: "1"}
+          resources:
+            requests: {cpu: 500m, memory: 512Mi, gpu.intel.com/i915: "1"}
+            limits: {memory: 3Gi, gpu.intel.com/i915: "1"}
+          volumeMounts:
+            - {name: configs, mountPath: /app/configs}
+            - {name: logs, mountPath: /app/logs}
+            - {name: media-movies, mountPath: /media/Movies}
+            - {name: media-tvshows, mountPath: "/media/TV Shows"}
+            - {name: cache, mountPath: /temp, mountPropagation: HostToContainer}
+      volumes:
+        - {name: configs, emptyDir: {}}
+        - {name: logs, emptyDir: {}}
+        - {name: media-movies, persistentVolumeClaim: {claimName: media-movies}}
+        - {name: media-tvshows, persistentVolumeClaim: {claimName: media-tvshows}}
+        - {name: cache, hostPath: {path: /var/lib/tdarr-cache, type: Directory}}

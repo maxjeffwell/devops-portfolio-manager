@@ -1,0 +1,80 @@
+# Tdarr server + internal node (worker) on neonmarmoset's Iris Xe.
+# Free tier = MAPPED nodes: server and every node must see the same media and
+# transcode-cache paths. Cache = neonmarmoset-local LV /var/lib/tdarr-cache
+# (150G, openebs-vg/tdarr-cache), NFS-exported to debian-marmoset for its node.
+# Pinned to neonmarmoset because the cache is a hostPath there (a fact pin).
+# Nodes start PAUSED; flows/schedule are enabled only after the dry run.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tdarr
+  namespace: tdarr
+  labels: {app: tdarr}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app: tdarr}}
+  template:
+    metadata:
+      labels: {app: tdarr}
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: neonmarmoset
+      tolerations:
+        - {key: gpu-priority, operator: Equal, value: "true", effect: PreferNoSchedule}
+      containers:
+        - name: tdarr
+          image: ghcr.io/haveagitgat/tdarr:2.94.03
+          ports:
+            - {name: webui, containerPort: 8265}
+            - {name: server, containerPort: 8266}
+          env:
+            - {name: TZ, value: America/New_York}
+            - {name: PUID, value: "999"}
+            - {name: PGID, value: "999"}
+            - {name: UMASK_SET, value: "002"}
+            - {name: serverIP, value: 0.0.0.0}
+            - {name: serverPort, value: "8266"}
+            - {name: webUIPort, value: "8265"}
+            - {name: internalNode, value: "true"}
+            - {name: inContainer, value: "true"}
+            - {name: ffmpegVersion, value: "7"}
+            - {name: nodeName, value: neonmarmoset-xe}
+            - {name: auth, value: "false"}
+            - {name: openBrowser, value: "false"}
+            - {name: maxLogSizeMB, value: "10"}
+            - {name: startPaused, value: "true"}
+            - {name: transcodegpuWorkers, value: "1"}
+            - {name: transcodecpuWorkers, value: "0"}
+            - {name: healthcheckgpuWorkers, value: "0"}
+            - {name: healthcheckcpuWorkers, value: "1"}
+          resources:
+            requests: {cpu: 500m, memory: 1Gi, gpu.intel.com/i915: "1"}
+            limits: {memory: 4Gi, gpu.intel.com/i915: "1"}
+          volumeMounts:
+            - {name: data, mountPath: /app/server, subPath: server}
+            - {name: data, mountPath: /app/configs, subPath: configs}
+            - {name: data, mountPath: /app/logs, subPath: logs}
+            - {name: media-movies, mountPath: /media/Movies}
+            - {name: media-tvshows, mountPath: "/media/TV Shows"}
+            - {name: cache, mountPath: /temp}
+          readinessProbe:
+            httpGet: {path: /, port: webui}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - {name: data, persistentVolumeClaim: {claimName: tdarr-server-data}}
+        - {name: media-movies, persistentVolumeClaim: {claimName: media-movies}}
+        - {name: media-tvshows, persistentVolumeClaim: {claimName: media-tvshows}}
+        - {name: cache, hostPath: {path: /var/lib/tdarr-cache, type: Directory}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tdarr
+  namespace: tdarr
+spec:
+  selector: {app: tdarr}
+  ports:
+    - {name: webui, port: 8265, targetPort: webui}
+    - {name: server, port: 8266, targetPort: server}
