@@ -20,3 +20,19 @@ patches:
       - op: replace
         path: /spec/endpoints/0/interval
         value: 30s
+  # Spell out the API server defaults (spec.metadata, toleration operator) so
+  # ArgoCD's diff matches the stored object; otherwise permanently OutOfSync
+  # (same as k8s/jellyfin/gpu-claim.yaml).
+  - target:
+      kind: ResourceClaimTemplate
+      name: xpumd
+    patch: |-
+      - op: add
+        path: /spec/metadata
+        value: {}
+      - op: add
+        path: /spec/spec/devices/requests/0/exactly/tolerations/0/operator
+        value: Equal
+      - op: add
+        path: /spec/spec/devices/requests/0/exactly/tolerations/1/operator
+        value: Equal
