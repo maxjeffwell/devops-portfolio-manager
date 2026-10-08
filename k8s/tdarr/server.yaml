@@ -42,10 +42,16 @@ spec:
             - {name: inContainer, value: "true"}
             - {name: ffmpegVersion, value: "7"}
             - {name: nodeName, value: neonmarmoset-xe}
+            # Fixed node ID (2026-10-08): Tdarr keys per-node settings (schedule, pause,
+            # worker limits) by ID; without it every restart registered a NEW node with
+            # an empty, disabled schedule (10/7 15:53 restart wiped the 01-07 schedule).
+            - {name: nodeID, value: LNmYArQ}
             - {name: auth, value: "false"}
             - {name: openBrowser, value: "false"}
             - {name: maxLogSizeMB, value: "10"}
-            - {name: startPaused, value: "true"}
+            # The 01-07 schedule (server DB, per nodeID) decides when it works; a pause
+            # flag here needed a manual unpause after every restart.
+            - {name: startPaused, value: "false"}
             - {name: transcodegpuWorkers, value: "1"}
             - {name: transcodecpuWorkers, value: "0"}
             - {name: healthcheckgpuWorkers, value: "0"}
