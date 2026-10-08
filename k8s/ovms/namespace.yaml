@@ -2,6 +2,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: ovms
+  annotations:
+    # Before the ResourceClaimTemplate (wave -1): its adminAccess request is
+    # only admitted in a namespace carrying the admin-access label.
+    argocd.argoproj.io/sync-wave: "-2"
   labels:
     portfolio: "true"
     # 2026-10-07: allows adminAccess ResourceClaims (gpu-claim.yaml).

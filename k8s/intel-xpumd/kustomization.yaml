@@ -30,6 +30,11 @@ patches:
       - op: add
         path: /spec/metadata
         value: {}
+      # Before the DaemonSet: ArgoCD orders unknown kinds after workloads.
+      - op: add
+        path: /metadata/annotations
+        value:
+          argocd.argoproj.io/sync-wave: "-1"
       - op: add
         path: /spec/spec/devices/requests/0/exactly/tolerations/0/operator
         value: Equal

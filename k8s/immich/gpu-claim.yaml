@@ -6,6 +6,10 @@ apiVersion: resource.k8s.io/v1
 kind: ResourceClaimTemplate
 metadata:
   name: igpu
+  annotations:
+    # ArgoCD's kind ordering does not know ResourceClaimTemplate and applies it
+    # AFTER workloads -> pods fail FailedResourceClaimCreation until it exists.
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   # metadata/allocationMode/count are the API server defaults, spelled out so
   # ArgoCD's diff matches the stored object (otherwise permanently OutOfSync).
