@@ -56,7 +56,7 @@ spec:
         - { name: igpu, resourceClaimTemplateName: igpu }
       containers:
         - name: server
-          image: ghcr.io/immich-app/immich-server:v3.2.4   # 2026-10-06: v3.2.4 = the memory-leak fix (OOM on m920s under a job burst)
+          image: ghcr.io/immich-app/immich-server:v3.3.0   # 2026-10-08: v3.3.0 (no breaking changes; same VectorChord 0.4.3 DB). v3.2.4 was the memory-leak fix
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false

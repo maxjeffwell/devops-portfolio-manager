@@ -59,7 +59,7 @@ spec:
         - { name: igpu, resourceClaimTemplateName: igpu }
       containers:
         - name: ml
-          image: ghcr.io/immich-app/immich-machine-learning:v3.2.4-openvino   # 2026-10-06: kept in step with the server
+          image: ghcr.io/immich-app/immich-machine-learning:v3.3.0-openvino   # kept in step with the server (2026-10-08)
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -72,6 +72,10 @@ spec:
             # keeps peak RAM bounded on a shared node. Raise later if wanted.
             - { name: MACHINE_LEARNING_WORKERS, value: "1" }
             - { name: MACHINE_LEARNING_MODEL_TTL, value: "600" }
+            # v3.3.0 opt-in (2026-10-08): optimized model revision -- faster, less RAM,
+            # and fixes OpenVINO wrong outputs; numerically equivalent, no re-run needed.
+            # Upstream will make it the default; first load per model rebuilds the cache.
+            - { name: MACHINE_LEARNING_MODEL_REVISION, value: v2 }
           ports:
             - name: http
               containerPort: 3003
