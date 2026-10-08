@@ -1,0 +1,22 @@
+# Intel XPUM daemon v2.2.0 on the Iris Xe nodes (neon, dm): GPU telemetry
+# (engine utilization, frequency, hw_status) for Prometheus. Rendered from the
+# upstream chart (header of rendered-2.2.0.yaml; inputs in
+# helm-charts/xpumd/values-override.yaml), same pattern as k8s/intel-gpu-dra.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: intel-xpumd
+resources:
+  - namespace.yaml
+  - rendered-2.2.0.yaml
+  - prometheusrule.yaml
+  - grafana-dashboard.yaml
+patches:
+  # Chart scrapes every 5 s; 30 s matches the rest of the cluster and is plenty
+  # for utilization graphs and a 2 m reset alert.
+  - target:
+      kind: ServiceMonitor
+      name: xpumd
+    patch: |-
+      - op: replace
+        path: /spec/endpoints/0/interval
+        value: 30s

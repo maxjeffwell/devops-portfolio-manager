@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: intel-xpumd
+  labels:
+    # xpumd reads the GPUs through a DRA adminAccess ResourceClaim (shared
+    # with the GPU apps); the API server only allows that in labelled namespaces.
+    resource.kubernetes.io/admin-access: "true"

@@ -1,0 +1,64 @@
+# Intel XPUM daemon (chart oci://ghcr.io/intel/xpumanager/charts/xpumd 2.2.0).
+# RENDER INPUT ONLY: ArgoCD deploys k8s/intel-xpumd (rendered + patched).
+# After editing, regenerate k8s/intel-xpumd/rendered-2.2.0.yaml (command in
+# its header) and commit both.
+#
+# 2026-10-08: GPU telemetry for the two Iris Xe nodes (neon, dm). Tested on
+# neon first: on an integrated Iris Xe, Level Zero Sysman exposes engine
+# utilization (7 engines), frequency and hw_status (reset_needed) -- NO
+# temperature, power or RAS error counters, and "memory" is host RAM.
+# The DRA driver's own -m health monitoring stays OFF (k8s/intel-gpu-dra):
+# DRADeviceTaints/ResourceHealthStatus are alpha and off on k3s 1.34.
+
+image:
+  tag: v2.2.0
+  pullPolicy: IfNotPresent
+
+# Reads the GPU through a DRA adminAccess claim (shared with jellyfin/ovms/
+# tdarr/immich); the namespace needs resource.kubernetes.io/admin-access.
+gpuAccess: dra
+
+prometheus:
+  monitor: true
+  release: prometheus
+
+config:
+  service:
+    pipelines:
+      metrics:
+        receivers: [intel_xpu]
+        processors: [intel_xpu_status]
+        exporters: [intel_xpu_info, prometheus]
+
+# Chart default only adds PERFMON, which on these i915 iGPUs finds ZERO engine
+# groups. SYS_ADMIN is what exposes engine utilization (verified on neon:
+# render 41 % / encode 6.5 % during a test hevc_qsv encode). User decision
+# 2026-10-08: accept SYS_ADMIN for the utilization metrics.
+securityContextOverride:
+  readOnlyRootFilesystem: true
+  allowPrivilegeEscalation: false
+  runAsUser: 0
+  capabilities:
+    drop: [ALL]
+    add: [PERFMON, SYS_ADMIN]
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              # Iris Xe only. The UHD 630 servers (Gen9.5) are not targeted.
+              values: [neonmarmoset, debian-marmoset]
+
+tolerations:
+  - key: gpu-priority
+    operator: Equal
+    value: "true"
+    effect: PreferNoSchedule
+
+# Upstream dashboard is Grafana v2 schema (Grafana 12+); ours is 11.3, so the
+# app ships its own dashboard (k8s/intel-xpumd/grafana-dashboard.yaml).
+grafana:
+  dashboards: false

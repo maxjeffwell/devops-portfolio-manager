@@ -1,0 +1,363 @@
+# GENERATED — do not edit. Regenerate with:
+#   helm template xpumd oci://ghcr.io/intel/xpumanager/charts/xpumd \
+#     --version 2.2.0 -n intel-xpumd -f helm-charts/xpumd/values-override.yaml
+---
+# Source: xpumd/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: xpumd
+  labels:
+    helm.sh/chart: xpumd-2.2.0
+    app.kubernetes.io/name: xpumd
+    app.kubernetes.io/instance: xpumd
+    app.kubernetes.io/version: "v2.2.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: xpumd/templates/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: xpumd-config
+  labels:
+    helm.sh/chart: xpumd-2.2.0
+    app.kubernetes.io/name: xpumd
+    app.kubernetes.io/instance: xpumd
+    app.kubernetes.io/version: "v2.2.0"
+    app.kubernetes.io/managed-by: Helm
+data:
+  # Default configuration for the Intel Crashlog receiver. Can be overridden
+  # in config.yaml (via .Values.config).
+  config-receiver-crashlog.yaml: |-
+    receivers:
+      intel_crashlog:
+        directory: /var/log/crashlog
+        glob: "*.bin"
+        ignore_older_than: 0s
+  # Default configuration for the GPU info log collection of the Intel XPU
+  # receiver. Can be overridden in config.yaml (via .Values.config).
+  config-receiver-infolog.yaml: |-
+    receivers:
+      intel_xpu:
+        info_logs:
+          enabled: false
+          instance_name: xpumd
+  # Default configuration for the Intel XPU status processor. Can be overridden
+  # in config.yaml (via .Values.config).
+  config-processor-xpustatus.yaml: |-
+    processors:
+      intel_xpu_status:
+        rules:
+          - name: "Intel GPU core temperature health"
+            source_metric: "hw.temperature"
+            parent_metric: "hw.gpu.info"
+            parent_ref_attribute: "hw.id"
+            parent_filters:
+              - key: "pci.vendor_id"
+                values: ["8086"]
+            component_filters:
+              - key: "hw.sensor_location"
+                values: ["gpu"]
+            copy_attributes: ["hw.id", "hw.name", "pci.bdf", "hw.sensor_location", "com.intel.subdevice_id"]
+            add_attributes:
+              hw.type: "temperature"
+            states:
+              # Default state
+              - state_name: "ok"
+              - state_name: "warning"
+                conditions:
+                  - value: 95.0
+                    parent_filters:
+                      - key: "pci.device_id"
+                        values: ["56c1"]
+                  - value: 100.0
+                    parent_filters:
+                      - key: "pci.device_id"
+                        values: ["56c0", "56c2"]
+                  # Default threshold for other device IDs
+                  - value: 105.0
+          - name: "Intel GPU memory temperature health"
+            source_metric: "hw.temperature"
+            parent_metric: "hw.gpu.info"
+            parent_ref_attribute: "hw.id"
+            parent_filters:
+              - key: "pci.vendor_id"
+                values: ["8086"]
+            component_filters:
+              - key: "hw.sensor_location"
+                values: ["memory"]
+            copy_attributes: ["hw.id", "hw.name", "pci.bdf", "hw.sensor_location", "com.intel.subdevice_id"]
+            add_attributes:
+              hw.type: "temperature"
+            states:
+              # Default state
+              - state_name: "ok"
+              - state_name: "warning"
+                conditions:
+                  - value: 85.0
+  # Default configuration for the Intel XPU info exporter. Can be overridden
+  # in config.yaml (via .Values.config).
+  config-exporter-xpuinfo.yaml: |-
+    exporters:
+      intel_xpu_info:
+        endpoint: "/run/xpumd/intel_xpu_info.sock"
+        hw_status_mappings:
+          - health_domain: "memory"
+            filters:
+              - key: hw.type
+                values: [memory]
+            state_mapping:
+              unknown:
+                severity: unknown
+              ok:
+                severity: ok
+              degraded:
+                severity: warning
+              critical:
+                severity: critical
+              replace:
+                severity: critical
+              "*":
+                severity: warning
+                message: "Unexpected memory health state, mapped to warning"
+          # GPU device states.
+          - health_domain: "gpu"
+            filters:
+              - key: hw.type
+                values: [gpu]
+            state_mapping:
+              ok:
+                severity: ok
+              wedged:
+                severity: critical
+              survivability:
+                severity: critical
+              "*":
+                severity: warning
+          # Default mapping (empty filters matches any data point not matched above):
+          - health_domain: "{{ .hw_type }}"
+            state_mapping:
+              unknown:
+                severity: unknown
+              ok:
+                severity: ok
+              warning:
+                severity: warning
+              critical:
+                severity: critical
+              failed:
+                severity: failed
+              "*":
+                severity: warning
+  config.yaml: |-
+    exporters:
+      intel_xpu_info: {}
+      prometheus:
+        endpoint: 0.0.0.0:8080
+    extensions: {}
+    processors:
+      intel_xpu_status: {}
+    receivers:
+      intel_crashlog: {}
+      intel_xpu:
+        collection_interval: 5s
+        fail_on_sysman_init_error: false
+        info_logs: {}
+        initial_delay: 1s
+        metrics: {}
+        sampling_interval: 1s
+        timeout: 0
+    service:
+      pipelines:
+        logs:
+          exporters:
+          - intel_xpu_info
+          receivers:
+          - intel_xpu
+          - intel_crashlog
+        metrics:
+          exporters:
+          - intel_xpu_info
+          - prometheus
+          processors:
+          - intel_xpu_status
+          receivers:
+          - intel_xpu
+      telemetry:
+        logs:
+          disable_stacktrace: true
+          level: info
+---
+# Source: xpumd/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: xpumd
+  labels:
+    helm.sh/chart: xpumd-2.2.0
+    app.kubernetes.io/name: xpumd
+    app.kubernetes.io/instance: xpumd
+    app.kubernetes.io/version: "v2.2.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: xpumd
+    app.kubernetes.io/instance: xpumd
+---
+# Source: xpumd/templates/daemonset.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: xpumd
+  labels:
+    helm.sh/chart: xpumd-2.2.0
+    app.kubernetes.io/name: xpumd
+    app.kubernetes.io/instance: xpumd
+    app.kubernetes.io/version: "v2.2.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xpumd
+      app.kubernetes.io/instance: xpumd
+  template:
+    metadata:
+      annotations:
+        checksum/config: d479e17c7f420452c93d33ad69814c2cab400ad4445c0056fd2a5efeefcafbd4
+      labels:
+        app.kubernetes.io/name: xpumd
+        app.kubernetes.io/instance: xpumd
+    spec:
+      serviceAccountName: xpumd
+      resourceClaims:
+      - name: xpumd
+        resourceClaimTemplateName: xpumd
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: xpumd
+        image: "ghcr.io/intel/xpumanager/xpumd:v2.2.0"
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--config=/etc/xpumd/config-receiver-crashlog.yaml"
+        - "--config=/etc/xpumd/config-receiver-infolog.yaml"
+        - "--config=/etc/xpumd/config-processor-xpustatus.yaml"
+        - "--config=/etc/xpumd/config-exporter-xpuinfo.yaml"
+        - "--config=/etc/xpumd/config.yaml"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - PERFMON
+            - SYS_ADMIN
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsUser: 0
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          # map all GPUs to container
+          claims:
+          - name: xpumd
+          limits:
+            memory: 2Gi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/xpumd
+          readOnly: true
+        - name: rundir
+          mountPath: /run/xpumd
+        - name: crashlog
+          mountPath: /var/log/crashlog
+          readOnly: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - neonmarmoset
+                - debian-marmoset
+      tolerations:
+        - effect: PreferNoSchedule
+          key: gpu-priority
+          operator: Equal
+          value: "true"
+      volumes:
+      - name: config
+        configMap:
+          name: xpumd-config
+      - name: rundir
+        hostPath:
+          path: /run/xpumd
+          type: DirectoryOrCreate
+      - name: crashlog
+        hostPath:
+          path: /var/log/crashlog
+          type: DirectoryOrCreate
+---
+# Source: xpumd/templates/resourceclaim.yaml
+# https://github.com/intel/intel-resource-drivers-for-kubernetes/tree/main/doc/gpu#gpu-monitor-deployment
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: xpumd
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.intel.com
+          adminAccess: true
+          allocationMode: "All"
+          tolerations:
+          - effect: NoExecute
+          - effect: NoSchedule
+---
+# Source: xpumd/templates/servicemonitor.yaml
+# API added by Prometheus installation
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: xpumd
+  # Should be found by Prometheus (installed by 'kube-prometheus')
+  # when it's either in same namespace, or uses same release name
+  labels:
+    release: prometheus
+  #namespace: 
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xpumd
+      app.kubernetes.io/instance: xpumd
+  endpoints:
+  - port: http
+    interval: 5s
+    # drop common "0000." BDF label prefix for Dashboard readability
+    #metricRelabelings:
+    #- sourceLabels: [pci_bdf]
+    #  regex: '0000:(.+)'
+    #  replacement: '${1}'
+    #  targetLabel: pci_bdf
+    relabelings:
+    # simplify metric label names
+    - action: replace
+      sourceLabels:
+      - __meta_kubernetes_pod_node_name
+      targetLabel: node

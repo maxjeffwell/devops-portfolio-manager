@@ -1,0 +1,59 @@
+# Alerts for the two Iris Xe iGPUs (neon, dm) from xpumd. Intel's upstream rules
+# (docs/xpum-alert-rules.yaml) mostly do not apply to an integrated GPU: Sysman
+# exposes no temperature, power or RAS counters there, and the "memory" metric
+# is host RAM (GpuMemoryUsageHigh would fire permanently). What is left is the
+# device state, the exporter itself, and engine utilization.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: intel-gpu-xpumd
+  labels:
+    prometheus: kube-prometheus
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: intel-gpu.rules
+    rules:
+    # The only health state Sysman reports for these iGPUs: the driver flagged
+    # the GPU as needing a reset (hang / wedged engine). QSV and OpenVINO on
+    # that node are broken until then.
+    - alert: IntelGpuResetNeeded
+      expr: max by (node, pci_bdf, hw_type, hw_state) (hw_status{namespace="intel-xpumd", hw_state!="ok"}) > 0
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Intel iGPU on {{ $labels.node }} reports {{ $labels.hw_state }}"
+        description: "xpumd hw_status {{ $labels.hw_type }}/{{ $labels.hw_state }} on {{ $labels.node }} ({{ $labels.pci_bdf }}). Jellyfin/Tdarr QSV and OVMS on that node are likely failing. Check `dmesg | grep -i i915` on the node; a reboot clears a wedged GPU."
+        priority: "8"
+
+    # Expect one exporter per Iris Xe node; fewer means no GPU telemetry and
+    # the reset alert above cannot fire.
+    - alert: IntelGpuTelemetryDown
+      expr: (count(up{namespace="intel-xpumd"} == 1) or vector(0)) < 2
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "xpumd GPU telemetry missing ({{ $value }} of 2 nodes)"
+        description: "Fewer than 2 xpumd targets are up in namespace intel-xpumd. Check `kubectl -n intel-xpumd get pods -o wide` and the pod's ResourceClaim (DRA driver on neon/dm)."
+        priority: "5"
+
+    # Tdarr is busy on the CPU while the node's media encode engines idle:
+    # hevc_qsv has silently fallen back to software (or the claim/device is
+    # gone). A QSV transcode needs ~1 core for demux/mux; libx265 takes most of
+    # the box. 3 cores is an uncalibrated first guess (no transcode history
+    # when this was written, 2026-10-08) -- tune from real runs.
+    - alert: TdarrTranscodingOnCpu
+      expr: |
+        sum by (node) (rate(container_cpu_usage_seconds_total{namespace="tdarr", container!=""}[10m])) > 3
+        and on (node)
+        sum by (node) (avg_over_time(hw_gpu_utilization_ratio{namespace="intel-xpumd", hw_gpu_task=~"media-encode.*"}[10m])) < 0.01
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Tdarr on {{ $labels.node }} is transcoding on the CPU, QSV idle"
+        description: "Tdarr uses {{ $value | printf \"%.1f\" }} cores on {{ $labels.node }} while the iGPU media-encode engines are below 1 %. hevc_qsv is not being used: check the Tdarr worker log for QSV init errors and the pod's gpu ResourceClaim."
+        priority: "5"
