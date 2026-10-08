@@ -5,10 +5,16 @@
 # gpu-priority=true is only PreferNoSchedule on dm/neon, so the scheduler uses
 # them when the servers are full, and nothing ever moves those pods back.
 #
-# What: RemovePodsViolatingNodeTaints for the gpu-priority taint ONLY
-# (includedTaints; the VPS also has a PreferNoSchedule taint, role=edge, which
-# must not be touched). Pods that tolerate gpu-priority (the GPU workloads)
-# are never evicted. No policy nodeSelector on purpose: nodeFit has to see the
+# What: RemovePodsViolatingNodeTaints for the soft taints gpu-priority=true
+# (dm/neon) and role=edge (VPS vmi3610371). Pods that tolerate the taint (GPU
+# workloads; static frontends via tolerations*Client) are never evicted.
+# Edge pods that only use nodeSelector role=edge (traefik, blackbox-exporter)
+# are safe too: nodeFit finds no other node for them, so they are not evicted.
+# role=edge added 2026-10-08: the 10/7 m920s drain left 13 home workloads
+# (backends, redis, argocd, cert-manager webhook, velero, mayastor-nats...) on
+# the VPS for a day; edge = file servers only (every home call pays ~55 ms).
+# NOT covered: system-critical pods (coredns) -- DefaultEvictor skips them.
+# No policy nodeSelector on purpose: nodeFit has to see the
 # servers to decide whether the pod fits elsewhere, otherwise it would evict
 # into a full cluster and the pod would bounce straight back.
 fullnameOverride: descheduler-gpu-nodes
@@ -43,6 +49,7 @@ deschedulerPolicy:
             includePreferNoSchedule: true
             includedTaints:
               - gpu-priority=true
+              - role=edge
       plugins:
         deschedule:
           enabled:
