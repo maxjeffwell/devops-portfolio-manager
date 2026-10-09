@@ -1,0 +1,27 @@
+{{- if .Values.pgHa.enabled }}
+# pg-ha VIP health: Prometheus (pinned to a home node) scrapes HAProxy's metrics THROUGH the VIP.
+# up == 0 -> VIP/keepalived or HAProxy down; active_servers{proxy="primary"} < 1 -> no writable leader.
+# Not a blackbox Probe: blackbox-exporter runs on the edge VPS, which has no route to the home LAN VIP.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: pg-ha-vip
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  jobName: pg-ha-vip
+  metricsPath: /metrics
+  scheme: HTTP
+  scrapeInterval: 15s
+  scrapeTimeout: 5s
+  staticConfigs:
+    - targets:
+        - "{{ .Values.pgHa.vip }}:7000"
+      labels:
+        instance: pg-ha-vip
+  metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: haproxy_backend_active_servers
+      action: keep
+{{- end }}

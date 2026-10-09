@@ -626,6 +626,9 @@ kube-prometheus-stack:
     # per-zone exclude, so the whole collector errors ("invalid argument").
     extraArgs:
       - --no-collector.thermal_zone
+      # pg-ha backup freshness (pg_ha_backup.prom). rootfs is mounted at /host/root.
+      # The directory must exist on EVERY node, or NodeTextFileCollectorScrapeError fires.
+      - --collector.textfile.directory=/host/root/var/lib/node_exporter/textfile_collector
 
   # Kube State Metrics - collect Kubernetes object metrics
   kubeStateMetrics:
@@ -1389,3 +1392,41 @@ snmpSynology:
     criticalThreshold: 0.05
     criticalFor: 5m
     scrapeDownFor: 5m
+
+# pg-ha: bare-metal Patroni cluster (k3s-cluster-config docs/superpowers/specs/2026-10-08-patroni-ha-postgres-design.md)
+pgHa:
+  enabled: true
+  vip: 192.168.50.60
+  nodes:
+    - name: elitedesk
+      address: 192.168.50.115
+    - name: m720q
+      address: 192.168.50.118
+    - name: m920s
+      address: 192.168.50.155
+  # Public CA cert of the pg-ha TLS CA (Patroni REST API is HTTPS). Not a secret.
+  caCert: |
+    -----BEGIN CERTIFICATE-----
+    MIIEBzCCAm+gAwIBAgIUJcm7TgEGTdjdrhkvjoK44vSaa1QwDQYJKoZIhvcNAQEL
+    BQAwEzERMA8GA1UEAwwIcGctaGEgQ0EwHhcNMjYxMDA5MDIzMzM5WhcNMzYxMDA2
+    MDIzMzM5WjATMREwDwYDVQQDDAhwZy1oYSBDQTCCAaIwDQYJKoZIhvcNAQEBBQAD
+    ggGPADCCAYoCggGBAOgJLqk/VKpY2jXzezguE5UFPqrujGdp26kuRUdDHo3XZQeJ
+    YDQI7I6qaa6pW5rmRA53Ly92WGtUwhNS0u3GiURu+b8Y5epB6qKbBRMyacyLhF00
+    JnVliTcxfjJNRrWeI2ISo/VjGxQLTyHWJThEYywgduMNdKB4sMHrSZ+Kvfdu9Luv
+    iFSXE+JX7/9LAs6wGbqIRJyfnImbOrOO8rRK1eNnrpw+SLqHf7mEt/MQ75HICWu7
+    m0BBb5Aw1PTnjhUJrNX/XvsF0CdL/JBA0b6T2Z8J/JbdRNKQpZLrVAJ503Mpf+VJ
+    WeMiDs1dnjTc2IE/kx0oYfRl++FxQj2PVjo0AqJsZ90BrppuCjbDtPlbGzSEN0a6
+    VVDQ8aM/mIxCGw08e9aTy8PvbjWfbke/ULo89IJUn8oOT2d7eHmxSPdwXPIhtDp0
+    JC6xMCfj8kiX7NfwdhLI7ftXBbdYVyM/Z4ez9l1lM9R6BRbFvaEogFTDVkkRHffd
+    iIvbsbs6rpXUTpccOQIDAQABo1MwUTAdBgNVHQ4EFgQUsoYS5wPOB+Rb4h2m2jZG
+    vZ+ddgYwHwYDVR0jBBgwFoAUsoYS5wPOB+Rb4h2m2jZGvZ+ddgYwDwYDVR0TAQH/
+    BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAYEAkCXr1HKQIxu+4VNQHlvzC6Nj6E8p
+    fhhdM9Ykp5DABR20F4VsAlcJYfS3EFi0R3A1YGoMOwSvsJ/YDTC33KKRa9D8TB11
+    c2YnPl1YpcZrAuyrmwVJ89Ug1P3LWvmd1u5dyiReGNrzamLj31bnx2qlxr/FFkl6
+    sEzEm4kq92NSq1SHp1i4lxFVtv3vf0dxoTxzFKfnNnb8NfhvvTzkGWLDv1AwRGbw
+    D+6pYaeczIHF8/j//ivM3wFZzYfWHSYmM06VhFm+QkrXyqM4bLxjhyidXQmced7f
+    qdKJVfFXx5/+8iOZAUI39aJRx1D8H7SyQM4h0drpUxTp6XEwJt+Bxwg7F56iu4G9
+    +6hZpTvrMmKaHjW6JMXOgttYdnZ0xuPgzQxZGbPtO9rMeC8vBfvVUXEiswT99iBD
+    lPndM9W2JQ91M2nxBnmcl6/MoeBoBrJDKujrV5suPiZb5YmfOq0S4VfHqv06wqEe
+    oLlQHtKvrU64grjESisCeDpKIeu+KAvemq3r
+    -----END CERTIFICATE-----

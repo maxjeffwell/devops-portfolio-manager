@@ -1,0 +1,71 @@
+{{- if .Values.pgHa.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: pg-ha-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: pg-ha
+      rules:
+        - alert: PgHaNoLeader
+          expr: sum(patroni_primary{job="pg-ha-patroni"}) < 1
+          for: 1m
+          labels: {severity: critical}
+          annotations:
+            summary: pg-ha has no Patroni leader
+            description: No member reports itself primary. Writes on 192.168.50.60:5000 fail. Check `patronictl list` and etcd-patroni.
+        - alert: PgHaMultipleLeaders
+          expr: sum(patroni_primary{job="pg-ha-patroni"}) > 1
+          for: 30s
+          labels: {severity: critical}
+          annotations:
+            summary: pg-ha reports more than one leader
+            description: Split-brain risk. Check etcd-patroni quorum and watchdog on each host.
+        - alert: PgHaReplicationLag
+          expr: |
+            scalar(max(patroni_xlog_location{job="pg-ha-patroni"}))
+              - (patroni_xlog_replayed_location{job="pg-ha-patroni"} and on(instance) patroni_replica{job="pg-ha-patroni"} == 1)
+              > 10485760
+          for: 5m
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha replica {{`{{ $labels.instance }}`}} more than 10 MB behind
+            description: Sync replication still covers one replica, but this one would be excluded from failover past 1 MB.
+        - alert: PgHaEtcdMemberDown
+          expr: up{job="pg-ha-etcd"} == 0
+          for: 2m
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha etcd member {{`{{ $labels.instance }}`}} down
+            description: Patroni's etcd keeps quorum with 2/3, but one more loss stops all failovers.
+        - alert: PgHaVipDown
+          expr: |
+            up{job="pg-ha-vip"} == 0
+            or haproxy_backend_active_servers{job="pg-ha-vip",proxy="primary"} < 1
+          for: 1m
+          labels: {severity: critical}
+          annotations:
+            summary: pg-ha VIP 192.168.50.60 down or no writable leader behind it
+            description: HAProxy metrics are scraped through the VIP. up==0 means keepalived/HAProxy; active_servers{proxy="primary"} < 1 means no Patroni leader passes the /primary check.
+        - alert: PgHaBackupStale
+          expr: |
+            (time() - max(pg_ha_backup_last_success_timestamp_seconds) > 93600)
+            or absent(pg_ha_backup_last_success_timestamp_seconds)
+          for: 1h
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha base backup older than 26 h
+            description: Newest pg_ha_backup.prom across hosts is stale. Check `journalctl -u pg-ha-backup` on the current primary.
+        - alert: PgHaDataDiskFilling
+          expr: |
+            node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"}
+              / node_filesystem_size_bytes{mountpoint="/var/lib/postgresql"} < 0.20
+          for: 10m
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha data LV on {{`{{ $labels.instance }}`}} under 20% free
+            description: Usually WAL piling up because archiving to garage is failing — check pg_stat_archiver on the primary.
+{{- end }}

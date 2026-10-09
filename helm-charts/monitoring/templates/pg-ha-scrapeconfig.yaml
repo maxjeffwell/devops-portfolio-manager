@@ -1,0 +1,45 @@
+{{- if .Values.pgHa.enabled }}
+# pg-ha (bare-metal Patroni cluster): Patroni REST (HTTPS, verified against the pg-ha CA),
+# HAProxy's Prometheus endpoint, and Patroni's own etcd (metrics-only plain listener on :2481).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-ha-ca
+  namespace: {{ .Release.Namespace }}
+data:
+  ca.crt: |
+{{ .Values.pgHa.caCert | indent 4 }}
+{{- range $job := list (dict "name" "pg-ha-patroni" "port" 8008 "tls" true) (dict "name" "pg-ha-haproxy" "port" 7000 "tls" false) (dict "name" "pg-ha-etcd" "port" 2481 "tls" false) }}
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: {{ $job.name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  jobName: {{ $job.name }}
+  metricsPath: /metrics
+  scrapeInterval: 15s
+  scrapeTimeout: 10s
+  {{- if $job.tls }}
+  scheme: HTTPS
+  tlsConfig:
+    ca:
+      configMap:
+        name: pg-ha-ca
+        key: ca.crt
+  {{- else }}
+  scheme: HTTP
+  {{- end }}
+  staticConfigs:
+  {{- range $.Values.pgHa.nodes }}
+    - targets:
+        - "{{ .address }}:{{ $job.port }}"
+      labels:
+        instance: {{ .name | quote }}
+        host: {{ .name | quote }}
+  {{- end }}
+{{- end }}
+{{- end }}
