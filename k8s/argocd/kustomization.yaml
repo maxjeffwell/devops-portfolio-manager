@@ -63,6 +63,31 @@ patches:
                 value: broken
                 effect: NoSchedule
 
+  # ── application-controller: prefer the CPU node (2026-10-09) ────────────
+  # Exception to "no node affinity" above, by user decision: CPU-heavy workloads
+  # get PRIORITY on m920s (label homelab/cpu-tier=high), as a weighted PREFERENCE
+  # only -- it still runs anywhere else when m920s is down or full. 7d p95 213m.
+  - target:
+      kind: StatefulSet
+      name: argocd-application-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: argocd-application-controller
+      spec:
+        template:
+          spec:
+            affinity:
+              nodeAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 80
+                    preference:
+                      matchExpressions:
+                        - key: homelab/cpu-tier
+                          operator: In
+                          values: ["high"]
+
   # ── repo-server ─────────────────────────────────────────────────────────
   # Memory limit only: kustomize/helm renders are the one thing in Argo CD
   # that can balloon. (2026-09-30: the m920s soft preference and the no-op
