@@ -8,6 +8,10 @@
 # channels-dvr-data-r2 on mayastor-2 (NVMe) was reverted: NVMe is scarce, and
 # DVR config belongs on SATA. 1764 files / 2.03 GB copied with per-file sha256
 # verification.
+# 2026-10-09: mayastor-2-sata-thin can no longer provision (both media=sata pools are
+# now on m920s after the 2 TB BX500 moved there), so the claim was recreated under the
+# same name on mayastor-sata-thin (1 replica on m920s's tier=sata pools): copied via a
+# temp PVC twice, 1851 files + 1 symlink, sha256 manifests identical both times.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -18,7 +22,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: mayastor-2-sata-thin
+  storageClassName: mayastor-sata-thin
   resources:
     requests:
       storage: 15Gi
