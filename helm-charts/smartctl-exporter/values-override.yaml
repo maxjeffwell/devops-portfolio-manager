@@ -52,7 +52,6 @@ extraInstances:
         # USB disks: never /dev/sdX -- letters reshuffle on every boot/replug
         # (10/7: the 2 TB went sdd -> sde -> sdb) and the container's own /dev
         # keeps stale nodes ("No such device"). Ports = rear hub 5.x.
-        - /hostdev/disk/by-id/usb-SABRENT_SABRENT_DB9876543214E-0:0;sat    # CT2000BX500 2513E9B2FE4B, Sabrent JMS561U (mayastor m720q-usb-pool)
         - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:5.3:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
         - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:5.4:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
   - nodeSelector:
@@ -67,6 +66,7 @@ extraInstances:
         - /hostdev/disk/by-id/nvme-SAMSUNG_MZVLB256HAHQ-00000_S444NE0M642371;nvme
         - /hostdev/disk/by-id/ata-Corsair_Neutron_GTX_SSD_1315791200009714007A;sat
         - /hostdev/disk/by-id/ata-CT120BX300SSD1_1742E1052242;sat
+        - /hostdev/disk/by-id/ata-CT2000BX500SSD1_2513E9B2FE4B;sat  # 2026-10-09 moved from m720q USB (Sabrent) to m920s SATA ata4 (mayastor m920s-sata2-pool)
   - nodeSelector:
       kubernetes.io/hostname: debian-marmoset
     resources:
