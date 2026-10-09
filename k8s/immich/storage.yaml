@@ -58,4 +58,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: mayastor-2-sata-thin
+  # 2026-10-09: both media:sata pools now live on m920s (BX500 moved there), so the 2-replica
+  # sata classes cannot provision NEW volumes (replicas must be on distinct nodes). Models are
+  # re-downloadable -> a single replica on the sata tier is enough.
+  storageClassName: mayastor-sata-thin
