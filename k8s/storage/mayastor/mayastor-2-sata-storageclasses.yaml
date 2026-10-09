@@ -48,7 +48,10 @@ metadata:
     # zero PVs after the lvm-localpv migration and is being retired). Applies
     # only to PVCs that omit storageClassName; replicated + thin so an
     # unplanned claim survives a node reboot and reserves nothing.
-    storageclass.kubernetes.io/is-default-class: "true"
+    # 2026-10-09: NO LONGER DEFAULT. Both media=sata pools now sit on m920s (the 2 TB BX500
+    # moved there), so 2-replica sata volumes cannot be created (replicas need distinct
+    # nodes; 412 ReplicaCreateNumber). Default moved to mayastor-sata-thin.
+    storageclass.kubernetes.io/is-default-class: "false"
     description: |
       Mayastor 2-replica on the SATA pools (m920s BX300 + elitedesk USB BX500),
       restricted to pools labelled media=sata. Thin provisioned: only written

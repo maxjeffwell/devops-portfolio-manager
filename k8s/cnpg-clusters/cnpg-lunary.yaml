@@ -71,7 +71,10 @@ spec:
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: mayastor-2-sata
+    # 2026-10-09: 2-replica sata classes can no longer provision (both media=sata pools are on
+    # m920s). New/replacement instances go to mayastor-sata-thin (1 storage replica on the
+    # tier=sata pools); CNPG streaming replication is the second copy.
+    storageClass: mayastor-sata-thin  # thin: CNPG snapshot clones need thin
   # 2026-09-07 right-sizing. Measured 2-day peaks across the cnpg clusters:
   # cpu 23m against a 250m request, memory 319Mi against a 256Mi request. So the
   # cpu reservation was ~10x too big while memory was slightly too small.

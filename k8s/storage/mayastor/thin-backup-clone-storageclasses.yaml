@@ -61,7 +61,9 @@ metadata:
     homelab/purpose: velero-backup-clone
   annotations:
     homelab/note: thin twin of mayastor-sata; Mayastor requires snapshot clones to
-      be thin. Used only by Velero backupPVC.
+      be thin. Velero backupPVC class, and since 2026-10-09 the CLUSTER DEFAULT
+      (1 replica on m920s's tier=sata pools: BX300 + 2 TB BX500).
+    storageclass.kubernetes.io/is-default-class: "true"
 provisioner: io.openebs.csi-mayastor
 parameters:
   ioTimeout: '30'

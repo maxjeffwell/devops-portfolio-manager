@@ -109,7 +109,10 @@ spec:
   storage:
     resizeInUseVolumes: true
     size: 5Gi
-    storageClass: mayastor-2-sata-thin  # 2026-10-06: thin so CNPG scale-up snapshot clones can provision (Mayastor refuses thick clones)
+    # 2026-10-09: 2-replica sata classes can no longer provision (both media=sata pools are on
+    # m920s). New/replacement instances go to mayastor-sata-thin (1 storage replica on the
+    # tier=sata pools); CNPG streaming replication is the second copy.
+    storageClass: mayastor-sata-thin  # thin: CNPG snapshot clones need thin
   # 2026-09-16: cpu 250m -> 100m. 14-day peak is 27m, so 250m reserved ~9x the
   # real peak and it was the single largest slice of elitedesk's CPU-request
   # saturation (95.9% of allocatable while ~26% busy). Memory left at 256Mi:

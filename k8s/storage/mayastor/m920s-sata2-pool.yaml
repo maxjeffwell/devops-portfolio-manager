@@ -1,0 +1,19 @@
+# m920s-sata2-pool: Crucial BX500 2 TB on m920s internal SATA (ata4), LVM
+# mayastor-sata2-vg/mayastor-sata2-pool. Moved 2026-10-09 from m720q's USB hub
+# (was m720q-usb-pool); old lvs wiped with blkdiscard, pool created by hand, then
+# added here. Labels match m920s-sata-pool: tier=sata (mayastor-sata[-thin], the
+# cluster default) and media=sata (mayastor-2-sata[-thin] -- which can no longer
+# place 2 replicas, as both media=sata pools are on m920s).
+apiVersion: openebs.io/v1beta3
+kind: DiskPool
+metadata:
+  name: m920s-sata2-pool
+  namespace: openebs
+spec:
+  disks:
+  - /dev/disk/by-id/dm-uuid-LVM-oUb155qzvfHzVP2Q1KkCBM54TKeyzOhBqsrgVyEHY0Wc012Rd1XXM0x1SgiH0Crx
+  node: m920s
+  topology:
+    labelled:
+      media: sata
+      tier: sata

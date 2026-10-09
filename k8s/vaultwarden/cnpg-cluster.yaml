@@ -31,7 +31,10 @@ spec:
   # instance recreated later -- lands on mayastor-2-sata (m920s BX300 +
   # elitedesk USB BX500). NVMe is scarce; CNPG replication is the second copy.
   storage:
-    storageClass: mayastor-2-sata-thin  # 2026-10-06: thin so CNPG scale-up snapshot clones can provision (Mayastor refuses thick clones)
+    # 2026-10-09: 2-replica sata classes can no longer provision (both media=sata pools are on
+    # m920s). New/replacement instances go to mayastor-sata-thin (1 storage replica on the
+    # tier=sata pools); CNPG streaming replication is the second copy.
+    storageClass: mayastor-sata-thin  # thin: CNPG snapshot clones need thin
     size: 5Gi
   # 2026-09-21 right-sizing. Without this block the namespace LimitRange
   # (default-requests) injected cpu 10m / memory 64Mi, but the postgres
