@@ -483,9 +483,10 @@ kube-prometheus-stack:
       periodSeconds: 10
 
     # Resource limits
+    # 2026-10-09: cpu request 100m -> 25m (7-day per-pod p95 5m, max 9m); limit unchanged (500m).
     resources:
       requests:
-        cpu: 100m
+        cpu: 25m
         memory: 128Mi
       limits:
         cpu: 500m
