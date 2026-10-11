@@ -1,4 +1,23 @@
 {{- if .Values.veleroBackupVerify.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: velero-verify-restore-modifiers
+  namespace: velero
+data:
+  modifiers.yaml: |
+    version: v1
+    resourceModifierRules:
+      # Tunnel connectors share the live tunnel token: never run a restored copy.
+      - conditions:
+          groupResource: deployments.apps
+          resourceNameRegex: "^cloudflared.*"
+          namespaces: [default]
+        patches:
+          - operation: replace
+            path: "/spec/replicas"
+            value: "0"
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -97,12 +116,18 @@ spec:
               # managed-by=kubeblocks) come back carrying
               # component.kubeblocks.io/finalizer with no Component to clear it,
               # wedging the namespace in Terminating (2026-09-27 run).
+              # Cloudflare tunnel connectors come back with replicas 0 (resource
+              # modifier ConfigMap below): they run on the PRODUCTION tunnel token,
+              # so a restored copy registered on the live tunnel and, with services
+              # excluded, failed every request routed to it -- litellm/ai-gateway/
+              # argocd .el-jefe.me partly erroring for the whole 2026-10-11 run.
               velero restore create "$TEST_RESTORE" \
                 --from-backup "$LATEST_BACKUP" \
                 --include-namespaces default \
                 --namespace-mappings default:velero-test-restore \
                 --exclude-resources cronjobs.batch,orders.acme.cert-manager.io,challenges.acme.cert-manager.io,certificaterequests.cert-manager.io,clusters.postgresql.cnpg.io,backups.postgresql.cnpg.io,scheduledbackups.postgresql.cnpg.io,clusters.apps.kubeblocks.io,components.apps.kubeblocks.io,instancesets.workloads.kubeblocks.io,services \
                 --selector 'app.kubernetes.io/managed-by notin (kubeblocks)' \
+                --resource-modifier-configmap velero-verify-restore-modifiers \
                 --wait
 
               # Check restore status
