@@ -1,0 +1,86 @@
+# 2026-10-15: policies for the KubeBlocks Redis replication cluster `redis-ha`
+# (k8s/redis/cluster-ha.yaml). default-deny-all applies in this namespace and the
+# existing `redis*` policies only match app=redis (the old StatefulSet), so the
+# KubeBlocks-labelled pods need their own. Mirrors allow-neon-cluster-internal +
+# allow-neon-operator for the cluster itself, and redis / redis-allow-langfuse /
+# redis-allow-tenants for clients.
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ha-internal
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: redis-ha
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # replication (6379) + sentinel (26379) between the cluster's own pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: redis-ha
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: redis-ha
+    # kbagent / role probes talk to the API server (DNS + API also covered by
+    # the namespace-wide allow-dns / allow-k8s-api-all)
+    - ports:
+        - { port: 443, protocol: TCP }
+        - { port: 6443, protocol: TCP }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ha-operator
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: redis-ha
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kb-system
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-redis-ha-clients
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: redis-ha
+      apps.kubeblocks.io/component-name: redis
+  policyTypes: [Ingress]
+  ingress:
+    # same clients the old `redis` policies admit
+    - from:
+        - podSelector:
+            matchLabels:
+              component: backend
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              portfolio: "true"
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: langfuse
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: langfuse
+      ports:
+        - { port: 6379, protocol: TCP }
+    # redis exporter sidecar -> Prometheus
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - { port: 9121, protocol: TCP }

@@ -1,0 +1,79 @@
+# 2026-10-15: KubeBlocks Redis replication cluster (redis + sentinel) running
+# ALONGSIDE the hand-rolled single StatefulSet `redis` (elitedesk-pinned LVM,
+# the SPOF). Same password as the old instance (Doppler REDIS_PASSWORD via ESO
+# -> redis-secrets/redis-password) so consumers can be cut over with a Service
+# alias `redis` -> redis-ha-redis-redis (primary-following) and a data copy.
+# Pods spread one-per-server (elitedesk/m720q/m920s) on local LVM; Redis does
+# its own replication, Mayastor not needed. Sentinel quorum = 3.
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: redis-ha
+  namespace: default
+spec:
+  clusterDef: redis
+  topology: replication
+  terminationPolicy: Delete
+  componentSpecs:
+    - name: redis
+      serviceVersion: "7.2.11"
+      replicas: 2
+      disableExporter: false
+      systemAccounts:
+        - name: default
+          secretRef:
+            name: redis-secrets
+            password: redis-password
+      resources:
+        requests: { cpu: 50m, memory: 128Mi }
+        limits: { memory: 512Mi }
+      schedulingPolicy:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: redis-ha
+                    apps.kubeblocks.io/component-name: redis
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: openebs-lvmpv
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 2Gi
+    - name: redis-sentinel
+      serviceVersion: "7.2.11"
+      replicas: 3
+      resources:
+        requests: { cpu: 20m, memory: 64Mi }
+        limits: { memory: 128Mi }
+      schedulingPolicy:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: redis-ha
+                    apps.kubeblocks.io/component-name: redis-sentinel
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: openebs-lvmpv
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 1Gi
