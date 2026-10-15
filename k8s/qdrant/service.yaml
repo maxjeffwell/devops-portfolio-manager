@@ -7,8 +7,12 @@ metadata:
     app: qdrant
 spec:
   type: ClusterIP
+  # 2026-10-15: points at the KubeBlocks cluster (cluster-ha.yaml); any node
+  # of a Qdrant cluster accepts requests and forwards internally. The `app:
+  # qdrant` label stays so the ServiceMonitor keeps matching this Service.
   selector:
-    app: qdrant
+    app.kubernetes.io/instance: qdrant-ha
+    apps.kubeblocks.io/component-name: qdrant
   ports:
     - { name: rest, port: 6333, targetPort: 6333, protocol: TCP }
     - { name: grpc, port: 6334, targetPort: 6334, protocol: TCP }
