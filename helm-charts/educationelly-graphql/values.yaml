@@ -1,5 +1,7 @@
 priorityClassName: portfolio-app
-replicaCount: 1
+# 2026-10-15: 2 client replicas (hostname spread + PDB) so a server loss or a
+# deploy never drops the frontend; the server side is HPA-managed (min 2).
+replicaCount: 2
 
 # 2026-10-01: Recreate -> RollingUpdate (maxUnavailable 0) and 2 replicas for the
 # server so deploys and node reboots are zero-downtime; the client is unaffected

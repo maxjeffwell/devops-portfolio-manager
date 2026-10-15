@@ -1,1 +1,3 @@
 {{- include "portfolio-common.pdb" (dict "component" "server" "context" $) }}
+---
+{{- include "portfolio-common.pdb" (dict "component" "client" "context" $) }}

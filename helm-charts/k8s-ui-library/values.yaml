@@ -1,8 +1,14 @@
 priorityClassName: portfolio-app
-replicaCount: 1
+# 2026-10-15: 2 client replicas (hostname spread + PDB) so a server loss or a
+# deploy never drops the frontend; the server side is HPA-managed (min 2).
+replicaCount: 2
 
 strategy:
-  type: Recreate
+  # 2026-10-15: Recreate -> RollingUpdate for the 2-replica client
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
 
 image:
   client:
@@ -85,3 +91,7 @@ affinity:
               operator: In
               values:
                 - "true"
+
+pdb:
+  enabled: true
+  minAvailable: 1

@@ -1,9 +1,14 @@
 priorityClassName: portfolio-app
 
-replicaCount: 1
+# 2026-10-15: 2 backend+frontend replicas (hostname spread + PDB) so a server loss or a
+# deploy never drops the frontend.
+replicaCount: 2
 
 strategy:
-  type: Recreate
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
 
 image:
   backend:
@@ -64,12 +69,16 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
 
 pdb:
-  enabled: false
-  maxUnavailable: 1
+  enabled: true
+  minAvailable: 1
 
 # No placement constraints: stateless, no GPU use, and the old reasons for
 # pinning to debian-marmoset (off the VPS control plane, next to
 # litellm/Ollama) no longer hold
+topologySpreadConstraints:
+  enabled: true
+  maxSkew: 1
+
 nodeSelector: {}
 tolerations: []
 affinity: {}
