@@ -1,0 +1,55 @@
+# 2026-10-15: KubeBlocks Qdrant cluster (3 nodes, Raft) replacing the single
+# StatefulSet `qdrant` (statefulset.yaml, retired after the cutover). One pod
+# per server on local LVM (openebs-lvmpv-servers); Qdrant replicates shards
+# itself (intervalai creates its collection with replication_factor 2).
+# Qdrant 1.15.4 = newest release the KubeBlocks ComponentVersion ships; the
+# intervalai client is 1.18, so the version check only warns.
+# No API key: the single node had none and the namespace is not default-deny;
+# intervalai's egress policy already allows qdrant:6333.
+apiVersion: apps.kubeblocks.io/v1
+kind: Cluster
+metadata:
+  name: qdrant-ha
+  namespace: qdrant
+spec:
+  clusterDef: qdrant
+  topology: cluster
+  terminationPolicy: Delete
+  componentSpecs:
+    - name: qdrant
+      componentDef: qdrant-1.0.2
+      serviceVersion: "1.15.4"
+      replicas: 3
+      podUpdatePolicy: PreferInPlace
+      resources:
+        requests: { cpu: 50m, memory: 384Mi }
+        limits: { memory: 1Gi }
+      schedulingPolicy:
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - { key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"] }
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: qdrant-ha
+                    apps.kubeblocks.io/component-name: qdrant
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            storageClassName: openebs-lvmpv-servers
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 5Gi
+        - name: log
+          spec:
+            storageClassName: openebs-lvmpv-servers
+            accessModes: [ReadWriteOnce]
+            resources:
+              requests:
+                storage: 1Gi
