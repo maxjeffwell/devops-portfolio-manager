@@ -18,11 +18,16 @@ spec:
   terminationPolicy: Delete
   componentSpecs:
     - name: redis
+      # componentDef/podUpdatePolicy/disabled are KubeBlocks defaults, stated
+      # explicitly so ArgoCD's server-side diff sees git == live.
+      componentDef: redis-8-1.0.2
       serviceVersion: "8.2.2"
       replicas: 2
+      podUpdatePolicy: PreferInPlace
       disableExporter: false
       systemAccounts:
         - name: default
+          disabled: false
           secretRef:
             name: redis-secrets
             password: redis-password
@@ -52,8 +57,10 @@ spec:
               requests:
                 storage: 2Gi
     - name: redis-sentinel
+      componentDef: redis-sentinel-8-1.0.2
       serviceVersion: "8.2.2"
       replicas: 3
+      podUpdatePolicy: PreferInPlace
       resources:
         requests: { cpu: 20m, memory: 64Mi }
         limits: { memory: 128Mi }
