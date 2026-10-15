@@ -84,6 +84,15 @@ mayastor:
           # rebuild). Trade-off: volumes run single-replica up to 90m before
           # a replacement replica is built elsewhere.
           waitPeriod: 90m
+      # 2026-10-15: request 500m -> 200m (chart default sized for busy control
+      # loops; 7-day p95 is well under 100m). Limit stays 1000m.
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 128Mi
+        requests:
+          cpu: 200m
+          memory: 32Mi
     ha:
       node:
         # 2026-10-01: run the HA node agent wherever volumes can be MOUNTED, not
@@ -149,6 +158,8 @@ mayastor:
           cpu: 20m
           memory: 64Mi
   etcd:
+    # 2026-10-15: the storage control plane must never be preempted by an app pod.
+    priorityClassName: mayastor-cluster-critical
     clusterDomain: cluster.local
     enabled: true
     localpvScConfig:

@@ -15,5 +15,6 @@ resources:
     cpu: 2000m
     memory: 512Mi
   requests:
-    cpu: 100m
+    # 2026-10-15: 100m -> 50m (7-day p95 ~5m; N-1 trim)
+    cpu: 50m
     memory: 512Mi
