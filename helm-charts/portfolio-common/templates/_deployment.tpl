@@ -17,7 +17,12 @@ metadata:
     component: {{ $component }}
     {{- include "portfolio-common.labels" $ | nindent 4 }}
 spec:
-  {{- if not $.Values.autoscaling.enabled }}
+  {{- /* The HPA-managed component (autoscaling.component, default "server") must not
+         carry replicas (the HPA owns it); every other component renders replicaCount.
+         Before 2026-10-15 autoscaling.enabled suppressed replicas on ALL components,
+         which silently left the clients at 1. */}}
+  {{- $hpaComponent := $.Values.autoscaling.component | default "server" }}
+  {{- if not (and $.Values.autoscaling.enabled (eq $component $hpaComponent)) }}
   replicas: {{ $.Values.replicaCount | default 2 }}
   {{- end }}
   {{- if $.Values.strategy }}
