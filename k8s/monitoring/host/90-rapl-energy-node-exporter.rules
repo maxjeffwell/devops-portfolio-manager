@@ -1,0 +1,11 @@
+# Intel RAPL energy counters for the unprivileged node-exporter rapl collector.
+#
+# Since kernel 5.10 (CVE-2020-8694 / PLATYPUS) /sys/class/powercap/*/energy_uj
+# is 0400 root. node-exporter runs as uid/gid 65534 with /sys mounted read-only,
+# so node_rapl_*_joules_total is silent unless the file is readable by that gid.
+# Scope to group 65534 (nobody/nogroup) at 0440 rather than world-readable.
+#
+# Install: /etc/udev/rules.d/ on every node with intel-rapl (elitedesk, m720q,
+# m920s, debian-marmoset, neonmarmoset), then:
+#   udevadm control --reload && udevadm trigger -s powercap -c add
+SUBSYSTEM=="powercap", ACTION=="add", RUN+="/bin/sh -c 'f=/sys%p/energy_uj; [ -e $f ] && chgrp 65534 $f && chmod 0440 $f'"
