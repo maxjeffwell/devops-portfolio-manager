@@ -2,7 +2,7 @@ apiVersion: v2
 name: portfolio-common
 description: A Helm library chart with common templates for portfolio applications
 type: library
-version: 1.0.0
+version: 1.0.1
 appVersion: "1.0"
 keywords:
   - library

@@ -17,5 +17,5 @@ maintainers:
 # Note: Uses cloud-hosted databases (AWS RDS PostgreSQL, Redis Cloud, etc.)
 dependencies:
   - name: portfolio-common
-    version: 1.0.0
+    version: 1.0.1
     repository: "file://../portfolio-common"

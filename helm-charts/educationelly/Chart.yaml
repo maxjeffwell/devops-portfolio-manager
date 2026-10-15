@@ -16,6 +16,6 @@ maintainers:
     email: jeff@el-jefe.me
 dependencies:
   - name: portfolio-common
-    version: 1.0.0
+    version: 1.0.1
     repository: "file://../portfolio-common"
 # Trigger build
