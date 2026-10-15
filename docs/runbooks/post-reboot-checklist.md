@@ -1,0 +1,20 @@
+# Post-reboot checklist (k3s nodes, incl. power cuts)
+
+Consolidated 2026-10-15. Run top to bottom after any reboot or power loss of a k3s node, servers first (elitedesk, m720q, m920s). `[[…]]` references point at Claude memory notes.
+
+Run top to bottom after ANY reboot/power loss of a k3s node. Each line = check → fix.
+
+1. **Node/pods:** `kubectl get nodes` Ready; `kubectl get pods -A | grep -vE 'Running|Completed'` empty; uncordon if a drain preceded the reboot. Pods Failed with `UnexpectedAdmissionError … gpu.intel.com` on GPU nodes → delete the Failed pod object (Deployment recreates).
+2. **Mayastor pools FIRST:** `kubectl mayastor -n openebs get pools` all Online — WAIT for pool re-import before touching anything else ([[MEMORY_TOPICS]] io-engine trap). `get volumes` all Online (Degraded right after a nexus republish usually clears in minutes). io-engine 2/2 on all 3 engine nodes.
+3. **NVMe-oF dead paths on EVERY consumer node** (dm, neon, elitedesk, m720q, m920s) — pods stay Running on dead volumes ([[mayastor-nvmf-paths-lost-after-target-node-reboot-2026-10-11]]):
+   `for s in /sys/class/nvme-subsystem/*; do grep -q openebs $s/subsysnqn && [ $(cat $s/nvme[0-9]*/state 2>/dev/null | grep -c live) = 0 ] && cat $s/subsysnqn; done` → any hit: `kubectl rollout restart` the consuming workload, then delete that node's node-problem-detector pod (stale ReadonlyFilesystem).
+4. **🆕 Mayastor control plane moved/restarted?** `kubectl -n openebs get pod -l app=agent-core -o wide` — if agent-core's container restarted or its pod IP changed since api-rest started (`kubectl -n openebs get pod -l app=api-rest -o wide`), run `kubectl -n openebs rollout restart deploy/mayastor-api-rest`. Otherwise api-rest keeps a dead per-service gRPC channel (the app-node `ops` channel is only used by CSI snapshots) and the next CNPG snapshot run fails with 504 ([[cnpg-snapshot-backups-failed-mayastor-appnode-stall-2026-10-15]]). Same logic for csi-controller if agent-core moved: it reconnects on its own (busy channels), no action.
+5. **coredns placement:** `kubectl -n kube-system get pods -l k8s-app=kube-dns -o wide` — all 3 on elitedesk/m720q/m920s; delete any replica on the VPS or a GPU node (descheduler can't evict it) ([[coredns-scale-to-3-2026-05-25]]).
+6. **CNPG:** `kubectl get clusters.postgresql.cnpg.io -A` all healthy; primaries back where intended (cordon-m720q recipe if elitedesk should be primary). Next 03:00Z snapshot + 02:00Z B2 runs: `kubectl get backups.postgresql.cnpg.io -A` phases; failed snapshot Backup = orphan VolumeSnapshot to delete (no ownerRef). 🪤 pg-ha PostgreSQL steals io-engine hugepages on m920s boot → huge_pages=off must stay.
+7. **Garage:** `garage status` (from marmoset) all HEALTHY; `GarageResyncErrors` that persist → `garage block info <hash>`; refs all on deleted versions → `repair --yes block-refs` + `block-rc` ([[reference_garage_resync_errors_stale_block_refs_2026_10_07]]). ASUSTOR after ITS reboot: gluetun dependents need manual `docker start`; re-run S97 if NFS exports got clobbered.
+8. **Host units:** wg0 peers (`wg show wg0`), tailscale up, bond0 up (m720q: `interfaces.d/*.bak` glob trap; neon: NM bond0+omr), `vps-edge-bypass.service` active (all 6 home nodes), hugepages 1024 on engine nodes, io-engine wrapper env (500 µs), chrony synced.
+   - **m920s:** `/proc/cmdline` contains `memmap=64M$0x9ee000000` (badram fence), `rapl-pl2-cap.service` active (PL1 65/PL2 80 W), smartd/exporter if still paused, WOL via .link file.
+   - **elitedesk:** AQC113 present (`ip link show enp2s0`; boot-code hang = cold AC pull + PCI rescan), BIOS fan floor 40 %, `panel-backlight-off` n/a (desktop).
+   - **dm/neon:** `panel-backlight-off.service` active (laptops lit otherwise), lid/sleep masked, DRA/xpumd pods back, `multi-user.target` default.
+   - **m720q:** USB SSDs by-id (names reshuffle), smartd running.
+9. **Alerts/backups:** Alertmanager quiet except Watchdog/InfoInhibitor + known cosmetic (io-engine OnDelete rollout-stuck); next Velero daily Completed (PartiallyFailed = step 3 was missed).
