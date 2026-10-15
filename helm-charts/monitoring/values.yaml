@@ -615,6 +615,16 @@ kube-prometheus-stack:
   prometheus-node-exporter:
     # 2026-10-02: was priority 0 (preemption victim); node agent -> node-critical.
     priorityClassName: system-node-critical
+    # 2026-10-15: 31 s (not the 30 s global) so the scrape PHASE sweeps across
+    # Prometheus's own :00/:30 CPU burst instead of locking onto it. Prometheus
+    # offsets each target by hash(labels incl. pod name) mod interval; after a
+    # node-exporter pod churn on 10/9 m720q (the node hosting Prometheus) landed
+    # exactly on the burst and every stored package temp read +6 C for a week.
+    # With 31 s the phase cycles in ~15.5 min: averages are unbiased, a single
+    # sample still catches the burst ~1 in 15 (max_over_time stays slightly high).
+    prometheus:
+      monitor:
+        interval: 31s
     resources:
       requests:
         cpu: 10m
