@@ -3,8 +3,6 @@ kind: Kustomization
 namespace: qdrant
 resources:
   - namespace.yaml
-  - statefulset.yaml
   - cluster-ha.yaml
   - service.yaml
-  - networkpolicy.yaml
   - servicemonitor.yaml
