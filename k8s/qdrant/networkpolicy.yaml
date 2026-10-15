@@ -1,0 +1,99 @@
+# Default-deny for the KubeBlocks Qdrant pods (cluster-ha.yaml). 2026-10-15.
+# Ingress allowlist: intervalai-server (default) -> REST 6333 / gRPC 6334,
+# Prometheus (monitoring) -> 6333 /metrics (servicemonitor.yaml), the
+# KubeBlocks operator (kb-system) -> kbagent 3501/3502 (lifecycle actions such
+# as memberLeave), and the Qdrant pods themselves on 6335 (Raft + shard
+# transfer; a request to any node is forwarded internally over this port).
+# Egress: DNS and the same intra-cluster ports. Telemetry is disabled, so
+# nothing leaves the cluster. Any NEW Qdrant consumer needs a rule here.
+# No API key yet: KubeBlocks' readiness probe curls /cluster without one and
+# Qdrant only exempts /, /healthz, /livez, /readyz from auth — a key needs a
+# cloned ComponentDefinition with a key-aware probe first.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: qdrant-ha
+  namespace: qdrant
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: qdrant-ha
+      apps.kubeblocks.io/component-name: qdrant
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # intervalai-server (default) → REST + gRPC
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+          podSelector:
+            matchLabels:
+              app: intervalai-server
+      ports:
+        - port: 6333
+          protocol: TCP
+        - port: 6334
+          protocol: TCP
+    # Prometheus (monitoring) → /metrics on the REST port
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 6333
+          protocol: TCP
+    # KubeBlocks operator (kb-system) → kbagent sidecar
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kb-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: kubeblocks
+      ports:
+        - port: 3501
+          protocol: TCP
+        - port: 3502
+          protocol: TCP
+    # Qdrant ↔ Qdrant (same cluster): p2p/Raft + internal forwarding
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: qdrant-ha
+              apps.kubeblocks.io/component-name: qdrant
+      ports:
+        - port: 6333
+          protocol: TCP
+        - port: 6334
+          protocol: TCP
+        - port: 6335
+          protocol: TCP
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Qdrant ↔ Qdrant (same cluster)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: qdrant-ha
+              apps.kubeblocks.io/component-name: qdrant
+      ports:
+        - port: 6333
+          protocol: TCP
+        - port: 6334
+          protocol: TCP
+        - port: 6335
+          protocol: TCP

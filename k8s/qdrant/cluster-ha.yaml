@@ -4,8 +4,9 @@
 # itself (intervalai creates its collection with replication_factor 2).
 # Qdrant 1.15.4 = newest release the KubeBlocks ComponentVersion ships; the
 # intervalai client is 1.18, so the version check only warns.
-# No API key: the single node had none and the namespace is not default-deny;
-# intervalai's egress policy already allows qdrant:6333.
+# No API key: KubeBlocks' readiness probe curls /cluster without one (see
+# networkpolicy.yaml). The pods are default-deny since 2026-10-15
+# (networkpolicy.yaml); intervalai's egress policy already allows qdrant:6333.
 apiVersion: apps.kubeblocks.io/v1
 kind: Cluster
 metadata:
