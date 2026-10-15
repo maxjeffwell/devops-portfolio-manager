@@ -108,7 +108,8 @@ patches:
               - name: argocd-repo-server
                 resources:
                   requests:
-                    cpu: 100m
+                    # 2026-10-15: 100m -> 50m (7-day p95 < 10m per replica; N-1 trim)
+                    cpu: 50m
                     memory: 256Mi
                   limits:
                     memory: 512Mi
