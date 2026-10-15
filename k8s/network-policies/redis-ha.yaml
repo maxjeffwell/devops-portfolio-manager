@@ -2,8 +2,8 @@
 # (k8s/redis/cluster-ha.yaml). default-deny-all applies in this namespace and the
 # existing `redis*` policies only match app=redis (the old StatefulSet), so the
 # KubeBlocks-labelled pods need their own. Mirrors allow-neon-cluster-internal +
-# allow-neon-operator for the cluster itself, and redis / redis-allow-langfuse /
-# redis-allow-tenants for clients.
+# allow-neon-operator for the cluster itself, and the client set the retired
+# redis / redis-allow-tenants policies admitted (langfuse is gone).
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -69,12 +69,6 @@ spec:
           podSelector:
             matchLabels:
               portfolio: "true"
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: langfuse
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/name: langfuse
       ports:
         - { port: 6379, protocol: TCP }
     # redis exporter sidecar -> Prometheus
