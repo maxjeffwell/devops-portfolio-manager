@@ -44,7 +44,7 @@ spec:
       volumeClaimTemplates:
         - name: data
           spec:
-            storageClassName: openebs-lvmpv
+            storageClassName: openebs-lvmpv-servers
             accessModes: [ReadWriteOnce]
             resources:
               requests:
@@ -72,7 +72,7 @@ spec:
       volumeClaimTemplates:
         - name: data
           spec:
-            storageClassName: openebs-lvmpv
+            storageClassName: openebs-lvmpv-servers
             accessModes: [ReadWriteOnce]
             resources:
               requests:

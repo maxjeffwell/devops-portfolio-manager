@@ -36,3 +36,24 @@ parameters:
 provisioner: local.csi.openebs.io
 reclaimPolicy: Retain
 volumeBindingMode: WaitForFirstConsumer
+---
+# 2026-10-15: server-agnostic local LVM class for small replicated workloads
+# (first user: the KubeBlocks redis-ha cluster, one pod per server). lvm-localpv
+# picks any VG matching vgpattern with free space on the node the pod lands on:
+# openebs-vg on elitedesk/m720q, vg0 on m920s (its openebs-vg is full).
+# Delete reclaim on purpose: these volumes hold replicated data the app
+# re-syncs; a leaked LV per deleted cluster is worse than a lost replica.
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-lvmpv-servers
+  annotations:
+    description: 'lvm-localpv thin volumes in openebs-vg OR vg0 (vgpattern), so one claim template works on all three servers.'
+parameters:
+  storage: lvm
+  thinProvision: 'yes'
+  vgpattern: '^(openebs-vg|vg0)$'
+provisioner: local.csi.openebs.io
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
