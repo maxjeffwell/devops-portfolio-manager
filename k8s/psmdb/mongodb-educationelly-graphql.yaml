@@ -61,7 +61,9 @@ spec:
   image: percona/percona-server-mongodb:7.0.18-11
   imagePullPolicy: IfNotPresent
   replsets:
-  - affinity:
+  # 2026-10-15: databases must outrank apps when a server is lost (N-1 preemption order)
+  - priorityClassName: portfolio-critical
+    affinity:
       advanced:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
