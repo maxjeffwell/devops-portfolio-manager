@@ -136,7 +136,9 @@ spec:
           args:
             - |
               set -e
-              cp -a /jellyfin/jellyfin-web/. /web/
+              # plain recursive copy: -a would try to preserve times on the
+              # emptyDir root, which uid 1000 may not do (EPERM -> crash loop)
+              cp -r /jellyfin/jellyfin-web/. /web/
               echo "seeded $(find /web -type f | wc -l) files into the writable jellyfin-web volume"
           securityContext:
             allowPrivilegeEscalation: false
