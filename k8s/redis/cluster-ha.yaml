@@ -5,6 +5,8 @@
 # alias `redis` -> redis-ha-redis-redis (primary-following) and a data copy.
 # Pods spread one-per-server (elitedesk/m720q/m920s) on local LVM; Redis does
 # its own replication, Mayastor not needed. Sentinel quorum = 3.
+# Redis 8.2.2 (not 7.2): the old instance is 7.4 and DUMP/MIGRATE payloads only
+# load on an equal-or-newer server, so 7.2 could not take the data copy.
 apiVersion: apps.kubeblocks.io/v1
 kind: Cluster
 metadata:
@@ -16,7 +18,7 @@ spec:
   terminationPolicy: Delete
   componentSpecs:
     - name: redis
-      serviceVersion: "7.2.11"
+      serviceVersion: "8.2.2"
       replicas: 2
       disableExporter: false
       systemAccounts:
@@ -50,7 +52,7 @@ spec:
               requests:
                 storage: 2Gi
     - name: redis-sentinel
-      serviceVersion: "7.2.11"
+      serviceVersion: "8.2.2"
       replicas: 3
       resources:
         requests: { cpu: 20m, memory: 64Mi }
