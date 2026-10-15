@@ -1,0 +1,23 @@
+# 2026-10-15: portfolio-api -> default/redis (KubeBlocks redis-ha primary) for
+# the cross-replica login rate-limit counter (api/src/utils/rateLimitStore.js in
+# portfolio-orchestration-platform). Egress side of allow-redis-ha-clients.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-portfolio-api-redis
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: portfolio-api
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/instance: redis-ha
+          apps.kubeblocks.io/component-name: redis
+    ports:
+    - port: 6379
+      protocol: TCP

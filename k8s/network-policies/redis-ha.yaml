@@ -69,6 +69,16 @@ spec:
           podSelector:
             matchLabels:
               portfolio: "true"
+        # 2026-10-15: cross-replica express-rate-limit counters (rate-limit-redis)
+        - podSelector:
+            matchLabels:
+              app: portfolio-api
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: vertex-platform
+          podSelector:
+            matchExpressions:
+              - { key: app, operator: In, values: [auth-service, analytics-service] }
       ports:
         - { port: 6379, protocol: TCP }
     # redis exporter sidecar -> Prometheus
