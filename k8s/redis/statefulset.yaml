@@ -11,7 +11,8 @@ metadata:
     description: Protected database - requires manual deletion
     helm.sh/resource-policy: keep
 spec:
-  replicas: 1
+  # 2026-10-15: scaled to 0 after the cutover to redis-ha; kept for rollback.
+  replicas: 0
   serviceName: redis
   selector:
     matchLabels:

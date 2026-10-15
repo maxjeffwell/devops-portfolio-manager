@@ -7,8 +7,13 @@ metadata:
     app: redis
 spec:
   type: ClusterIP
+  # 2026-10-15: cut over to the KubeBlocks replication cluster (cluster-ha.yaml).
+  # Follows the primary via the role label KubeBlocks maintains on the pods, so
+  # a Sentinel failover re-points this Service without any client change.
   selector:
-    app: redis
+    app.kubernetes.io/instance: redis-ha
+    apps.kubeblocks.io/component-name: redis
+    kubeblocks.io/role: primary
   ports:
     - name: redis
       port: 6379
