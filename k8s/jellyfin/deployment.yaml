@@ -121,6 +121,30 @@ spec:
           volumeMounts:
             - { name: config, mountPath: /config }
             - { name: encoding-defaults, mountPath: /default, readOnly: true }
+        # 2026-10-15: give Jellyfin a WRITABLE copy of jellyfin-web. Web-modifying
+        # plugins (Jellyfin Enhanced, and anything else that patches index.html)
+        # write into /jellyfin/jellyfin-web, which is root-owned image content
+        # behind readOnlyRootFilesystem. Seeding an emptyDir from the image at
+        # every pod start keeps the root fs read-only, survives image bumps
+        # (fresh copy each start; the plugin re-injects via its startup task),
+        # and needs no privilege. ~61 MB. Keep the image tag identical to the
+        # jellyfin container below.
+        - name: seed-web
+          image: jellyfin/jellyfin:12.1.20260915-010956
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              cp -a /jellyfin/jellyfin-web/. /web/
+              echo "seeded $(find /web -type f | wc -l) files into the writable jellyfin-web volume"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - { name: web, mountPath: /web }
       containers:
         - name: jellyfin
           # Pinned to the exact dated build the ASUSTOR runs (12.1, 12.1.20260915-010956, digest 78d3ea12…)
@@ -168,6 +192,8 @@ spec:
             - { name: media-sabnzbd, mountPath: /sharefolder/Download/SABnzbd/complete, readOnly: true }
             - { name: tmp,           mountPath: /tmp }
             - { name: run,           mountPath: /var/run }
+            # Writable jellyfin-web (seeded by the seed-web init container).
+            - { name: web,           mountPath: /jellyfin/jellyfin-web }
           livenessProbe:
             httpGet: { path: /health, port: 8096 }
             initialDelaySeconds: 30
@@ -199,6 +225,7 @@ spec:
             sizeLimit: 12Gi
         - { name: tmp, emptyDir: { sizeLimit: 256Mi } }
         - { name: run, emptyDir: { sizeLimit: 64Mi } }
+        - { name: web, emptyDir: { sizeLimit: 256Mi } }
         - name: encoding-defaults
           configMap:
             name: jellyfin-encoding-defaults
