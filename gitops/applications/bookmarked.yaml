@@ -18,8 +18,12 @@ spec:
     server: https://kubernetes.default.svc
     namespace: default
   ignoreDifferences:
+    # Only the HPA-managed server's replicas are owned outside git. Scoping by
+    # name (2026-10-15) so client replica changes are still diffed and synced;
+    # the unscoped rule left the clients stuck at 1 after replicaCount moved to 2.
     - group: apps
       kind: Deployment
+      name: bookmarked-server
       jsonPointers:
         - /spec/replicas
   syncPolicy:
