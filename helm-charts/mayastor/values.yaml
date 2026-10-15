@@ -28,6 +28,16 @@
 #
 # 2026-09-22: api-rest memory 32Mi/64Mi -> 64Mi/128Mi (helm rev 12); Deployment-only change.
 #
+# 2026-10-15: SPDK interrupt mode is now CHART-NATIVE (io_engine.interruptMode
+# below). It replaces the kubectl-patched per-node command wrapper
+# (io-engine-interrupt-mode-patch.yaml, deleted) that a plain `helm upgrade`
+# silently removed from the DaemonSet template on 10/15 (rev 29). All three
+# engine nodes run the same 500us poll period and the chart's coreList=[1] is
+# already right for every node (m920s via kernel isolcpus=1,7), so nothing
+# per-node is left to wrap. DaemonSet is OnDelete: after the upgrade, delete
+# io-engine pods ONE NODE AT A TIME (all volumes Online + nexus children Online
+# between nodes, then the NVMe-oF dead-path loop on every consumer node).
+#
 # 2026-09-17: io_engine cpu LIMIT 1 -> 2 (request stays 1). The single reactor
 # spins core 1 at 100 %, so gRPC/etcd/NATS helper threads pushed the container
 # over a 1-core CFS quota: 11-15 % of periods throttled = reactor stalls.
@@ -227,6 +237,17 @@ mayastor:
     coreList:
     - 1
     envcontext: iova-mode=pa
+    # SPDK interrupt mode (experimental in mayastor 2.12): reactors sleep on
+    # epoll/timerfd instead of busy-polling. NVME_IOQ_POLL_PERIOD is the timer
+    # the nexus uses to poll completions from each REMOTE replica (timer-only
+    # on the initiator side); wakeups/node = remote-replica children x 1/period.
+    # 2026-09-26 100us; 2026-10-14 500us on all engine nodes (elitedesk: 40k ->
+    # 10k wakeups/s, 19.8 -> 10.9 W, 66 -> 52 C; m920s 33k -> 10.6k; m720q
+    # 46k -> 31k) for up to +0.5 ms completion latency on I/O that touches a
+    # remote replica. Replica COUNT does not matter.
+    interruptMode:
+      enabled: true
+      nvmeIoQueuePollPeriod: 500us
     pool:
       ioAlerts:
         stallDeadline: 110s
@@ -237,8 +258,8 @@ mayastor:
         # Chart default; kept explicit because the request below now differs.
         memory: 1Gi
       requests:
-        # 2026-09-26: was '1'. With SPDK interrupt mode on (see
-        # io-engine-interrupt-mode-patch.yaml) one reactor idles at ~350-550m
+        # 2026-09-26: was '1'. With SPDK interrupt mode on (interruptMode
+        # above) one reactor idles at ~350-550m
         # instead of spinning a full core.
         # 2026-09-30: briefly 1100m while m920s/neonmarmoset ran TWO reactors
         # (-l1,7 / -l2,3) to own a whole hyperthreaded core. 2026-10-01: both
