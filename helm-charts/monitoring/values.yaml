@@ -1441,3 +1441,146 @@ pgHa:
     lPndM9W2JQ91M2nxBnmcl6/MoeBoBrJDKujrV5suPiZb5YmfOq0S4VfHqv06wqEe
     oLlQHtKvrU64grjESisCeDpKIeu+KAvemq3r
     -----END CERTIFICATE-----
+
+# Caretta service-map naming (2026-10-16). Caretta only names endpoints it can
+# match to a pod/service/node object; host-network processes (Garage, io-engine,
+# Patroni/etcd, HAProxy, WireGuard, the routers and NAS) show up as bare IPs in
+# the `external` namespace. The recording rule caretta:links_observed:named
+# (templates/caretta-named-rules.yaml, evaluated by the Mimir ruler via Alloy's
+# mimir.rules.kubernetes) rewrites those to host names so the Grafana node graph
+# draws one node per host. The raw address is kept in client_addr/server_addr.
+# Keep this map current: an unknown address here is an undocumented LAN talker.
+caretta:
+  naming:
+    enabled: true
+    # address or reverse-DNS name (as Caretta reports it) -> host name. Host
+    # names of k3s nodes MUST match the node name so the rows merge with the
+    # rows Caretta already labels namespace="node".
+    addresses:
+      # elitedesk: bond0 .115, eno1 .116, wg0, tailscale, rDNS
+      "192.168.50.115": elitedesk
+      "192.168.50.116": elitedesk
+      "10.0.0.10": elitedesk
+      "100.64.0.8": elitedesk
+      "elitedesk.home.arpa.": elitedesk
+      "elitedesk-1g.home.arpa.": elitedesk
+      # m720q: .118 (2.5G), .119 (1G), wg0, tailscale
+      "192.168.50.118": m720q
+      "192.168.50.119": m720q
+      "10.0.0.11": m720q
+      "100.64.0.11": m720q
+      "m720q.home.arpa.": m720q
+      "m720q-1g.home.arpa.": m720q
+      # m920s: bond0 .155, wg0, tailscale
+      "192.168.50.155": m920s
+      "10.0.0.12": m920s
+      "100.64.0.2": m920s
+      # debian-marmoset (dm): bond0 .152, 5G .153, wg0, tailscale; .152 rDNS is headscale
+      "192.168.50.152": debian-marmoset
+      "192.168.50.153": debian-marmoset
+      "10.0.0.9": debian-marmoset
+      "100.64.0.12": debian-marmoset
+      "headscale.el-jefe.me.": debian-marmoset
+      "debian-marmoset-lacp.home.arpa.": debian-marmoset
+      # neonmarmoset: .110, wg0, tailscale
+      "192.168.50.110": neonmarmoset
+      "10.0.0.8": neonmarmoset
+      "100.64.0.15": neonmarmoset
+      "neonmarmoset-sabrent1.home.arpa.": neonmarmoset
+      "100.64.0.10": neonmarmoset   # pre-9/30 tailscale id, still in 7d history
+      "192.168.100.115": neonmarmoset  # OMR-LAN leg
+      # marmoset (laptop): .144, wg0, tailscale
+      "192.168.50.144": marmoset
+      "10.0.0.2": marmoset
+      "100.64.0.3": marmoset
+      "marmoset-2-5GbE.home.arpa.": marmoset
+      "192.168.100.120": marmoset   # OMR-LAN leg
+      # edge VPS vmi3610371: public, wg0 .1, tailscale
+      "31.220.98.70": vmi3610371
+      "10.0.0.1": vmi3610371
+      "100.64.0.14": vmi3610371
+      # --- non-k3s hosts ---
+      "192.168.50.1": be88u
+      "100.64.0.6": be88u
+      "RT-BE88U-3A18.home.arpa.": be88u
+      "192.168.50.103": ax86u-pro
+      "10.0.0.6": ax86u-pro
+      "100.64.0.7": ax86u-pro
+      "ax86u.home.arpa.": ax86u-pro
+      "10.0.0.7": axe7800
+      "192.168.100.3": axe7800
+      "100.64.0.13": axe7800
+      "192.168.50.109": synology
+      "192.168.50.111": synology
+      "192.168.50.129": synology
+      "192.168.50.132": synology
+      "10.0.0.5": synology
+      "100.64.0.9": synology
+      "synology3.home.arpa.": synology
+      "synology-2.home.arpa.": synology
+      "192.168.50.133": asustor
+      "192.168.50.142": asustor
+      "192.168.50.149": asustor
+      "10.0.0.4": asustor
+      "100.64.0.5": asustor
+      "portainer.home.arpa.": asustor
+      "192.168.50.131": openmptcprouter
+      "openmptcprouter.home.arpa.": openmptcprouter
+      "192.168.100.1": openmptcprouter
+      "192.168.50.124": zenbook
+      "100.64.0.4": zenbook
+      "zenbook-ethernet-5gbe.home.arpa.": zenbook
+      "zenbook-ethernet.home.arpa.": zenbook
+      "100.64.0.1": ipad
+      "tablo-lite.home.arpa.": tablo
+      "192.168.50.60": pg-ha-vip
+    # host name -> graph namespace + kind. `node` merges with Caretta's own
+    # node rows; `lan` keeps kind=external so workload-only panels still skip it.
+    groups:
+      node:
+        kind: node
+        hosts: [elitedesk, m720q, m920s, debian-marmoset, neonmarmoset, marmoset, vmi3610371]
+      lan:
+        kind: external
+        hosts: [be88u, ax86u-pro, axe7800, synology, asustor, openmptcprouter, zenbook, ipad, tablo, pg-ha-vip]
+    # server_port -> server_service label (unmapped ports keep the number)
+    ports:
+      "22": ssh
+      "53": dns
+      "80": http
+      "443": https
+      "2049": nfs
+      "2379": k3s-etcd
+      "2380": k3s-etcd-peer
+      "2479": patroni-etcd
+      "2480": patroni-etcd-peer
+      "2481": patroni-etcd-metrics
+      "3100": loki
+      "3260": iscsi
+      "3493": nut
+      "3900": garage-s3
+      "3901": garage-rpc
+      "3902": garage-web
+      "3903": garage-admin
+      "3910": garage-s3-m920s
+      "4317": otlp-grpc
+      "4318": otlp-http
+      "5000": pg-ha-write
+      "5001": pg-ha-read
+      "5432": postgres
+      "6333": qdrant-http
+      "6334": qdrant-grpc
+      "6379": redis
+      "6443": k8s-api
+      "7000": pg-ha-haproxy-stats
+      "7117": caretta
+      "8008": patroni-rest
+      "8080": mimir
+      "8081": headscale
+      "8420": mayastor-nvmf
+      "9095": mimir-grpc
+      "9100": node-exporter
+      "10250": kubelet
+      "27017": mongodb
+      "41641": tailscale
+      "51820": wireguard

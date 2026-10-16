@@ -282,6 +282,21 @@ data:
       job_name        = "caretta"
     }
 
+    // --- Mimir ruler sync (2026-10-16) ---
+    // PrometheusRule objects labelled alloy_mimir_rules="true" are pushed to the
+    // Mimir ruler. kube-prometheus's Prometheus never sees the Alloy-scraped
+    // series (caretta, node, beyla...), so recording rules over them must run
+    // in Mimir. Mimir runs with multitenancy off -> no tenant_id. Clustered:
+    // only one Alloy instance performs the sync (Alloy >= 1.1).
+    mimir.rules.kubernetes "mimir" {
+      address = "http://mimir-monolithic.monitoring.svc.cluster.local:8080"
+      rule_selector {
+        match_labels = {
+          alloy_mimir_rules = "true",
+        }
+      }
+    }
+
     // --- Traefik Access Log Collection ---
     // 2026-09-25: Traefik runs 2 replicas, each writing its own
     // /var/log/traefik/<pod>/access.log (hostPath, subPathExpr) -- the old

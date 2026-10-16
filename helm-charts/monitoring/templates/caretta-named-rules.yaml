@@ -1,0 +1,27 @@
+{{- if and .Values.alloy.enabled .Values.caretta.naming.enabled }}
+# Caretta service map with host names (2026-10-16). See the `caretta.naming`
+# comment in values.yaml. Evaluated by the MIMIR ruler, not kube-prometheus:
+# Alloy's mimir.rules.kubernetes (alloy-config.yaml) pushes every PrometheusRule
+# labelled alloy_mimir_rules="true" to Mimir, which is the only store holding the
+# Alloy-scraped caretta series. Deliberately NOT labelled release=prometheus.
+# The Grafana dashboard (dashboards/caretta.json) reads the recorded metric.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: caretta-named
+  namespace: {{ .Release.Namespace }}
+  labels:
+    alloy_mimir_rules: "true"
+spec:
+  groups:
+    - name: caretta-named
+      interval: 30s
+      rules:
+        - record: caretta:links_observed:named
+          expr: >-
+            {{- $naming := .Values.caretta.naming }}
+            {{- $e := include "monitoring.carettaSide" (dict "side" "client" "expr" "caretta_links_observed" "naming" $naming) }}
+            {{- $e = include "monitoring.carettaSide" (dict "side" "server" "expr" $e "naming" $naming) }}
+            {{- $e = include "monitoring.carettaPorts" (dict "expr" $e "naming" $naming) }}
+            {{ $e }}
+{{- end }}
