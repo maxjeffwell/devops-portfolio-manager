@@ -196,10 +196,7 @@ chart-wide. A key suffixed with the component name (`nodeSelectorClient`,
 `...Frontend`, ...) replaces the chart-wide value for that component whenever the
 key is present, even if empty.
 
-Since 2026-10-15 (1.0.2) the static clients use this to run one replica on the
-edge VPS and one on a home server: `affinityClient` requires the node label
-`site in (edge, home)` and `topologySpreadConstraintsClient` spreads over
-`topologyKey: site` with `DoNotSchedule`. Servers keep the chart-wide hostname
-spread (`ScheduleAnyway`). Node labels: `kubectl label node vmi3610371 site=edge`,
-`kubectl label node elitedesk m720q m920s site=home` (recorded in
-k3s-cluster-config/README.md).
+Added in 1.0.2 (2026-10-15) for a one-edge-plus-one-home client layout that
+was rolled back the same evening (user decision: both client replicas stay on
+the edge VPS, `nodeSelectorClient: {role: edge}`); the override is kept because
+it is the only way to give one component a different spread than the rest.

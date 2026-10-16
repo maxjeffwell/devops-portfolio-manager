@@ -236,27 +236,12 @@ externalSecrets:
     - secretKey: database-url
       remoteKey: LUNARY_DATABASE_URL
 
-# 2026-10-15: one frontend replica on the edge VPS (assets served from the public IP)
-# and one at home on a server, so neither a VPS outage nor a server loss drops the
-# site. The required affinity limits the pods to the four `site`-labelled nodes
-# (vmi3610371=edge; elitedesk/m720q/m920s=home); the spread over `site` with
-# DoNotSchedule forces one replica per site with replicaCount 2.
-nodeSelectorFrontend: {}
-affinityFrontend:
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-        - matchExpressions:
-            - key: site
-              operator: In
-              values: [edge, home]
+# Static frontend runs on the edge node next to Traefik (assets served from the public IP,
+# no home round-trip); API calls already go browser -> Traefik -> server via ingress paths.
+nodeSelectorFrontend:
+  role: edge
 tolerationsFrontend:
   - key: role
     operator: Equal
     value: edge
     effect: PreferNoSchedule
-topologySpreadConstraintsFrontend:
-  enabled: true
-  maxSkew: 1
-  topologyKey: site
-  whenUnsatisfiable: DoNotSchedule
