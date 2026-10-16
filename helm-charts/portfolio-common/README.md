@@ -187,3 +187,19 @@ env:
 - **Maintainability**: Updates to common templates apply to all charts
 - **Reduced Complexity**: Application charts become much simpler
 - **Best Practices**: Encapsulates Kubernetes best practices in one place
+
+## Per-component scheduling overrides
+
+`nodeSelector`, `affinity`, `tolerations` and `topologySpreadConstraints` are
+chart-wide. A key suffixed with the component name (`nodeSelectorClient`,
+`affinityClient`, `tolerationsClient`, `topologySpreadConstraintsClient`,
+`...Frontend`, ...) replaces the chart-wide value for that component whenever the
+key is present, even if empty.
+
+Since 2026-10-15 (1.0.2) the static clients use this to run one replica on the
+edge VPS and one on a home server: `affinityClient` requires the node label
+`site in (edge, home)` and `topologySpreadConstraintsClient` spreads over
+`topologyKey: site` with `DoNotSchedule`. Servers keep the chart-wide hostname
+spread (`ScheduleAnyway`). Node labels: `kubectl label node vmi3610371 site=edge`,
+`kubectl label node elitedesk m720q m920s site=home` (recorded in
+k3s-cluster-config/README.md).

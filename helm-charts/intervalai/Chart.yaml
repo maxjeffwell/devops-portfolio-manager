@@ -17,5 +17,5 @@ sources:
   - https://github.com/maxjeffwell/spaced-repetition-capstone-Docker
 dependencies:
   - name: portfolio-common
-    version: 1.0.1
+    version: 1.0.2
     repository: "file://../portfolio-common"

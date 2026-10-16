@@ -112,12 +112,18 @@ spec:
       volumes:
         {{- toYaml $.Values.volumes | nindent 8 }}
       {{- end }}
-      {{- if $.Values.topologySpreadConstraints }}
-      {{- if $.Values.topologySpreadConstraints.enabled }}
+      {{- /* topologySpreadConstraints<Component> (e.g. topologySpreadConstraintsClient) overrides the
+             chart-wide block when the key is present, same rule as nodeSelector/affinity/tolerations.
+             2026-10-15: clients spread over the node label `site` (edge VPS vs home servers) with
+             DoNotSchedule, while servers keep the chart-wide hostname spread. */}}
+      {{- $tscKey := printf "topologySpreadConstraints%s" (title $component) }}
+      {{- $tsc := ternary (index $.Values $tscKey) $.Values.topologySpreadConstraints (hasKey $.Values $tscKey) }}
+      {{- if $tsc }}
+      {{- if $tsc.enabled }}
       topologySpreadConstraints:
-        - maxSkew: {{ $.Values.topologySpreadConstraints.maxSkew | default 1 }}
-          topologyKey: {{ $.Values.topologySpreadConstraints.topologyKey | default "kubernetes.io/hostname" }}
-          whenUnsatisfiable: {{ $.Values.topologySpreadConstraints.whenUnsatisfiable | default "ScheduleAnyway" }}
+        - maxSkew: {{ $tsc.maxSkew | default 1 }}
+          topologyKey: {{ $tsc.topologyKey | default "kubernetes.io/hostname" }}
+          whenUnsatisfiable: {{ $tsc.whenUnsatisfiable | default "ScheduleAnyway" }}
           labelSelector:
             matchLabels:
               app: {{ include "portfolio-common.name" $ }}-{{ $component }}
