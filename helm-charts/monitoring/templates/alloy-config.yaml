@@ -290,6 +290,13 @@ data:
     // only one Alloy instance performs the sync (Alloy >= 1.1).
     mimir.rules.kubernetes "mimir" {
       address = "http://mimir-monolithic.monitoring.svc.cluster.local:8080"
+      // Only this namespace: a PrometheusRule elsewhere must not be able to
+      // inject recording/alerting rules into the shared Mimir tenant.
+      rule_namespace_selector {
+        match_labels = {
+          "kubernetes.io/metadata.name" = "monitoring",
+        }
+      }
       rule_selector {
         match_labels = {
           alloy_mimir_rules = "true",

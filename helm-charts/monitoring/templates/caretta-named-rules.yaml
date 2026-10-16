@@ -18,10 +18,22 @@ spec:
       interval: 30s
       rules:
         - record: caretta:links_observed:named
+          # The rename chains run ONLY on rows Caretta itself filed as
+          # namespace external|node (bare addresses, rDNS names, k3s node
+          # names). Pod/service rows are passed through untouched, so a
+          # workload that shares a host's name can never be regrouped. The four
+          # selector partitions are disjoint, so `or` is a plain union.
           expr: >-
             {{- $naming := .Values.caretta.naming }}
-            {{- $e := include "monitoring.carettaSide" (dict "side" "client" "expr" "caretta_links_observed" "naming" $naming) }}
-            {{- $e = include "monitoring.carettaSide" (dict "side" "server" "expr" $e "naming" $naming) }}
-            {{- $e = include "monitoring.carettaPorts" (dict "expr" $e "naming" $naming) }}
-            {{ $e }}
+            {{- $hostNs := "external|node" }}
+            {{- $raw := "caretta_links_observed" }}
+            {{- $both := printf "%s{client_namespace=~\"%s\",server_namespace=~\"%s\"}" $raw $hostNs $hostNs }}
+            {{- $cOnly := printf "%s{client_namespace=~\"%s\",server_namespace!~\"%s\"}" $raw $hostNs $hostNs }}
+            {{- $sOnly := printf "%s{client_namespace!~\"%s\",server_namespace=~\"%s\"}" $raw $hostNs $hostNs }}
+            {{- $none := printf "%s{client_namespace!~\"%s\",server_namespace!~\"%s\"}" $raw $hostNs $hostNs }}
+            {{- $p1 := include "monitoring.carettaSide" (dict "side" "server" "expr" (include "monitoring.carettaSide" (dict "side" "client" "expr" $both "naming" $naming)) "naming" $naming) }}
+            {{- $p2 := include "monitoring.carettaSide" (dict "side" "client" "expr" $cOnly "naming" $naming) }}
+            {{- $p3 := include "monitoring.carettaSide" (dict "side" "server" "expr" $sOnly "naming" $naming) }}
+            {{- $u := printf "((%s) or (%s) or (%s) or %s)" $p1 $p2 $p3 $none }}
+            {{ include "monitoring.carettaPorts" (dict "expr" $u "naming" $naming) }}
 {{- end }}
