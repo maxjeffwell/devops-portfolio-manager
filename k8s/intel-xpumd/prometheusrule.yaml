@@ -15,11 +15,16 @@ spec:
   groups:
   - name: intel-gpu.rules
     rules:
-    # The only health state Sysman reports for these iGPUs: the driver flagged
-    # the GPU as needing a reset (hang / wedged engine). QSV and OpenVINO on
-    # that node are broken until then.
+    # Sysman reports two non-ok states for these iGPUs. "reset_needed" is the
+    # real failure (hang / wedged engine): QSV and OpenVINO on that node are
+    # broken until a reset. "throttled" is NOT a failure: it is set whenever the
+    # Xe is clipped by the shared package power limit (xpumd throttle reason
+    # ave_pwr_cap), which happens on every Jellyfin transcode longer than a
+    # couple of minutes. Until 2026-10-22 this rule matched both and paged
+    # "reset needed" for ordinary power capping (7 d: 117 min on neon, 41 on dm,
+    # reset_needed never set).
     - alert: IntelGpuResetNeeded
-      expr: max by (node, pci_bdf, hw_type, hw_state) (hw_status{namespace="intel-xpumd", hw_state!="ok"}) > 0
+      expr: max by (node, pci_bdf, hw_type, hw_state) (hw_status{namespace="intel-xpumd", hw_state!~"ok|throttled"}) > 0
       for: 2m
       labels:
         severity: critical
@@ -27,6 +32,21 @@ spec:
         summary: "Intel iGPU on {{ $labels.node }} reports {{ $labels.hw_state }}"
         description: "xpumd hw_status {{ $labels.hw_type }}/{{ $labels.hw_state }} on {{ $labels.node }} ({{ $labels.pci_bdf }}). Jellyfin/Tdarr QSV and OVMS on that node are likely failing. Check `dmesg | grep -i i915` on the node; a reboot clears a wedged GPU."
         priority: "8"
+
+    # Informational: the iGPU has been power-capped for a while. Expected during
+    # transcodes (the CPU side of ffmpeg and the Xe share one package budget,
+    # 25-30 W MMIO PL1 on neon/dm via rapl-pl-override); encodes still run well
+    # above realtime. Only interesting if it is sustained with nothing
+    # transcoding, or if playback actually stalls.
+    - alert: IntelGpuPowerCapped
+      expr: max by (node, pci_bdf) (hw_status{namespace="intel-xpumd", hw_state="throttled"}) > 0
+      for: 10m
+      labels:
+        severity: info
+      annotations:
+        summary: "Intel iGPU on {{ $labels.node }} power-capped for 10m+"
+        description: "xpumd reports hw_state=throttled on {{ $labels.node }} ({{ $labels.pci_bdf }}) for over 10 minutes: the Xe clock is being held down by the package power limit, not by temperature or a fault. Normal during a long QSV transcode. Check the Jellyfin/Tdarr ffmpeg log speed= (should stay well above 1x) before changing anything; the cap lives in /usr/local/sbin/rapl-pl-override.sh on the node."
+        priority: "2"
 
     # Expect one exporter per Iris Xe node; fewer means no GPU telemetry and
     # the reset alert above cannot fire.
