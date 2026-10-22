@@ -59,7 +59,7 @@ spec:
         - { name: igpu, resourceClaimTemplateName: igpu }
       containers:
         - name: ml
-          image: ghcr.io/immich-app/immich-machine-learning:v3.3.0-openvino   # kept in step with the server (2026-10-08)
+          image: ghcr.io/immich-app/immich-machine-learning:v3.3.5-openvino   # kept in step with the server (2026-10-22)
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
