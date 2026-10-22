@@ -1,0 +1,21 @@
+# Namespace ResourceQuotas. monitoring-quota was hand-applied on 2026-03-07 (20Gi/42Gi,
+# later edited live to 28Gi/56Gi with no git record) and adopted here on 2026-10-21 when
+# the Alloy DaemonSet request went 1.5Gi -> 2Gi and pushed requests.memory to 93% of the
+# ceiling (KubeQuotaAlmostFull fires above 90%). Sized so steady state sits near 80% and a
+# rolling DaemonSet update (one extra 2Gi Alloy pod) stays under 90%.
+#
+# 🪤 Any request raise in the monitoring namespace must be checked against this quota
+# first: kubectl -n monitoring get resourcequota monitoring-quota
+#
+# default-quota (default ns) and microservices-quota are still unmanaged live objects.
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: monitoring-quota
+  namespace: monitoring
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 32Gi
+    limits.memory: 64Gi
