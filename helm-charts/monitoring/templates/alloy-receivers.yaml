@@ -202,7 +202,8 @@ spec:
             periodSeconds: 20
             failureThreshold: 3
           resources:
-            requests: {cpu: 50m, memory: 128Mi}
+            # 2026-10-21: 128Mi -> 256Mi (7-day p95 252Mi on m920s)
+            requests: {cpu: 50m, memory: 256Mi}
             limits: {memory: 512Mi}
           volumeMounts:
             - {name: config, mountPath: /etc/alloy}

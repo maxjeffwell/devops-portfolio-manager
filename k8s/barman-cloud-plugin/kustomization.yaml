@@ -33,3 +33,11 @@ patches:
           - --client-cert=/client/tls.crt
           - --server-address=:9090
           - --log-level=info
+      # 2026-10-21: explicit requests. Upstream sets none, so the pod ran on the
+      # cnpg-system LimitRange default (64Mi) while its 7-day p95 was 69Mi.
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 10m
+            memory: 96Mi

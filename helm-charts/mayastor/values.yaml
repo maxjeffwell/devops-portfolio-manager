@@ -226,13 +226,14 @@ mayastor:
   operators:
     pool:
       # 2026-09-30: cpu request 50m -> 10m (7d p95 ~0m). Limits chart default.
+      # 2026-10-21: memory 16Mi/32Mi -> 24Mi/48Mi (7-day p95 19.5Mi = 61% of the old limit).
       resources:
         limits:
           cpu: 100m
-          memory: 32Mi
+          memory: 48Mi
         requests:
           cpu: 10m
-          memory: 16Mi
+          memory: 24Mi
   io_engine:
     coreList:
     - 1

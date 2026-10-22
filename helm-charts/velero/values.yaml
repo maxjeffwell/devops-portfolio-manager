@@ -171,7 +171,8 @@ resources:
     memory: 1Gi
   requests:
     cpu: 50m
-    memory: 640Mi
+    # 2026-10-21: 640Mi -> 768Mi (7-day p95 445Mi, peak 705Mi during backups)
+    memory: 768Mi
 
 snapshotsEnabled: true
 upgradeCRDs: false

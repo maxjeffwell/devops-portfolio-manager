@@ -90,7 +90,9 @@ spec:
         resources:
           requests:
             # 2026-10-15: 250m -> 100m (7-day p95 ~10m; N-1 trim)
-            cpu: 100m
+            # 2026-10-21: 100m -> 200m. 7-day p95 is now 196m (2x the trimmed
+            # request); half of the trim walked back.
+            cpu: 200m
             memory: 128Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File

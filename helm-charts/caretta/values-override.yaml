@@ -30,7 +30,9 @@ rbac:
 resources:
   requests:
     cpu: 50m
-    memory: 128Mi
+    # 2026-10-21: 128Mi -> 384Mi. 7-day p95 is 335-355Mi on every node and peaks
+    # 400-506Mi (VPS, marmoset); the request was under a third of real use.
+    memory: 384Mi
   limits:
     cpu: 500m
     memory: 1Gi
@@ -73,6 +75,17 @@ victoria-metrics-single:
   rbac:
     # subchart (0.8.48) still templates a PodSecurityPolicy unless told not to
     pspEnabled: false
+  server:
+    # 2026-10-21: the parent chart's 5m/50Mi request with a 350Mi limit was
+    # 10x under on CPU (7-day p95 53m) and the working set peaked at 296Mi,
+    # 85% of the limit. Sized to real use with headroom on the limit.
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
 
 grafana:
   # We already run Grafana (monitoring ns); the upstream dashboard is loaded

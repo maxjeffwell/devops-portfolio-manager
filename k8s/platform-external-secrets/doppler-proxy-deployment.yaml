@@ -34,12 +34,13 @@ spec:
               subPath: haproxy.cfg
               readOnly: true
           resources:
+            # 2026-10-21: 16Mi/32Mi -> 24Mi/48Mi (7-day p95 22Mi = 70% of the old limit)
             requests:
               cpu: 10m
-              memory: 16Mi
+              memory: 24Mi
             limits:
               cpu: 50m
-              memory: 32Mi
+              memory: 48Mi
           livenessProbe:
             tcpSocket:
               port: 443

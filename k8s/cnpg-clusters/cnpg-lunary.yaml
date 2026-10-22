@@ -80,14 +80,18 @@ spec:
   # cpu reservation was ~10x too big while memory was slightly too small.
   resources:
     limits:
-      memory: 512Mi
+      # 2026-10-21: 512Mi -> 1Gi. The postgres container's 7-day peak working set
+      # was 509Mi -- 3Mi under the old limit -- so the next busy materialized-view
+      # refresh would have OOM-killed the primary.
+      memory: 1Gi
     requests:
       # 2026-09-16: cpu 100m -> 60m. 14-day peak is 27m, so 100m reserved ~3.7x
       # the real peak. elitedesk sat at 95.9% of allocatable CPU in *requests*
       # while only ~26% busy, which is what preempted kube-state-metrics on the
       # 09-07 reboot. 60m is still >2x peak. Memory untouched.
       cpu: 60m
-      memory: 384Mi
+      # 2026-10-21: 384Mi -> 512Mi (7-day p95 526Mi incl. the barman sidecar).
+      memory: 512Mi
   monitoring:
     customQueriesConfigMap:
     - key: queries

@@ -32,7 +32,8 @@ spec:
             name: redis-secrets
             password: redis-password
       resources:
-        requests: { cpu: 50m, memory: 128Mi }
+        # 2026-10-21: 50m/128Mi -> 100m/192Mi (7-day p95 73m CPU, peak 147Mi)
+        requests: { cpu: 100m, memory: 192Mi }
         limits: { memory: 512Mi }
       schedulingPolicy:
         affinity:

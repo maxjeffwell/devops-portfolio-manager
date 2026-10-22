@@ -57,9 +57,10 @@ gotifyBridge:
   resources:
     requests:
       cpu: 10m
-      memory: 16Mi
+      # 2026-10-21: 16Mi/64Mi -> 32Mi/96Mi (7-day p95 33Mi)
+      memory: 32Mi
     limits:
-      memory: 64Mi
+      memory: 96Mi
   serviceMonitor:
     enabled: true
 
@@ -126,7 +127,8 @@ tempoRedis:
       # over-reserved. The LIMIT deliberately stays 1Gi: maxmemory below allows
       # the dataset to reach 800mb, so any limit under that would turn a normal
       # cache fill into an OOM kill.
-      memory: 128Mi
+      # 2026-10-21: 128Mi -> 256Mi (7-day p95 204Mi; the limit stays 1Gi)
+      memory: 256Mi
     limits:
       memory: 1Gi
   maxmemory: 800mb
@@ -734,7 +736,8 @@ kube-prometheus-stack:
     resources:
       requests:
         cpu: 50m
-        memory: 64Mi
+        # 2026-10-21: 64Mi -> 128Mi (7-day p95 119Mi)
+        memory: 128Mi
       limits:
         cpu: 200m
         memory: 256Mi
@@ -1114,7 +1117,9 @@ alloy:
         # request had slipped under typical usage on five of seven nodes. Still
         # typical-not-peak; m720q is 28.7Gi since the 9/24 RAM upgrade, so the
         # old 13.8Gi concern no longer applies. Limit unchanged (3072Mi).
-        memory: 1536Mi
+        # 2026-10-21: 1536Mi -> 2048Mi. 7-day p95 per node: VPS 2.2Gi, m920s 1.86,
+        # m720q 1.84, elitedesk 1.67, GPU nodes 1.2, marmoset 0.86. Limit stays 3Gi.
+        memory: 2048Mi
       limits:
         # 2026-09-16: was 2560Mi. elitedesk hit that ceiling 4508 times in 31h
         # (cgroup memory.events max=4508, peak working set 2327Mi = 91% of the
@@ -1235,7 +1240,8 @@ crowdsec:
     resources:
       requests:
         cpu: 50m
-        memory: 128Mi
+        # 2026-10-21: 128Mi -> 160Mi (7-day p95 142Mi)
+        memory: 160Mi
       limits:
         memory: 256Mi
 
@@ -1264,7 +1270,9 @@ mimirMonolithic:
       cpu: 200m
       memory: 2Gi
     limits:
-      memory: 3Gi
+      # 2026-10-21: 3Gi -> 4Gi. 7-day peak 2.6Gi was 87% of the old limit
+      # (p95 1.75Gi, so the 2Gi request stands).
+      memory: 4Gi
   persistence:
     storageClass: openebs-lvmpv-vg0
     size: 20Gi

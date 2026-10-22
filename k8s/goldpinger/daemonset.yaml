@@ -100,7 +100,8 @@ spec:
           resources:
             requests:
               cpu: 10m
-              memory: 40Mi
+              # 2026-10-21: 40Mi -> 64Mi (7-day p95 58Mi)
+              memory: 64Mi
             limits:
               cpu: 200m
               memory: 128Mi
