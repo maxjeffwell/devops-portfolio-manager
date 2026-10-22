@@ -82,13 +82,18 @@ spec:
           resources:
             requests:
               cpu: 500m
-              memory: 1Gi
+              memory: 2Gi
             limits:
               cpu: "4"
               # OpenVINO uses more RAM than the CPU path. Measured 9/16: ~3.0Gi steady
               # with CLIP visual + buffalo_l detect/recognise + OCR loaded; 4Gi got
-              # OOM-killed once, so 6Gi (elitedesk has 15Gi real headroom).
-              memory: 6Gi
+              # OOM-killed once, so 6Gi. 2026-10-22: 6Gi -> 10Gi after an OOM at
+              # 6138/6144 MiB with ViT-L-14-quickgelu__dfn2b (smart search) and
+              # PP-OCRv5_server (OCR) resident together on dm's Xe: ~5 GB of the
+              # charge is shmem owned by no process = the iGPU's shmem-backed GEM
+              # buffers for compiled models + workspace. Models unload after
+              # MODEL_TTL=600 s idle, so this is a ceiling, not steady state.
+              memory: 10Gi
             claims:
               - { name: igpu }
           volumeMounts:
