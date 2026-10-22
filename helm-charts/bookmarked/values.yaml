@@ -281,3 +281,9 @@ tolerationsClient:
     operator: Equal
     value: edge
     effect: PreferNoSchedule
+# Both client replicas are pinned to the single edge node, so a node-affinity
+# preference and a hostname spread have nothing to choose between; switch the
+# chart-wide ones off for this component (the server keeps them).
+affinityClient: {}
+topologySpreadConstraintsClient:
+  enabled: false

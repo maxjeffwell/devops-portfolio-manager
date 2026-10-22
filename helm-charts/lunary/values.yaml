@@ -245,3 +245,9 @@ tolerationsFrontend:
     operator: Equal
     value: edge
     effect: PreferNoSchedule
+# Both frontend replicas are pinned to the single edge node, so a node-affinity
+# preference and a hostname spread have nothing to choose between; switch the
+# chart-wide ones off for this component (the server keeps them).
+affinityFrontend: {}
+topologySpreadConstraintsFrontend:
+  enabled: false
