@@ -59,16 +59,29 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-          # Only HOST/PORT/HOSTNAME/POD_IP are documented as env-driven in the
-          # upstream example. Other tunables (--refresh-interval, --ping-timeout,
-          # --check-timeout, --check-all-timeout, --label-selector) are CLI flags;
-          # defaults are sensible for a 4-node cluster. Add args: below if/when
-          # tuning is needed (e.g. "args: ['--refresh-interval', '60s']").
+          # Every goldpinger flag has an env twin ($PING_TIMEOUT etc., see
+          # `goldpinger --help`). Only HOST/PORT/HOSTNAME/POD_IP are needed for
+          # discovery; the timeouts below are tuned, everything else is default.
+          #
+          # 2026-10-21: PING_TIMEOUT 300ms (default) -> 2s. Peers are probed over
+          # the tailnet, and the edge VPS sits ~80 ms RTT from home with WAN
+          # jitter: over 3 h, 20% of probes from the VPS and ~3.5% from each home
+          # node (mostly the ones aimed AT the VPS) took >250 ms, p99 0.91 s from
+          # the VPS. Every slow probe flipped a peer to "unhealthy" for one 30 s
+          # cycle, so GoldpingerPeerUnreachable flapped all day with no real
+          # connectivity loss. A 2 s ping timeout still catches a dead peer
+          # (the alert waits 2 m anyway) without reacting to jitter.
           env:
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
               value: "8080"
+            - name: PING_TIMEOUT
+              value: "2s"
+            - name: CHECK_TIMEOUT
+              value: "3s"
+            - name: CHECK_ALL_TIMEOUT
+              value: "8s"
             - name: HOSTNAME
               valueFrom:
                 fieldRef:
