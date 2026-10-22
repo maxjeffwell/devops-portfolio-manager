@@ -136,7 +136,16 @@ patches:
                     cpu: 200m
                     memory: 1Gi
                   limits:
-                    memory: 2Gi
+                    # 2026-10-21: 2Gi -> 3Gi. Working set sits at 0.85-1.25 GiB but the
+                    # 12-hourly cluster-cache rebuild and refresh bursts spike past 2 GiB
+                    # in under 30 s (4 OOMKills 10/16 + 10/22). m920s has the headroom.
+                    memory: 3Gi
+                env:
+                  # Go GC soft limit just under the cgroup limit, so the collector works
+                  # harder before the kernel kills the container (default GOGC lets the
+                  # heap roughly double between cycles).
+                  - name: GOMEMLIMIT
+                    value: 2560MiB
 
   # ── server resources ────────────────────────────────────────────────────
   # 2026-09-30: was running on the namespace LimitRange default (64Mi) while
