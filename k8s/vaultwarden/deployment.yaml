@@ -83,6 +83,9 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: pg-ha-ca
+              mountPath: /etc/pg-ha
+              readOnly: true
           livenessProbe:
             httpGet:
               path: /alive
@@ -110,3 +113,6 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: vaultwarden-data-r2
+        - name: pg-ha-ca   # Patroni cluster CA for sslmode=verify-full (secret from k8s/platform-external-secrets)
+          secret:
+            secretName: pg-ha-ca

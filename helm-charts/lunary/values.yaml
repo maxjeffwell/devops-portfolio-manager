@@ -159,6 +159,9 @@ env:
         secretKeyRef:
           name: lunary-secrets
           key: database-url
+    # Patroni cluster CA so DATABASE_URL can use sslmode=verify-full (postgres.js honours Node's CA store)
+    - name: NODE_EXTRA_CA_CERTS
+      value: /etc/pg-ha/ca.crt
   frontend:
     - name: NODE_ENV
       value: "production"
@@ -252,3 +255,14 @@ tolerationsFrontend:
 affinityFrontend: {}
 topologySpreadConstraintsFrontend:
   enabled: false
+
+# Patroni cluster CA (secret pg-ha-ca from k8s/platform-external-secrets). portfolio-common applies volumes to
+# both Deployments; the frontend mount is harmless.
+volumes:
+  - name: pg-ha-ca
+    secret:
+      secretName: pg-ha-ca
+volumeMounts:
+  - name: pg-ha-ca
+    mountPath: /etc/pg-ha
+    readOnly: true

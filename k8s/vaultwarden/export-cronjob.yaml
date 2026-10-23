@@ -53,6 +53,9 @@ spec:
               volumeMounts:
                 - name: nfs
                   mountPath: /nfs
+                - name: pg-ha-ca
+                  mountPath: /etc/pg-ha
+                  readOnly: true
               resources:
                 requests:
                   cpu: 50m
@@ -61,6 +64,9 @@ spec:
                   cpu: 250m
                   memory: 256Mi
           volumes:
+            - name: pg-ha-ca
+              secret:
+                secretName: pg-ha-ca
             - name: nfs
               nfs:
                 server: 192.168.50.142
