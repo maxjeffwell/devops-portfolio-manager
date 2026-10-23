@@ -83,16 +83,17 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
-# Gate startup on the database being reachable. lunary-backend runs its
+# Gate BACKEND startup on the database being reachable. lunary-backend runs its
 # materialized-view refresh synchronously at boot (index.ts:74) and calls
-# process.exit(1) on a connection timeout, so any blip in cnpg-lunary-rw
-# (single-instance CNPG, no failover target) crash-loops the pod. This init
-# waits for Postgres to accept connections instead. Bounded at ~3min so a
+# process.exit(1) on a connection timeout, so a DB blip crash-loops the pod.
+# This init waits for Postgres to accept connections instead. Bounded at ~3min so a
 # genuinely prolonged outage still surfaces as a restart rather than a
-# permanently-Init pod. NOTE: portfolio-common applies initContainers to BOTH
-# the backend and frontend Deployments; the frontend waiting on the DB is
-# acceptable (the UI is non-functional during a DB outage anyway).
-initContainers:
+# permanently-Init pod.
+# 2026-10-23: DB moved to the native Patroni HA cluster (VIP 192.168.50.60:5000,
+# PG 18). The wait is backend-only (initContainersBackend, portfolio-common >= 1.0.3):
+# the frontend runs on the edge VPS, which cannot reach the LAN VIP, and does not
+# talk to Postgres. The old CNPG cluster (cnpg-lunary) is kept for a week as rollback.
+initContainersBackend:
   - name: wait-for-db
     image: postgres:17-alpine
     imagePullPolicy: IfNotPresent
@@ -100,9 +101,9 @@ initContainers:
       - sh
       - -c
       - |
-        echo "Waiting for cnpg-lunary-rw.default.svc.cluster.local:5432 ..."
+        echo "Waiting for Patroni VIP 192.168.50.60:5000 ..."
         i=0
-        until pg_isready -h cnpg-lunary-rw.default.svc.cluster.local -p 5432 -t 3 -q; do
+        until pg_isready -h 192.168.50.60 -p 5000 -t 3 -q; do
           i=$((i + 1))
           if [ "$i" -ge 60 ]; then
             echo "Database still unreachable after ~180s; failing init to surface the outage."
@@ -122,9 +123,9 @@ initContainers:
 # DNS tuning for lunary pods. NodeLocal DNSCache (deployed cluster-wide) now handles
 # the glibc UDP conntrack race that previously caused ~1/30 lookups to stall 5s
 # (RES_TIMEOUT); single-request-reopen is therefore redundant and has been removed.
-# ndots:2 is retained: lunary resolves cross-namespace FQDNs like
-# cnpg-lunary-rw.default.svc.cluster.local (4 dots → absolute-first with ndots:2),
-# which also skips the tailnet.el-jefe.me search-suffix for those names.
+# ndots:2 is retained: lunary resolves cross-namespace FQDNs (4 dots → absolute-first
+# with ndots:2), which also skips the tailnet.el-jefe.me search-suffix for those names.
+# (The DB itself is now reached by IP: Patroni VIP 192.168.50.60.)
 # NOTE: portfolio-common applies dnsConfig to both the backend and frontend Deployments.
 dnsConfig:
   options:

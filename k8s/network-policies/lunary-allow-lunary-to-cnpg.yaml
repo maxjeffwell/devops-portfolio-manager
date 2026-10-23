@@ -26,6 +26,13 @@ spec:
       podSelector:
         matchLabels:
           cnpg.io/cluster: cnpg-lunary
+  # Patroni HA VIP (HAProxy primary port) — 2026-10-23; cnpg-lunary rule above kept until the CNPG cluster is retired
+  - ports:
+    - port: 5000
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 192.168.50.60/32
   - ports:
     - port: 443
       protocol: TCP

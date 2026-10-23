@@ -60,9 +60,13 @@ spec:
       dnsConfig:
         {{- toYaml $.Values.dnsConfig | nindent 8 }}
       {{- end }}
-      {{- if $.Values.initContainers }}
+      {{- /* initContainers<Component> (e.g. initContainersBackend) overrides the shared initContainers for that component; an explicitly empty list disables them for it */ -}}
+      {{- $initKey := printf "initContainers%s" (title $component) }}
+      {{- $init := $.Values.initContainers }}
+      {{- if hasKey $.Values $initKey }}{{ $init = index $.Values $initKey }}{{ end }}
+      {{- if $init }}
       initContainers:
-        {{- toYaml $.Values.initContainers | nindent 8 }}
+        {{- toYaml $init | nindent 8 }}
       {{- end }}
       containers:
       - name: {{ $component }}

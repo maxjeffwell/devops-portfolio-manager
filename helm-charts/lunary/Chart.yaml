@@ -14,5 +14,5 @@ maintainers:
     email: jeff@el-jefe.me
 dependencies:
   - name: portfolio-common
-    version: 1.0.2
+    version: 1.0.3
     repository: "file://../portfolio-common"
