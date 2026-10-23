@@ -46,7 +46,7 @@ spec:
           command:
             - sh
             - -c
-            - 'until pg_isready -h cnpg-vaultwarden-rw -p 5432; do echo "waiting for db"; sleep 3; done'
+            - 'until pg_isready -h 192.168.50.60 -p 5000; do echo "waiting for db (patroni vip)"; sleep 3; done'
           resources:
             requests:
               cpu: 10m
@@ -65,8 +65,8 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: cnpg-vaultwarden-app
-                  key: uri
+                  name: vaultwarden-secrets   # Patroni HA via VIP (was cnpg-vaultwarden-app/uri until 2026-10-23)
+                  key: DATABASE_URL
             - name: SIGNUPS_ALLOWED
               value: "false"
             - name: INVITATIONS_ALLOWED

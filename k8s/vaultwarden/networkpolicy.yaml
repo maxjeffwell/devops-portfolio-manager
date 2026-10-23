@@ -52,6 +52,13 @@ spec:
       ports:
         - port: 5432
           protocol: TCP
+    # Postgres → Patroni HA VIP (HAProxy primary port) — 2026-10-23
+    - to:
+        - ipBlock:
+            cidr: 192.168.50.60/32
+      ports:
+        - port: 5000
+          protocol: TCP
     # Outbound HTTPS for favicon icon fetching + HIBP password checks
     # (mirrors the jellyfin egress-to-internet convention).
     - to:

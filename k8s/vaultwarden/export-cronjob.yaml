@@ -29,7 +29,7 @@ spec:
             kubernetes.io/hostname: debian-marmoset
           containers:
             - name: export
-              image: ghcr.io/cloudnative-pg/postgresql:17
+              image: ghcr.io/cloudnative-pg/postgresql:18   # pg_dump must be >= the PG 18 server
               command:
                 - sh
                 - -c
@@ -48,8 +48,8 @@ spec:
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
-                      name: cnpg-vaultwarden-app
-                      key: uri
+                      name: vaultwarden-secrets   # Patroni HA via VIP (2026-10-23)
+                      key: DATABASE_URL
               volumeMounts:
                 - name: nfs
                   mountPath: /nfs
