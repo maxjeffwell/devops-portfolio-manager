@@ -1,0 +1,33 @@
+#!/bin/bash
+# Forced command for the m920s standby key on the edge VPS (vmi3610371).
+# /usr/local/sbin/headscale-bootstrap-target {status|dm|m920s}   (SSH_ORIGINAL_COMMAND wins when set)
+#   status      -> "vps <TARGET_IP> <rule-present yes|no>"
+#   dm | m920s  -> write /etc/default/headscale-bootstrap, restart headscale-bootstrap-dnat, verify, print status
+# Runs as maxjeffwell; privileged steps use sudo -n (passwordless sudo on this host).
+set -euo pipefail
+DEF=/etc/default/headscale-bootstrap
+BOOT=198.51.100.53
+DM=10.0.0.9
+M920S=10.0.0.12
+cmd="${SSH_ORIGINAL_COMMAND:-${1:-}}"
+
+current() { sed -n 's/^TARGET_IP=//p' "$DEF" | head -1; }
+rule_present() {
+  if sudo -n iptables -t nat -C OUTPUT -d "$BOOT/32" -p tcp --dport 443 -j DNAT --to-destination "$1:8443" 2>/dev/null; then echo yes; else echo no; fi
+}
+set_ip() {
+  [ "$(current)" = "$1" ] && return 0
+  printf 'TARGET_IP=%s\n' "$1" | sudo -n tee "$DEF" >/dev/null
+  sudo -n systemctl restart headscale-bootstrap-dnat
+  if [ "$(rule_present "$1")" != yes ]; then
+    echo "headscale-bootstrap-target: DNAT rule for $1 missing after restart" >&2; exit 1
+  fi
+}
+
+case "$cmd" in
+  status) ;;
+  dm)     set_ip "$DM" ;;
+  m920s)  set_ip "$M920S" ;;
+  *) echo "headscale-bootstrap-target: refused: ${cmd:-<none>}" >&2; exit 64 ;;
+esac
+ip=$(current); echo "vps $ip $(rule_present "$ip")"

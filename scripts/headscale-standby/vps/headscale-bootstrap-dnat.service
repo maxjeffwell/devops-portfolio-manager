@@ -1,0 +1,15 @@
+[Unit]
+Description=DNAT headscale bootstrap IP 198.51.100.53:443 to the live headscale nginx ${TARGET_IP}:8443 over wg0
+After=network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/etc/default/headscale-bootstrap
+ExecStart=/bin/sh -c 'iptables -t nat -C OUTPUT -d 198.51.100.53/32 -p tcp --dport 443 -j DNAT --to-destination ${TARGET_IP}:8443 2>/dev/null || iptables -t nat -I OUTPUT -d 198.51.100.53/32 -p tcp --dport 443 -j DNAT --to-destination ${TARGET_IP}:8443'
+ExecStart=/bin/sh -c 'iptables -t nat -C POSTROUTING -d ${TARGET_IP}/32 -p tcp --dport 8443 -o wg0 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -d ${TARGET_IP}/32 -p tcp --dport 8443 -o wg0 -j MASQUERADE'
+ExecStop=/bin/sh -c 'iptables -t nat -D OUTPUT -d 198.51.100.53/32 -p tcp --dport 443 -j DNAT --to-destination ${TARGET_IP}:8443 2>/dev/null; iptables -t nat -D POSTROUTING -d ${TARGET_IP}/32 -p tcp --dport 8443 -o wg0 -j MASQUERADE 2>/dev/null; true'
+
+[Install]
+WantedBy=multi-user.target
