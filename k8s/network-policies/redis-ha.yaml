@@ -79,6 +79,13 @@ spec:
           podSelector:
             matchExpressions:
               - { key: app, operator: In, values: [auth-service, analytics-service] }
+        # 2026-10-23: NetBox web + worker (DB 2 tasks, DB 3 cache)
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: netbox
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: netbox
       ports:
         - { port: 6379, protocol: TCP }
     # redis exporter sidecar -> Prometheus

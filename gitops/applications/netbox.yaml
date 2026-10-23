@@ -1,0 +1,48 @@
+---
+# NetBox (fleet inventory / source of truth). Added 2026-10-23. Postgres on the native Patroni
+# cluster, Redis HA DB 2/3, servers only. Values: helm-charts/netbox/values-override.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netbox
+  namespace: argocd
+  labels:
+    app: netbox
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.netbox.oss.netboxlabs.com/
+      chart: netbox
+      targetRevision: 8.3.93
+      helm:
+        valueFiles:
+          - $values/helm-charts/netbox/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: netbox
+  ignoreDifferences:
+    # ESO injects defaults on every data entry — ignore to avoid permanent OutOfSync.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

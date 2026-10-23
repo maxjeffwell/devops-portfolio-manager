@@ -1,0 +1,224 @@
+# NetBox (fleet inventory / source of truth), added 2026-10-23. Upstream chart netbox/netbox
+# (https://charts.netbox.oss.netboxlabs.com/), version pinned in gitops/applications/netbox.yaml.
+#
+# State lives in Postgres on the native Patroni cluster (db/role `netbox`, VIP 192.168.50.60:5000,
+# verify-full) and Redis HA (`redis.default.svc`, DB 2 tasks / DB 3 cache). No PVC: media
+# (image attachments) is not persisted -- the worker would share a RWO volume with the web pods.
+# Servers only: the VPS cannot reach the VIP and the GPU nodes are not for this.
+# Secrets: Doppler NETBOX_* -> ExternalSecret netbox-secrets (below, extraDeploy).
+# extraDeploy goes through Helm's tpl: ESO template fields are escaped as '{{ "{{ .x }}" }}'.
+
+fullnameOverride: netbox
+
+superuser:
+  name: admin
+  existingSecret: netbox-superuser
+
+existingSecret: netbox-secrets
+
+allowedHosts:
+  - netbox.el-jefe.me
+allowedHostsIncludesPodIP: true
+
+csrf:
+  trustedOrigins:
+    - https://netbox.el-jefe.me
+
+loginRequired: true
+timeZone: America/New_York
+# no outbound GitHub release polling
+releaseCheck:
+  url: ""
+
+replicaCount: 2
+pdb:
+  enabled: true
+  minAvailable: 1
+
+persistence:
+  enabled: false
+
+resourcesPreset: "none"
+resources:
+  requests:
+    cpu: 100m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["elitedesk", "m720q", "m920s"]
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: netbox
+
+extraVolumes:
+  - name: pg-ha-ca
+    secret:
+      secretName: pg-ha-ca
+      items:
+        - key: ca.crt
+          path: ca.crt
+          mode: 0444
+extraVolumeMounts:
+  - name: pg-ha-ca
+    mountPath: /etc/pg-ha
+    readOnly: true
+
+postgresql:
+  enabled: false
+externalDatabase:
+  host: 192.168.50.60
+  port: 5000
+  database: netbox
+  username: netbox
+  existingSecretName: netbox-secrets
+  existingSecretKey: db_password
+  options:
+    sslmode: verify-full
+    sslrootcert: /etc/pg-ha/ca.crt
+    target_session_attrs: "read-write"
+
+valkey:
+  enabled: false
+tasksDatabase:
+  host: redis.default.svc.cluster.local
+  port: 6379
+  database: 2
+  existingSecretName: netbox-secrets
+  existingSecretKey: redis_password
+cachingDatabase:
+  host: redis.default.svc.cluster.local
+  port: 6379
+  database: 3
+  existingSecretName: netbox-secrets
+  existingSecretKey: redis_password
+
+worker:
+  enabled: true
+  replicaCount: 1
+  resourcesPreset: "none"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      memory: 768Mi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: ["elitedesk", "m720q", "m920s"]
+  extraVolumes:
+    - name: pg-ha-ca
+      secret:
+        secretName: pg-ha-ca
+        items:
+          - key: ca.crt
+            path: ca.crt
+            mode: 0444
+  extraVolumeMounts:
+    - name: pg-ha-ca
+      mountPath: /etc/pg-ha
+      readOnly: true
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+  hosts:
+    - host: netbox.el-jefe.me
+      paths:
+        - /
+  tls:
+    - secretName: netbox-tls
+      hosts:
+        - netbox.el-jefe.me
+
+extraDeploy:
+  - apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: netbox-secrets
+      namespace: netbox
+    spec:
+      refreshInterval: 24h
+      secretStoreRef:
+        name: doppler-secret-store
+        kind: ClusterSecretStore
+      target:
+        name: netbox-secrets
+        creationPolicy: Owner
+        template:
+          data:
+            secret_key: '{{ "{{ .secret_key }}" }}'
+            # API_TOKEN_PEPPERS {id: pepper}; add a higher id to rotate, never remove one
+            api_token_peppers: '{"1": "{{ "{{ .pepper }}" }}"}'
+            db_password: '{{ "{{ .db_password }}" }}'
+            redis_password: '{{ "{{ .redis_password }}" }}'
+            # no SMTP; the chart projects this key unconditionally
+            email_password: ""
+      data:
+        - secretKey: secret_key
+          remoteRef: {key: NETBOX_SECRET_KEY}
+        - secretKey: pepper
+          remoteRef: {key: NETBOX_API_TOKEN_PEPPER}
+        - secretKey: db_password
+          remoteRef: {key: NETBOX_DB_PASSWORD}
+        - secretKey: redis_password
+          remoteRef: {key: REDIS_PASSWORD}
+  - apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: netbox-superuser
+      namespace: netbox
+    spec:
+      refreshInterval: 24h
+      secretStoreRef:
+        name: doppler-secret-store
+        kind: ClusterSecretStore
+      target:
+        name: netbox-superuser
+        creationPolicy: Owner
+        template:
+          data:
+            username: admin
+            email: maxjeffwell@gmail.com
+            password: '{{ "{{ .password }}" }}'
+            # empty: the image only creates a token when api_key is also set (chart doesn't wire it)
+            api_token: ""
+      data:
+        - secretKey: password
+          remoteRef: {key: NETBOX_ADMIN_PASSWORD}
+  - apiVersion: external-secrets.io/v1
+    kind: ExternalSecret
+    metadata:
+      name: pg-ha-ca
+      namespace: netbox
+    spec:
+      refreshInterval: 24h
+      secretStoreRef:
+        name: doppler-secret-store
+        kind: ClusterSecretStore
+      target:
+        name: pg-ha-ca
+        creationPolicy: Owner
+      data:
+        - secretKey: ca.crt
+          remoteRef: {key: PG_HA_TLS_CA_CRT}
