@@ -59,6 +59,17 @@ spec:
           annotations:
             summary: pg-ha base backup older than 26 h
             description: Newest pg_ha_backup.prom across hosts is stale. Check `journalctl -u pg-ha-backup` on the current primary.
+        - alert: PgHaOffsiteStale
+          # pg-ha-offsite.timer mirrors s3://pg-ha-backups (Garage) to B2 hourly on the current primary;
+          # max() across hosts so a failover (new primary writes its own file) is handled.
+          expr: |
+            (time() - max(pg_ha_offsite_last_success_timestamp_seconds) > 10800)
+            or absent(pg_ha_offsite_last_success_timestamp_seconds)
+          for: 30m
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha off-site mirror to B2 older than 3 h
+            description: No successful hourly mirror of pg-ha-backups to B2 garage-offsite. Check `journalctl -u pg-ha-offsite` on the current primary; a run refused by the empty-source guard or stopped by --max-delete 400 also lands here.
         - alert: PgHaDataDiskFilling
           expr: |
             node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"}
