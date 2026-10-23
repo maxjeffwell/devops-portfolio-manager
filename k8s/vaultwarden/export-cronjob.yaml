@@ -1,7 +1,9 @@
 # Break-glass: weekly logical pg_dump of the vault DB to ASUSTOR NFS — an
 # off-cluster copy on a separate failure domain (different host/storage/stack)
-# from the CNPG→B2 PITR and Velero tracks. Pinned to debian-marmoset (reaches
-# both the CNPG DB and the ASUSTOR LAN). Not selected by the app NetworkPolicy
+# from the Patroni PITR/B2 and Velero tracks. Runs on the three LAN servers only:
+# they reach both the Patroni VIP (192.168.50.60:5000) and the ASUSTOR NFS export
+# (/mnt/backups is exported to 192.168.50.0/24); the VPS reaches neither, and dm is a
+# GPU node (was pinned to dm until 2026-10-23). Not selected by the app NetworkPolicy
 # (different label), so its egress to PG + NFS is unrestricted.
 apiVersion: batch/v1
 kind: CronJob
@@ -25,8 +27,14 @@ spec:
             app.kubernetes.io/name: vaultwarden-breakglass
         spec:
           restartPolicy: OnFailure
-          nodeSelector:
-            kubernetes.io/hostname: debian-marmoset
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values: [elitedesk, m720q, m920s]
           containers:
             - name: export
               image: ghcr.io/cloudnative-pg/postgresql:18   # pg_dump must be >= the PG 18 server
