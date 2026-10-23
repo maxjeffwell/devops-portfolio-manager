@@ -8,6 +8,7 @@ Deployment is by hand. Install in this order: dm → m920s → sync → routers 
 | File in repo | Host | Path | Mode |
 |---|---|---|---|
 | `dm/headscale-standby-export.sh` | dm | `/usr/local/sbin/headscale-standby-export.sh` | 755 |
+| `dm/headscale-standby-dmside.sh` | dm | `/usr/local/sbin/headscale-standby-dmside.sh` (root-side helper: export/config/state/receive-db/start) | 755 |
 | `dm/sudoers-headscale-standby` | dm | `/etc/sudoers.d/headscale-standby` | 440 |
 | `common.sh` | m920s | `/usr/local/lib/headscale-standby/common.sh` | 644 |
 | `m920s/config.yaml.sed` | m920s | `/usr/local/lib/headscale-standby/config.yaml.sed` | 644 |
@@ -27,3 +28,5 @@ Each remote side authorizes its key with
 `command="<wrapper>",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty`.
 
 Versions: headscale on m920s must equal dm (0.29.3, `apt-mark hold` on both). Upgrade both in one change.
+
+Router keys: add the line to `nvram sshd_authkeys` via `ssh router 'sh -s' <<'EOF'` with the `command="..."` quotes in single-quoted shell text (a double-quoted ssh argument strips them and dropbear then rejects the key); `service restart_sshd` must be the last command because it drops the session.
