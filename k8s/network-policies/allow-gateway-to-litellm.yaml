@@ -1,0 +1,48 @@
+# shared-ai-gateway -> litellm:4000 in-cluster (2026-10-23). The gateway used to go out through the
+# public litellm.el-jefe.me tunnel (port 443 egress); it now uses the ClusterIP service with its own
+# LiteLLM virtual key. Both ends are needed under default-deny-all.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app: shared-ai-gateway
+  name: allow-gateway-to-litellm
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 4000
+      protocol: TCP
+    to:
+    - podSelector:
+        matchLabels:
+          app: litellm
+  podSelector:
+    matchLabels:
+      app: shared-ai-gateway
+  policyTypes:
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app: litellm
+    component: ai-proxy
+    tier: ai
+  name: allow-litellm-from-gateway
+  namespace: default
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: shared-ai-gateway
+    ports:
+    - port: 4000
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app: litellm
+  policyTypes:
+  - Ingress

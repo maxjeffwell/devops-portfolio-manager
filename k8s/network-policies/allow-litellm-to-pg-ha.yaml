@@ -1,0 +1,24 @@
+# NetworkPolicy default/allow-litellm-to-pg-ha (2026-10-23): LiteLLM's database (spend logs, virtual keys)
+# is db/role `litellm` on the native Patroni cluster behind the HAProxy VIP 192.168.50.60:5000.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app: litellm
+    component: ai-proxy
+    tier: ai
+  name: allow-litellm-to-pg-ha
+  namespace: default
+spec:
+  egress:
+  - ports:
+    - port: 5000
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 192.168.50.60/32
+  podSelector:
+    matchLabels:
+      app: litellm
+  policyTypes:
+  - Egress
