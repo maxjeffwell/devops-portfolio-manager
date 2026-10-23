@@ -1,0 +1,5 @@
+# /etc/sudoers.d/headscale-standby (mode 440) on dm.
+# Exactly the commands /usr/local/sbin/headscale-standby-export.sh runs.
+maxjeffwell ALL=(root) NOPASSWD: /usr/bin/sqlite3 /var/lib/headscale/db.sqlite .backup /var/lib/headscale/standby-export.sqlite
+maxjeffwell ALL=(root) NOPASSWD: /usr/bin/tar -C /var/lib/headscale -c --transform=s/^standby-export.sqlite$/db.sqlite/ standby-export.sqlite noise_private.key
+maxjeffwell ALL=(root) NOPASSWD: /usr/bin/cat /etc/headscale/config.yaml
