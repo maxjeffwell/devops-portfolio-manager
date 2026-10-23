@@ -1,0 +1,23 @@
+{{- if and .Values.crowdsec.lapi.enabled .Values.crowdsec.lapi.database.enabled }}
+# 2026-10-23: LAPI database on the native Patroni cluster instead of SQLite on the PVC.
+# config.yaml stays on the PVC (CAPI credentials live next to it); crowdsec and cscli
+# merge config.yaml.local on top of it and expand ${CROWDSEC_DB_PASSWORD} from the env.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crowdsec-lapi-db
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: crowdsec-lapi
+data:
+  config.yaml.local: |
+    db_config:
+      type: postgresql
+      host: {{ .Values.crowdsec.lapi.database.host | quote }}
+      port: {{ .Values.crowdsec.lapi.database.port }}
+      user: {{ .Values.crowdsec.lapi.database.user | quote }}
+      password: ${CROWDSEC_DB_PASSWORD}
+      db_name: {{ .Values.crowdsec.lapi.database.name | quote }}
+      sslmode: verify-full
+      ssl_ca_cert: /etc/pg-ha/ca.crt
+{{- end }}

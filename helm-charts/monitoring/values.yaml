@@ -1289,6 +1289,16 @@ crowdsec:
       host: crowdsec-lapi.el-jefe.me
       clusterIssuer: letsencrypt-prod
       tlsSecretName: crowdsec-lapi-tls
+    # 2026-10-23: database on Patroni (VIP, db/role crowdsec, password from secret
+    # crowdsec-lapi-db <- Doppler CROWDSEC_DB_PASSWORD, CA from secret pg-ha-ca).
+    # false = back to the SQLite file still on the PVC (rollback).
+    database:
+      enabled: true
+      host: 192.168.50.60
+      port: 5000
+      user: crowdsec
+      name: crowdsec
+    # Still needed with Postgres: /etc/crowdsec (CAPI credentials) + hub data files.
     storage:
       storageClassName: mayastor-single-replica
       size: 1Gi

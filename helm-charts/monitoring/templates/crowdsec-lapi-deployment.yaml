@@ -66,7 +66,23 @@ spec:
             # CAPI refuses registration; the bouncers stay fail-open meanwhile.
             - name: DISABLE_ONLINE_API
               value: {{ .Values.crowdsec.lapi.disableOnlineApi | default false | quote }}
+            {{- if .Values.crowdsec.lapi.database.enabled }}
+            - name: CROWDSEC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: crowdsec-lapi-db
+                  key: password
+            {{- end }}
           volumeMounts:
+            {{- if .Values.crowdsec.lapi.database.enabled }}
+            - name: db-config
+              mountPath: /etc/crowdsec/config.yaml.local
+              subPath: config.yaml.local
+              readOnly: true
+            - name: pg-ha-ca
+              mountPath: /etc/pg-ha
+              readOnly: true
+            {{- end }}
             # Volume ROOT = the existing crowdsec.db; do not add a subPath here.
             - name: lapi-data
               mountPath: /var/lib/crowdsec/data
@@ -95,4 +111,16 @@ spec:
         - name: lapi-data
           persistentVolumeClaim:
             claimName: crowdsec-lapi-data
+        {{- if .Values.crowdsec.lapi.database.enabled }}
+        - name: db-config
+          configMap:
+            name: crowdsec-lapi-db
+        - name: pg-ha-ca
+          secret:
+            secretName: pg-ha-ca
+            items:
+              - key: ca.crt
+                path: ca.crt
+                mode: 0444
+        {{- end }}
 {{- end }}
