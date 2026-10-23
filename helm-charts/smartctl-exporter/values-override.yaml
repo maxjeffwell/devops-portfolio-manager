@@ -51,9 +51,11 @@ extraInstances:
         - /hostdev/disk/by-id/ata-WDC_WDS100T1R0A-68A4W0_25083C801066;sat
         # USB disks: never /dev/sdX -- letters reshuffle on every boot/replug
         # (10/7: the 2 TB went sdd -> sde -> sdb) and the container's own /dev
-        # keeps stale nodes ("No such device"). Ports = rear hub 5.x.
-        - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:5.3:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
-        - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:5.4:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
+        # keeps stale nodes ("No such device"). Ports = rear hub on root port 6
+        # (was 5 until the 10/22 repaste reboot -- by-path breaks if the hub moves;
+        # by-id is useless: both RTL9201 bridges report serial 012345678931).
+        - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:6.3:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2511E9B029F3, RTL9201 (garage data-bx1t2)
+        - /hostdev/disk/by-path/pci-0000:00:14.0-usbv3-0:6.4:1.0-scsi-0:0:0:0;sat  # CT1000BX500 2508E9AB62EB, RTL9201 (garage data-bx1t)
   - nodeSelector:
       kubernetes.io/hostname: m920s
     resources:
