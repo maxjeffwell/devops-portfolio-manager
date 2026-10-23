@@ -82,6 +82,15 @@ topologySpreadConstraints:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+# Patroni HA (VIP 192.168.50.60:5000) is reachable only from the LAN servers; the VPS cannot reach it (2026-10-23). Backend only; the frontend stays on the edge VPS.
+affinityBackend:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: [elitedesk, m720q, m920s]
 
 # Gate BACKEND startup on the database being reachable. lunary-backend runs its
 # materialized-view refresh synchronously at boot (index.ts:74) and calls
