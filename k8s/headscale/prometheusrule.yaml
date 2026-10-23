@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: headscale-standby
+  namespace: headscale
+  labels:
+    app: headscale
+    app.kubernetes.io/name: headscale
+    release: prometheus
+spec:
+  groups:
+    - name: headscale-standby
+      rules:
+        - alert: HeadscaleStandbySyncStale
+          expr: (time() - headscale_standby_last_sync_timestamp_seconds > 900) or (headscale_standby_sync_ok == 0)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "headscale standby on m920s has not pulled a snapshot from dm in 15 min (or the last sync failed)"
+            description: "Check `systemctl status headscale-standby-sync.service` on m920s and the forced-command key to dm. A promote from a stale snapshot loses registrations made since it."
+        - alert: HeadscaleTwoWriters
+          expr: sum(headscale_standby_health_up) == 2
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "both dm and m920s headscale answer /health — run headscale-demote.sh"
+            description: "dm came back while m920s is promoted. Stop headscale on dm, then run `headscale-demote.sh` on m920s (standby DB wins by default). See docs/runbooks/headscale-cold-standby.md."
