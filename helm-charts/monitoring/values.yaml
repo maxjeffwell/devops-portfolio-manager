@@ -374,6 +374,9 @@ kube-prometheus-stack:
         user: grafana
         ssl_mode: verify-full
         ca_cert_path: /etc/pg-ha/ca.crt
+        # 2 replicas share the DB: on a cold start one runs migrations and the other must WAIT for the
+        # migration lock instead of exiting with "failed to obtain lock" (seen 2026-10-23, 2 restarts)
+        locking_attempt_timeout_sec: 120
 
 
     # Plugins
