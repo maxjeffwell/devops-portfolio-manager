@@ -38,13 +38,18 @@ pdb:
 persistence:
   enabled: false
 
+# The image starts GRANIAN_WORKERS (default 4) full Django processes per pod; 4 OOMed a 1Gi limit
+# on first start. 2 per pod x 2 pods is plenty for a single-user inventory.
+extraEnvs:
+  - name: GRANIAN_WORKERS
+    value: "2"
 resourcesPreset: "none"
 resources:
   requests:
     cpu: 100m
-    memory: 512Mi
+    memory: 768Mi
   limits:
-    memory: 1Gi
+    memory: 1536Mi
 
 affinity:
   nodeAffinity:
