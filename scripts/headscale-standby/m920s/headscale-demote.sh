@@ -16,6 +16,11 @@ if [ "$state" != inactive ] && [ "$state" != failed ]; then
   echo "refused: dm headscale is $state (stop it on dm first: sudo systemctl stop headscale)"; exit 2
 fi
 echo "dm headscale: $state; m920s $(local_live && echo live || echo not live); keep-dm-db=${KEEP:-0}"
+echo "db on dm:    $(ssh_dm info 2>/dev/null || echo 'unavailable')"
+echo "db on m920s: $(local_db_info)"
+if [ -z "$KEEP" ] && ! local_live && [ -f "$STATE/db.sqlite" ]; then
+  echo "WARN: m920s headscale is not live; its db may be an unserved snapshot. Default still copies it to dm — use --keep-dm-db if dm's is the one to keep."
+fi
 
 results=()
 run() { # run <label> <already-check-cmd> <action-cmd>
@@ -30,7 +35,7 @@ fail() { echo "FAILED at: $1 — fix and re-run; completed steps are skipped as 
 ts=$(date +%Y%m%d-%H%M%S)
 if [ -z "$KEEP" ]; then
   run "copy standby db to dm" \
-      '[ ! -f "$STATE/db.sqlite" ] || [ -f "$STATE/.db-sent-to-dm" ]' \
+      '[ ! -f "$STATE/db.sqlite" ] || demote_db_copy_done' \
       'sqlite3 "$STATE/db.sqlite" ".backup $STATE/.demote-export.sqlite" && tar -C "$STATE" -c --transform="s/^.demote-export.sqlite\$/db.sqlite/" .demote-export.sqlite | ssh_dm receive-db && rm -f "$STATE/.demote-export.sqlite" && touch "$STATE/.db-sent-to-dm"' || fail "copy standby db to dm"
 else
   echo "skip: copy standby db to dm (--keep-dm-db)"
@@ -42,7 +47,7 @@ run "stop headscale and nginx on m920s" \
 
 run "retire live db on m920s" \
     '[ ! -f "$STATE/db.sqlite" ]' \
-    'mv "$STATE/db.sqlite" "$STATE/db.sqlite.demoted-$ts" && rm -f "$STATE"/db.sqlite-wal "$STATE"/db.sqlite-shm "$STATE/.db-sent-to-dm"' || fail "retire live db on m920s"
+    'sqlite3 "$STATE/db.sqlite" "PRAGMA wal_checkpoint(TRUNCATE)" >/dev/null 2>&1; mv "$STATE/db.sqlite" "$STATE/db.sqlite.demoted-$ts" && rm -f "$STATE"/db.sqlite-wal "$STATE"/db.sqlite-shm "$STATE/.db-sent-to-dm"' || fail "retire live db on m920s"
 
 for p in be88u ax86u vps endpoints; do
   run "pointer $p -> dm" \

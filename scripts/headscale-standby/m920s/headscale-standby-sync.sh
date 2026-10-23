@@ -5,20 +5,17 @@
 set -uo pipefail
 source /usr/local/lib/headscale-standby/common.sh
 
-write_metrics() { # $1 sync_ok $2 last_sync_epoch $3 dm_up $4 local_up
+# health_up{dm,m920s} is written by headscale-standby-health.sh (its own timer, never disabled) — not here.
+write_metrics() { # $1 sync_ok $2 last_sync_epoch (args 3/4 accepted and ignored for call-site stability)
   local tmp; tmp=$(mktemp "$(dirname "$METRICS")/.headscale_standby.XXXXXX")
-  cat > "$tmp" <<EOF
+  cat > "$tmp" <<EOM
 # HELP headscale_standby_last_sync_timestamp_seconds Unix time of the last successful snapshot pull from dm.
 # TYPE headscale_standby_last_sync_timestamp_seconds gauge
 headscale_standby_last_sync_timestamp_seconds $2
 # HELP headscale_standby_sync_ok 1 if the last sync run succeeded.
 # TYPE headscale_standby_sync_ok gauge
 headscale_standby_sync_ok $1
-# HELP headscale_standby_health_up 1 if that host's headscale answers /health.
-# TYPE headscale_standby_health_up gauge
-headscale_standby_health_up{target="dm"} $3
-headscale_standby_health_up{target="m920s"} $4
-EOF
+EOM
   chmod 644 "$tmp" && mv "$tmp" "$METRICS"
 }
 

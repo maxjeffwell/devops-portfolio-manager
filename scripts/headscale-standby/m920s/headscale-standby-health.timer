@@ -1,0 +1,10 @@
+[Unit]
+Description=Minute headscale health probe (dm + m920s); never disabled by promote/demote
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

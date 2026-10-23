@@ -1,26 +1,36 @@
 #!/bin/bash
 # Forced command for the m920s standby key on the edge VPS (vmi3610371).
 # /usr/local/sbin/headscale-bootstrap-target {status|dm|m920s}   (SSH_ORIGINAL_COMMAND wins when set)
-#   status      -> "vps <TARGET_IP> <rule-present yes|no>"
-#   dm | m920s  -> write /etc/default/headscale-bootstrap, restart headscale-bootstrap-dnat, verify, print status
+#   status      -> "vps <TARGET_IP> <rule yes|no> <http-code>"
+#                  rule = yes only if the DNAT for TARGET_IP exists AND it is the only bootstrap DNAT rule;
+#                  http-code = https://headscale.el-jefe.me/health via the bootstrap IP (DNAT + wg0 + backend nginx, end to end)
+#   dm | m920s  -> stop the unit (deletes the OLD rules), write /etc/default/headscale-bootstrap, start, verify, print status
+#                  (also repairs a missing rule when the target is already right)
 # Runs as maxjeffwell; privileged steps use sudo -n (passwordless sudo on this host).
-set -euo pipefail
+set -uo pipefail
 DEF=/etc/default/headscale-bootstrap
 BOOT=198.51.100.53
 DM=10.0.0.9
 M920S=10.0.0.12
+HS_NAME=headscale.el-jefe.me
 cmd="${SSH_ORIGINAL_COMMAND:-${1:-}}"
 
-current() { sed -n 's/^TARGET_IP=//p' "$DEF" | head -1; }
-rule_present() {
-  if sudo -n iptables -t nat -C OUTPUT -d "$BOOT/32" -p tcp --dport 443 -j DNAT --to-destination "$1:8443" 2>/dev/null; then echo yes; else echo no; fi
+current() { sed -n 's/^TARGET_IP=//p' "$DEF" 2>/dev/null | head -1; }
+rule_count() { sudo -n iptables -t nat -S OUTPUT 2>/dev/null | grep -c -- "-d $BOOT/32 .* -j DNAT"; }
+rule_present() { # yes only if the wanted rule exists and no other bootstrap DNAT rule does
+  if sudo -n iptables -t nat -C OUTPUT -d "$BOOT/32" -p tcp --dport 443 -j DNAT --to-destination "$1:8443" 2>/dev/null \
+     && [ "$(rule_count)" = 1 ]; then echo yes; else echo no; fi
 }
+health_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 5 --resolve "$HS_NAME:443:$BOOT" "https://$HS_NAME/health" 2>/dev/null || echo 000; }
+
 set_ip() {
-  [ "$(current)" = "$1" ] && return 0
+  if [ "$(current)" = "$1" ] && [ "$(rule_present "$1")" = yes ]; then return 0; fi
+  # stop first: ExecStop runs with the OLD TARGET_IP and removes the old rules; then write, then start with the new one
+  sudo -n systemctl stop headscale-bootstrap-dnat
   printf 'TARGET_IP=%s\n' "$1" | sudo -n tee "$DEF" >/dev/null
-  sudo -n systemctl restart headscale-bootstrap-dnat
+  sudo -n systemctl start headscale-bootstrap-dnat
   if [ "$(rule_present "$1")" != yes ]; then
-    echo "headscale-bootstrap-target: DNAT rule for $1 missing after restart" >&2; exit 1
+    echo "headscale-bootstrap-target: after restart: rules for $BOOT = $(rule_count), wanted exactly one -> $1:8443" >&2; exit 1
   fi
 }
 
@@ -30,4 +40,4 @@ case "$cmd" in
   m920s)  set_ip "$M920S" ;;
   *) echo "headscale-bootstrap-target: refused: ${cmd:-<none>}" >&2; exit 64 ;;
 esac
-ip=$(current); echo "vps $ip $(rule_present "$ip")"
+ip=$(current); echo "vps $ip $(rule_present "$ip") $(health_code)"

@@ -18,9 +18,10 @@ headscale-standby-status.sh
 ```
 dm-health up          # dm's headscale answers /health
 m920s-health down     # standby is inert
-be88u 192.168.50.152  # BE88U hosts.homearpa record
-ax86u 192.168.50.152  # AX86U unbound local-data
-vps 10.0.0.9          # VPS bootstrap DNAT target (its own tailscaled)
+be88u 192.168.50.152  # BE88U hosts.homearpa record (wrapper status: "be88u <ip> ok|missing" — tools check)
+ax86u 192.168.50.152  # AX86U unbound local-data (same)
+vps 10.0.0.9          # VPS bootstrap DNAT target; wrapper status is "vps <ip> yes|no <http>": yes = exactly one DNAT rule,
+                      #   http = /health through the bootstrap IP end to end (DNAT + wg0 + backend nginx). Empty here = rule missing.
 endpoints 10.0.0.9    # k8s headscale/headscale Endpoints (public front door via Traefik)
 sync-age 24           # seconds since the last snapshot pull
 timer enabled
@@ -54,6 +55,11 @@ What it does, in order (each step is idempotent; a re-run skips done steps as `a
 
 Exit 0 done, **2 refused** (message says why), **1 a step failed** (re-run after fixing).
 
+Re-running on an already-promoted m920s is safe: the snapshot-age guard is skipped once a live DB
+exists, the "install snapshot" step is skipped while headscale is active (it never replaces an
+open database), and every pointer step prints `already:`. Verify also checks the public path via
+the edge VPS address and the VPS's own bootstrap path.
+
 `refused:` messages:
 - `dm headscale answers` — dm is live; you probably don't need to promote. `--force` if you do.
 - `last sync Ns ago` — snapshot older than 15 min; registrations since then would be lost. `--force` to accept.
@@ -73,6 +79,9 @@ headscale-demote.sh --keep-dm-db  # dm's DB wins; m920s's DB is kept as db.sqlit
 Which DB wins: keep dm's only if m920s served **no** registrations or changes while promoted.
 Check with `headscale nodes list` on m920s (last-seen column) before deciding. Either way the
 loser is kept as `db.sqlite.demoted-<ts>` on the host that lost.
+
+Before copying, demote prints both databases (`nodes=`, `last_seen=`, `mtime=`) so the choice is
+visible; it warns if m920s's headscale is not live (its DB may be an unserved snapshot).
 
 Order: copy DB → stop headscale+nginx on m920s → retire m920s DB → BE88U, AX86U, VPS, Endpoints
 back to dm → start headscale/nginx/DNAT on dm (over the standby key) → re-enable the sync timer → verify.
@@ -122,8 +131,15 @@ Then run `headscale-demote.sh`.
 | `HeadscaleStandbySyncStale` (warning, 10 m) | no snapshot in 15 min or last sync failed | `systemctl status headscale-standby-sync.service` on m920s; test the key: `ssh -i /root/.ssh/headscale-standby-dm maxjeffwell@192.168.50.152 state` |
 | `HeadscaleTwoWriters` (critical, 5 m) | dm and m920s both answer `/health` | stop headscale on dm, run `headscale-demote.sh` |
 
-Metrics (node-exporter textfile on m920s): `headscale_standby_last_sync_timestamp_seconds`,
-`headscale_standby_sync_ok`, `headscale_standby_health_up{target="dm"|"m920s"}`.
+Metrics (node-exporter textfile on m920s): `headscale_standby_last_sync_timestamp_seconds` and
+`headscale_standby_sync_ok` from the sync timer (off while promoted; SyncStale is suppressed then),
+`headscale_standby_health_up{target="dm"|"m920s"}` from `headscale-standby-health.timer`, which
+runs in both states and is what makes `HeadscaleTwoWriters` able to fire.
+
+**Router keys and `fix-authkeys.sh`:** both routers run a cron normaliser on `sshd_authkeys`. The
+2026-10-23 version keeps `command="..."` prefixes; if it is ever restored from an older backup the
+forced command is stripped within 15 min and the key becomes a full shell — `tests/review-fixes.sh`
+checks for exactly that.
 
 ## Rehearsal log
 

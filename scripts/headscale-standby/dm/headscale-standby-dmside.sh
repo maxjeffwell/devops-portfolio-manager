@@ -4,6 +4,7 @@
 #   export      -> tar stream: db.sqlite (online-backup snapshot) + noise_private.key
 #   config      -> /etc/headscale/config.yaml
 #   state       -> systemctl is-active headscale (always exit 0)
+#   info        -> "nodes=N last_seen=<iso|none> mtime=<epoch>" for dm's db (readable whether headscale runs or not)
 #   receive-db  -> read a tar with db.sqlite from stdin; keep the current db as db.sqlite.demoted-<ts>; install the new one
 #   start       -> systemctl start headscale nginx headscale-bootstrap-dnat (refuses if headscale already active)
 set -euo pipefail
@@ -21,13 +22,23 @@ case "${1:-}" in
   state)
     systemctl is-active headscale || true
     ;;
+  info)
+    if [ -f "$STATE/db.sqlite" ]; then
+      echo "nodes=$(sqlite3 "$STATE/db.sqlite" 'SELECT count(*) FROM nodes' 2>/dev/null || echo '?') last_seen=$(sqlite3 "$STATE/db.sqlite" 'SELECT coalesce(max(last_seen),"none") FROM nodes' 2>/dev/null || echo '?') mtime=$(stat -c %Y "$STATE/db.sqlite") state=$(systemctl is-active headscale || true)"
+    else
+      echo "nodes=0 last_seen=none mtime=0 state=$(systemctl is-active headscale || true) (no db)"
+    fi
+    ;;
   receive-db)
     if systemctl is-active --quiet headscale; then echo "dmside: refusing receive-db while headscale is active" >&2; exit 2; fi
     tmp=$(mktemp -d "$STATE/.recv.XXXXXX"); trap 'rm -rf "$tmp"' EXIT
     tar -x -C "$tmp" db.sqlite
     [ "$(sqlite3 "$tmp/db.sqlite" 'PRAGMA integrity_check')" = ok ] || { echo "dmside: received db failed integrity_check" >&2; exit 1; }
     ts=$(date +%Y%m%d-%H%M%S)
-    [ -f "$STATE/db.sqlite" ] && mv "$STATE/db.sqlite" "$STATE/db.sqlite.demoted-$ts"
+    if [ -f "$STATE/db.sqlite" ]; then
+      sqlite3 "$STATE/db.sqlite" 'PRAGMA wal_checkpoint(TRUNCATE)' >/dev/null 2>&1 || true   # fold the WAL into the forensic copy
+      mv "$STATE/db.sqlite" "$STATE/db.sqlite.demoted-$ts"
+    fi
     rm -f "$STATE/db.sqlite-wal" "$STATE/db.sqlite-shm"
     install -m 600 -o headscale -g headscale "$tmp/db.sqlite" "$STATE/db.sqlite"
     echo "dmside: installed db ($(sqlite3 "$STATE/db.sqlite" 'SELECT count(*) FROM nodes') nodes); previous kept as db.sqlite.demoted-$ts"

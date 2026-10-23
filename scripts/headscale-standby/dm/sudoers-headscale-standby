@@ -3,5 +3,6 @@
 maxjeffwell ALL=(root) NOPASSWD: /usr/local/sbin/headscale-standby-dmside.sh export
 maxjeffwell ALL=(root) NOPASSWD: /usr/local/sbin/headscale-standby-dmside.sh config
 maxjeffwell ALL=(root) NOPASSWD: /usr/local/sbin/headscale-standby-dmside.sh state
+maxjeffwell ALL=(root) NOPASSWD: /usr/local/sbin/headscale-standby-dmside.sh info
 maxjeffwell ALL=(root) NOPASSWD: /usr/local/sbin/headscale-standby-dmside.sh receive-db
 maxjeffwell ALL=(root) NOPASSWD: /usr/local/sbin/headscale-standby-dmside.sh start

@@ -15,10 +15,13 @@ Deployment is by hand. Install in this order: dm → m920s → sync → routers 
 | `m920s/nginx-headscale-bootstrap.conf` | m920s | `/etc/nginx/sites-available/headscale-bootstrap` (+ symlink in `sites-enabled`) | 644 |
 | `m920s/headscale-standby-sync.sh` | m920s | `/usr/local/sbin/headscale-standby-sync.sh` | 755 |
 | `m920s/headscale-standby-sync.service` / `.timer` | m920s | `/etc/systemd/system/` | 644 |
+| `m920s/headscale-standby-health.sh` | m920s | `/usr/local/sbin/headscale-standby-health.sh` (always-on /health probe → `headscale_standby_health_up`; feeds HeadscaleTwoWriters; never disabled by promote/demote) | 755 |
+| `m920s/headscale-standby-health.service` / `.timer` | m920s | `/etc/systemd/system/` | 644 |
 | `m920s/headscale-standby-status.sh` | m920s | `/usr/local/sbin/headscale-standby-status.sh` | 755 |
 | `m920s/headscale-promote.sh` | m920s | `/usr/local/sbin/headscale-promote.sh` | 755 |
 | `m920s/headscale-demote.sh` | m920s | `/usr/local/sbin/headscale-demote.sh` | 755 |
 | `routers/headscale-dns-target.sh` | BE88U **and** AX86U Pro | `/jffs/scripts/headscale-dns-target.sh` | 755 |
+| `routers/fix-authkeys.sh` | BE88U **and** AX86U Pro | `/jffs/scripts/fix-authkeys.sh` (the pre-existing nvram key normaliser, cron */15 + services-start; 2026-10-23 version preserves `command=` option prefixes and drops bare duplicates — the old version silently stripped the forced command every 15 min) | 755 |
 | `vps/headscale-bootstrap-target` | VPS vmi3610371 | `/usr/local/sbin/headscale-bootstrap-target` | 755 |
 | `vps/headscale-bootstrap-dnat.service` | VPS | `/etc/systemd/system/headscale-bootstrap-dnat.service` | 644 |
 | `vps/headscale-bootstrap.default` | VPS | `/etc/default/headscale-bootstrap` | 644 |
@@ -26,6 +29,8 @@ Deployment is by hand. Install in this order: dm → m920s → sync → routers 
 SSH keys live on m920s as root: `/root/.ssh/headscale-standby-{dm,be88u,ax86u,vps}`.
 Each remote side authorizes its key with
 `command="<wrapper>",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty`.
+
+Tests: `scripts/headscale-standby/tests/review-fixes.sh` (read-only checks across all hosts; run before a rehearsal).
 
 Versions: headscale on m920s must equal dm (0.29.3, `apt-mark hold` on both). Upgrade both in one change.
 

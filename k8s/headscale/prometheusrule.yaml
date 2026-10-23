@@ -12,7 +12,8 @@ spec:
     - name: headscale-standby
       rules:
         - alert: HeadscaleStandbySyncStale
-          expr: (time() - headscale_standby_last_sync_timestamp_seconds > 900) or (headscale_standby_sync_ok == 0)
+          # suppressed while m920s itself is the live headscale (promote stops the sync by design)
+          expr: ((time() - headscale_standby_last_sync_timestamp_seconds > 900) or (headscale_standby_sync_ok == 0)) unless on() headscale_standby_health_up{target="m920s"} == 1
           for: 10m
           labels:
             severity: warning

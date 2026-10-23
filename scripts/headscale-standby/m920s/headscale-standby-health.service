@@ -1,0 +1,8 @@
+[Unit]
+Description=Probe dm and m920s headscale /health into node-exporter textfile metrics
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/headscale-standby-health.sh
