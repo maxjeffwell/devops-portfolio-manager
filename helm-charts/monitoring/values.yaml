@@ -303,12 +303,46 @@ kube-prometheus-stack:
     enabled: true
     adminPassword: "REPLACE_AT_DEPLOY_TIME"
 
+    # 2026-10-23: Grafana state moved to the native Patroni HA Postgres (db/role `grafana`,
+    # VIP 192.168.50.60:5000, verify-full). Everything else is provisioned (33 dashboards,
+    # 6 datasources, plugins reinstalled at start), so /var/lib/grafana is an emptyDir and
+    # Grafana runs 2 replicas. The old SQLite volume grafana-data-v2 (lvmpv, elitedesk) is
+    # left in place, unmounted, as rollback until it is deleted by hand.
     persistence:
-      enabled: true
-      # 2026-10-06: grafana-data (lvmpv, node-local on debian-marmoset) -> grafana-data-v2
-      # (lvmpv on a server node; landed on elitedesk). dm/neon are GPU nodes and keep no
-      # local volumes. Hand-created PVC (as before); data copied pod-to-pod, 124 files.
-      existingClaim: grafana-data-v2
+      enabled: false
+
+    replicas: 2
+    podDisruptionBudget:
+      minAvailable: 1
+    # Only the three servers can reach the Patroni VIP (the VPS cannot; dm/neon are GPU nodes).
+    # Spread the two replicas across different servers.
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: In
+                  values: [elitedesk, m720q, m920s]
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: grafana
+
+    # Patroni cluster CA (secret pg-ha-ca, devops k8s/platform-external-secrets) for ssl_mode=verify-full
+    extraSecretMounts:
+      - name: pg-ha-ca
+        secretName: pg-ha-ca
+        mountPath: /etc/pg-ha
+        readOnly: true
+        defaultMode: 0444
+        items:
+          - key: ca.crt
+            path: ca.crt
 
     # init-chown-data is added by the chart when persistence is enabled.
     # monitoring-quota requires resource specs on all containers.
@@ -332,6 +366,14 @@ kube-prometheus-stack:
         serve_from_sub_path: false
       plugins:
         allow_loading_unsigned_plugins: k8s-app
+      # password comes from envValueFrom GF_DATABASE_PASSWORD (secret grafana-db)
+      database:
+        type: postgres
+        host: "192.168.50.60:5000"
+        name: grafana
+        user: grafana
+        ssl_mode: verify-full
+        ca_cert_path: /etc/pg-ha/ca.crt
 
 
     # Plugins
@@ -452,20 +494,25 @@ kube-prometheus-stack:
         secureJsonData:
           token: ${INFLUXDB_GRAFANA_TOKEN}
 
-    # grafana-data-v2 is a ReadWriteOnce local LVM volume: a rolling update
-    # deadlocks (new pod cannot mount while the old one holds it). Recreate
-    # stops the old pod first. Hit 2026-10-06 on the first pod-template change.
+    # No local volume any more (2026-10-23), so rolling updates work and keep one replica serving.
     deploymentStrategy:
-      type: Recreate
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 0
+        maxSurge: 1
 
     envValueFrom:
       INFLUXDB_GRAFANA_TOKEN:
         secretKeyRef:
           name: influxdb-credentials
           key: grafana-read-token
+      GF_DATABASE_PASSWORD:
+        secretKeyRef:
+          name: grafana-db
+          key: password
 
     # Liveness probe tuning — Grafana startup may take several minutes on first
-    # init (SQLite migrations). Subsequent starts with persistent storage are faster.
+    # init (database migrations) and reinstalls plugins on every start (no volume).
     livenessProbe:
       httpGet:
         path: /api/health
