@@ -2,8 +2,8 @@
 # (https://charts.netbox.oss.netboxlabs.com/), version pinned in gitops/applications/netbox.yaml.
 #
 # State lives in Postgres on the native Patroni cluster (db/role `netbox`, VIP 192.168.50.60:5000,
-# verify-full) and Redis HA (`redis.default.svc`, DB 2 tasks / DB 3 cache). No PVC: media
-# (image attachments) is not persisted -- the worker would share a RWO volume with the web pods.
+# verify-full) and Redis HA (`redis.default.svc`, DB 2 tasks / DB 3 cache). No PVC (the worker
+# would share a RWO volume with the web pods): media (image attachments) lives in Garage, see storages.
 # Servers only: the VPS cannot reach the VIP and the GPU nodes are not for this.
 # Secrets: Doppler NETBOX_* -> ExternalSecret netbox-secrets (below, extraDeploy).
 # extraDeploy goes through Helm's tpl: ESO template fields are escaped as '{{ "{{ .x }}" }}'.
@@ -38,11 +38,40 @@ pdb:
 persistence:
   enabled: false
 
+# 2026-10-23: media (image attachments) in Garage bucket netbox-media (key netbox-media-key, RW on
+# that bucket only). Endpoint = the PUBLIC s3.el-jefe.me so the pre-signed links NetBox puts in pages
+# open in a browser (signature is bound to the host); that node's region is `garage`, path-style.
+# This dict lands in a ConfigMap -> NO credentials here: boto3 reads AWS_ACCESS_KEY_ID /
+# AWS_SECRET_ACCESS_KEY from the env (secret netbox-secrets), set on web AND worker below.
+storages:
+  default:
+    BACKEND: storages.backends.s3.S3Storage
+    OPTIONS:
+      bucket_name: netbox-media
+      endpoint_url: https://s3.el-jefe.me
+      region_name: garage
+      addressing_style: path
+      signature_version: s3v4
+      querystring_auth: true
+      querystring_expire: 3600
+      file_overwrite: false
+
 # The image starts GRANIAN_WORKERS (default 4) full Django processes per pod; 4 OOMed a 1Gi limit
 # on first start. 2 per pod x 2 pods is plenty for a single-user inventory.
 extraEnvs:
   - name: GRANIAN_WORKERS
     value: "2"
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef: {name: netbox-secrets, key: s3_access_key_id}
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef: {name: netbox-secrets, key: s3_secret_access_key}
+  # Garage rejects the newer default CRC checksum headers
+  - name: AWS_REQUEST_CHECKSUM_CALCULATION
+    value: when_required
+  - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+    value: when_required
 resourcesPreset: "none"
 resources:
   requests:
@@ -113,6 +142,18 @@ cachingDatabase:
 worker:
   enabled: true
   replicaCount: 1
+  extraEnvs:
+    - name: AWS_ACCESS_KEY_ID
+      valueFrom:
+        secretKeyRef: {name: netbox-secrets, key: s3_access_key_id}
+    - name: AWS_SECRET_ACCESS_KEY
+      valueFrom:
+        secretKeyRef: {name: netbox-secrets, key: s3_secret_access_key}
+    # Garage rejects the newer default CRC checksum headers
+    - name: AWS_REQUEST_CHECKSUM_CALCULATION
+      value: when_required
+    - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+      value: when_required
   resourcesPreset: "none"
   resources:
     requests:
@@ -177,6 +218,8 @@ extraDeploy:
             api_token_peppers: '{"1": "{{ "{{ .pepper }}" }}"}'
             db_password: '{{ "{{ .db_password }}" }}'
             redis_password: '{{ "{{ .redis_password }}" }}'
+            s3_access_key_id: '{{ "{{ .s3_access_key_id }}" }}'
+            s3_secret_access_key: '{{ "{{ .s3_secret_access_key }}" }}'
             # no SMTP; the chart projects this key unconditionally
             email_password: ""
       data:
@@ -188,6 +231,10 @@ extraDeploy:
           remoteRef: {key: NETBOX_DB_PASSWORD}
         - secretKey: redis_password
           remoteRef: {key: REDIS_PASSWORD}
+        - secretKey: s3_access_key_id
+          remoteRef: {key: NETBOX_S3_ACCESS_KEY_ID}
+        - secretKey: s3_secret_access_key
+          remoteRef: {key: NETBOX_S3_SECRET_ACCESS_KEY}
   - apiVersion: external-secrets.io/v1
     kind: ExternalSecret
     metadata:
