@@ -510,6 +510,11 @@ kube-prometheus-stack:
         secretKeyRef:
           name: grafana-db
           key: password
+      # random secret_key (Doppler GRAFANA_SECRET_KEY); never the built-in default now that the DB is shared infra
+      GF_SECURITY_SECRET_KEY:
+        secretKeyRef:
+          name: grafana-db
+          key: secret_key
 
     # Liveness probe tuning — Grafana startup may take several minutes on first
     # init (database migrations) and reinstalls plugins on every start (no volume).
