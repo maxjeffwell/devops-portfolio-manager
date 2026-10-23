@@ -1,0 +1,10 @@
+[Unit]
+Description=Minute headscale standby sync from dm
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

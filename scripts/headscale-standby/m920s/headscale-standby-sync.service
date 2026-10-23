@@ -1,0 +1,8 @@
+[Unit]
+Description=Pull headscale snapshot from dm into the m920s standby staging dir
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/headscale-standby-sync.sh
