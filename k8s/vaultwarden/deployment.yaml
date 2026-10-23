@@ -116,3 +116,7 @@ spec:
         - name: pg-ha-ca   # Patroni cluster CA for sslmode=verify-full (secret from k8s/platform-external-secrets)
           secret:
             secretName: pg-ha-ca
+            items:
+              - key: ca.crt
+                path: ca.crt
+            defaultMode: 0444

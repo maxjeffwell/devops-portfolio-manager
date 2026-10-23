@@ -262,6 +262,10 @@ volumes:
   - name: pg-ha-ca
     secret:
       secretName: pg-ha-ca
+      items:
+        - key: ca.crt
+          path: ca.crt
+      defaultMode: 0444
 volumeMounts:
   - name: pg-ha-ca
     mountPath: /etc/pg-ha
