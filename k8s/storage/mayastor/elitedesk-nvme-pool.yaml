@@ -23,6 +23,11 @@
 #   kubectl mayastor label pool elitedesk-nvme-pool tier=internal -n openebs
 # and mirrored here so a re-created pool gets it at creation time.
 #
+# ovms-models=true (2026-10-24): second eligible pool for mayastor-ovms-models
+# so the OVMS model cache can run 2 replicas (m920s-nvme-pool + this one).
+# Applied live with
+#   kubectl mayastor label pool elitedesk-nvme-pool ovms-models=true -n openebs
+#
 # Block size 512 (matches the other pools). Standalone manifest, not under ArgoCD.
 apiVersion: openebs.io/v1beta3
 kind: DiskPool
@@ -36,3 +41,4 @@ spec:
   topology:
     labelled:
       tier: internal
+      ovms-models: "true"

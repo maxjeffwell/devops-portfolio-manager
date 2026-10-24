@@ -1,12 +1,16 @@
 # mayastor-ovms-models StorageClass
-# Single-replica thin Mayastor volume pinned to m920s-nvme-pool -- the only pool
-# labelled ovms-models=true (see m920s-nvme-pool.yaml). Holds OVMS's model cache
-# (~2.6G), which model-loader re-syncs from Garage, so 1 replica is enough.
+# 2-replica thin Mayastor volume on the pools labelled ovms-models=true:
+# m920s-nvme-pool + elitedesk-nvme-pool (see their manifests). Holds OVMS's model
+# cache, which model-loader re-syncs from Garage.
 # 2026-10-02: user chose m920s NVMe for this deliberately; the OVMS pod itself
 # runs on debian-marmoset and mounts it over NVMe-oF.
+# 2026-10-24: repl 1 -> 2 (user) so the cache survives an m920s reboot;
+# elitedesk-nvme-pool got ovms-models=true as the second node. Replicas must
+# be on different nodes, so repl=2 needs this label on pools on >= 2 nodes.
 #
-# Pool label must ALSO be on the control plane:
+# Pool labels must ALSO be on the control plane:
 #   kubectl mayastor label pool m920s-nvme-pool ovms-models=true -n openebs
+#   kubectl mayastor label pool elitedesk-nvme-pool ovms-models=true -n openebs
 #
 # StorageClass parameters are immutable: changing this file means
 # `kubectl delete sc mayastor-ovms-models && kubectl apply -f` this file.
@@ -18,13 +22,13 @@ metadata:
   name: mayastor-ovms-models
   annotations:
     description: |
-      Mayastor 1-replica thin, pinned to m920s-nvme-pool (ovms-models=true).
+      Mayastor 2-replica thin on ovms-models=true pools (m920s + elitedesk NVMe).
       OVMS model cache.
 provisioner: io.openebs.csi-mayastor
 parameters:
   ioTimeout: "30"
   protocol: nvmf
-  repl: "1"
+  repl: "2"
   thin: "true"
   # Value must be UNQUOTED: Mayastor matches the text literally, so "true" (with
   # quotes) never equals the pool's true -> "Not enough suitable pools, 0/1".
