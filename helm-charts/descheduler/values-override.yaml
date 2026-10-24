@@ -43,18 +43,23 @@ deschedulerPolicy:
         - name: RemoveDuplicates
         - name: LowNodeUtilization
           args:
-            # % of allocatable REQUESTS. A server below all thresholds is
-            # "underutilized" (m920s after an outage: ~19% cpu / 26% mem / 17 pods);
-            # pods are evicted from servers above all targetThresholds until the
-            # underutilized one is above its thresholds.
+            # % of allocatable REQUESTS, as DEVIATION from the mean of the three
+            # servers (2026-10-24): a server more than 15 points below the mean
+            # on BOTH cpu and memory is "underutilized"; servers more than 15
+            # points above it give up pods until the gap closes.
+            # Why: the old fixed 35/35/35 needed a server under ALL three, and
+            # after the 10/24 m920s outage it sat at cpu 31 / mem 40 / pods 31
+            # (memory now floored by pinned Patroni/local-PV/io-engine pods)
+            # while elitedesk 96% and m720q 93% cpu -> "No node is
+            # underutilized, nothing to do". Pods dropped from the criteria:
+            # pod count says little about load here (DaemonSets, tiny sidecars).
+            useDeviationThresholds: true
             thresholds:
-              cpu: 35
-              memory: 35
-              pods: 35
+              cpu: 15
+              memory: 15
             targetThresholds:
-              cpu: 60
-              memory: 60
-              pods: 60
+              cpu: 15
+              memory: 15
       plugins:
         balance:
           enabled:
