@@ -113,6 +113,14 @@ spec:
                 echo "Setting empty TranscodingTempPath -> /transcodes"
                 sed -i 's|<TranscodingTempPath />|<TranscodingTempPath>/transcodes</TranscodingTempPath>|' "$TARGET"
               fi
+              # QSV transcodes run ~20x realtime and each client bitrate switch
+              # starts a new job, so with segment deletion off a few switches fill
+              # the 12Gi /transcodes emptyDir and the kubelet evicts the pod
+              # (10/23). Throttling stays off by choice; only deletion is pinned.
+              if grep -q '<EnableSegmentDeletion>false</EnableSegmentDeletion>' "$TARGET" 2>/dev/null; then
+                echo "Enabling EnableSegmentDeletion"
+                sed -i 's|<EnableSegmentDeletion>false</EnableSegmentDeletion>|<EnableSegmentDeletion>true</EnableSegmentDeletion>|' "$TARGET"
+              fi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
