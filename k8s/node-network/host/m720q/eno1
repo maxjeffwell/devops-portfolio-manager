@@ -1,0 +1,7 @@
+# onboard I219 = backup/rescue link (cabled 9/5); worse metric than enp1s0 via dhcpcd.conf
+allow-hotplug eno1
+iface eno1 inet dhcp
+    # 2026-09-30: EEE off, same policy as every other node
+    post-up /usr/sbin/ethtool --set-eee eno1 eee off || true
+    # 2026-10-24: keep tailscale peers on bond0 .118 (2.5G), not the eno1 .119 1G rescue link
+    post-up /usr/sbin/iptables -C INPUT -i eno1 -p udp --dport 41641 -j DROP 2>/dev/null || /usr/sbin/iptables -I INPUT -i eno1 -p udp --dport 41641 -j DROP
