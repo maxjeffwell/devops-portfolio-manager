@@ -1,0 +1,53 @@
+# Only Prometheus may call the blackbox exporters. /probe is an SSRF
+# primitive by design (it probes whatever target it is handed, from the VPS
+# over Tailscale or from a server into the LAN), so ingress to 9115 is limited
+# to the Prometheus pods in this namespace. Same shape as the caretta-agent
+# policy that has run here since 2026-10. kube-router enforces NetworkPolicy
+# on this cluster (verified 2026-11-05: 500+ KUBE-ROUTER rules on m920s).
+# Added 2026-11-05, applied home first, then VPS, each checked for kubelet
+# probe breakage before the next (see git log).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: blackbox-exporter-home-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    release: {{ .Release.Name }}
+spec:
+  podSelector:
+    matchLabels:
+      app: blackbox-exporter-home
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 9115
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: blackbox-exporter-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    release: {{ .Release.Name }}
+spec:
+  podSelector:
+    matchLabels:
+      app: blackbox-exporter
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 9115
+          protocol: TCP
