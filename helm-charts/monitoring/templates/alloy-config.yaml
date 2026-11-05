@@ -165,10 +165,25 @@ data:
     // /etc/machine-id is empty, so it tails nothing yet reports healthy
     // (12 days at 0 lines, positions: {} on every node). Directory mode scans
     // every machine subdirectory of the mounted host journal instead.
+    // Every node's Alloy writes to the same {job="systemd-journal"} stream
+    // unless a per-node label is attached; `node` matches the metrics side.
+    loki.relabel "journal" {
+      forward_to = []
+      rule {
+        source_labels = ["__journal__hostname"]
+        target_label  = "node"
+      }
+      rule {
+        source_labels = ["__journal__systemd_unit"]
+        target_label  = "unit"
+      }
+    }
+
     loki.source.journal "systemd" {
-      path       = "/var/log/journal"
-      forward_to = [loki.write.default.receiver]
-      labels     = { job = "systemd-journal" }
+      path          = "/var/log/journal"
+      relabel_rules = loki.relabel.journal.rules
+      forward_to    = [loki.write.default.receiver]
+      labels        = { job = "systemd-journal" }
     }
 
     // --- Blackbox Probes (VPS -> Home Network) ---
