@@ -67,11 +67,16 @@ spec:
           value: percona-server-mongodb-operator
         - name: RESYNC_PERIOD
           value: 60s
+        # 1.23.0+: periodic requeue interval (1.22 hard-coded 5s → ~127 API calls + fresh TLS
+        # connections to every mongod per pass, ~18 % of a core). Watch events still trigger
+        # immediate reconciles; this only paces the idle loop.
+        - name: RECONCILE_INTERVAL
+          value: 60s
         - name: DISABLE_TELEMETRY
           value: 'false'
         - name: MAX_CONCURRENT_RECONCILES
           value: '3'
-        image: percona/percona-server-mongodb-operator:1.22.0
+        image: percona/percona-server-mongodb-operator:1.23.0
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
