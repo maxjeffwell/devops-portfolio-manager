@@ -86,7 +86,12 @@ configuration:
   defaultRepoMaintainFrequency: 24h
   defaultVolumesToFsBackup: true
   features: EnableCSI
-  itemBlockWorkerCount: 8
+  # 1 (was 8) since 2026-11-05: velero 1.18.3 crashes with "fatal error:
+  # concurrent map writes" in pvcPvMap.insert when item-block workers run in
+  # parallel (upstream #10634; fix #10635 merged to main 2026-10-10, not in any
+  # release yet). Killed daily-backup-20261031. Restore 8 once a release ships
+  # the fix. Cost: daily went 4460 items / 90 s with 8 workers.
+  itemBlockWorkerCount: 1
   repositoryMaintenanceJob:
     repositoryConfigData:
       global:
