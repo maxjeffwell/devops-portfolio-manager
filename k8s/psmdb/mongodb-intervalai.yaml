@@ -47,7 +47,7 @@ spec:
           # DefaultTransport (pooled, 90 s idle timeout). Seen on both PBM 2.9.0
           # and 2.12.0; ~100k leaked sockets on garage-0 by 2026-09-21.
           insecureSkipTLSVerify: false
-          prefix: intervalai/
+          prefix: intervalai
           region: garage
         type: s3
     tasks:
