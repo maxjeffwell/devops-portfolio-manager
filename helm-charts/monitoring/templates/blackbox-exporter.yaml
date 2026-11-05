@@ -1,0 +1,127 @@
+# Blackbox exporter: the cluster's outside-in vantage point. Pinned to the
+# edge node (VPS) on purpose -- HTTP probes then traverse the real public
+# path (Cloudflare -> traefik on the VPS -> overlay -> home pods), ICMP probes
+# measure the Tailscale overlay from outside, and DNS probes see our zone as
+# the internet does. Moved here from portfolio-orchestration-platform
+# k8s/monitoring/blackbox-exporter.yaml on 2026-11-05 (adopted into this
+# release with the Helm ownership labels/annotations; see git log).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blackbox-exporter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blackbox-exporter
+  template:
+    metadata:
+      labels:
+        app: blackbox-exporter
+      annotations:
+        # Roll the pod when the module file changes (no config reloader).
+        checksum/config: {{ include (print $.Template.BasePath "/blackbox-exporter-configmap.yaml") . | sha256sum }}
+    spec:
+      nodeSelector:
+        role: edge
+      # HTTP targets are bare public hostnames (el-jefe.me = 1 dot). With the
+      # cluster default ndots:5 every lookup first walks the 4 search domains
+      # (4 x NXDOMAIN, ~400 ms from the VPS -- see dns-probes.yaml) before the
+      # absolute name is tried, and that time lands in probe_duration_seconds.
+      # This pod resolves nothing in-cluster by short name, so ndots:1 is safe.
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      containers:
+      - name: blackbox-exporter
+        image: prom/blackbox-exporter:v0.25.0
+        args:
+          - --config.file=/etc/blackbox/blackbox.yml
+          - --log.level=info
+        ports:
+        - containerPort: 9115
+          name: http
+          protocol: TCP
+        # 2026-11-05: 100m/64Mi -> 200m/128Mi with ~45 targets (HTTP+TLS,
+        # ICMP, DNS) replacing the previous 2. Requests unchanged.
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        # 2026-10-07: separate checks. Readiness (/-/ready) pulls the pod from
+        # the Service quickly; liveness (/-/healthy, process alive) is more
+        # patient, so a slow moment is not answered with a restart.
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        volumeMounts:
+        - name: config
+          mountPath: /etc/blackbox
+          readOnly: true
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: config
+        configMap:
+          name: blackbox-exporter-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blackbox-exporter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9115
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: blackbox-exporter
+---
+# Scrapes the exporter's OWN /metrics (up{job="blackbox-exporter"} feeds the
+# BlackboxExporterDown alert). Probe results come via the Probe objects.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: blackbox-exporter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    release: {{ .Release.Name }}
+spec:
+  endpoints:
+  - interval: 30s
+    path: /metrics
+    port: http
+  selector:
+    matchLabels:
+      app: blackbox-exporter

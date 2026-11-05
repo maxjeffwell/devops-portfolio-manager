@@ -1,0 +1,249 @@
+# Outside-in synthetic probes (HTTP + ICMP), run by the blackbox exporter on
+# the VPS. Each Probe = one module + one tier, because staticConfig labels
+# apply to every target in the group. Job names: http-public, http-public-auth,
+# http-ops, http-ops-auth, icmp-nodes, icmp-infra, icmp-internet.
+# Added 2026-11-05. DNS probes live in dns-probes.yaml.
+#
+# Target -> expected answer was verified with curl on 2026-11-05 before each
+# host was placed in a 2xx or an auth group. Hosts with a /health route are
+# probed there so a login redirect or an API 404 at / is not misread.
+#
+# --- HTTP: public portfolio (tier=public) -----------------------------------
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: http-public-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: http
+    release: {{ .Release.Name }}
+spec:
+  jobName: http-public
+  module: http_2xx
+  interval: 60s
+  scrapeTimeout: 15s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - https://el-jefe.me
+        - https://www.el-jefe.me                      # 301 -> apex, followed
+        - https://bookmarked.el-jefe.me
+        - https://code-talk.el-jefe.me
+        - https://educationelly.el-jefe.me
+        - https://educationelly-graphql-k8s.el-jefe.me
+        - https://firebook.el-jefe.me
+        - https://intervalai.el-jefe.me
+        - https://pop-portfolio.el-jefe.me
+        - https://showcase.el-jefe.me
+        - https://vertex-platform.el-jefe.me
+        - https://gateway.el-jefe.me/health           # graphql gateway; / is 404
+        - https://lunary.el-jefe.me
+        - https://lunary-api.el-jefe.me/v1/health     # / and /health are 401
+      labels:
+        probe_type: http
+        tier: public
+---
+# Public apps whose front door is an auth wall: 401 is the healthy answer.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: http-public-auth-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: http
+    release: {{ .Release.Name }}
+spec:
+  jobName: http-public-auth
+  module: http_auth
+  interval: 60s
+  scrapeTimeout: 15s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - https://podrick.el-jefe.me/health           # 401
+        - https://tenantflow.el-jefe.me/health        # 401
+      labels:
+        probe_type: http
+        tier: public
+---
+# --- HTTP: operations surfaces (tier=ops) -----------------------------------
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: http-ops-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: http
+    release: {{ .Release.Name }}
+spec:
+  jobName: http-ops
+  module: http_2xx
+  interval: 60s
+  scrapeTimeout: 15s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - https://argocd.el-jefe.me
+        - https://vaultwarden.el-jefe.me
+        - https://immich.el-jefe.me
+        - https://gotify.el-jefe.me
+        - https://ai-gateway.el-jefe.me
+        - https://goldpinger.el-jefe.me
+        - https://headscale.el-jefe.me/health
+        - https://influxdb.el-jefe.me/health
+        - https://crowdsec-lapi.el-jefe.me/health     # / is 404
+      labels:
+        probe_type: http
+        tier: ops
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: http-ops-auth-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: http
+    release: {{ .Release.Name }}
+spec:
+  jobName: http-ops-auth
+  module: http_auth
+  interval: 60s
+  scrapeTimeout: 15s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - https://grafana.el-jefe.me                  # 302 -> /login
+        - https://prometheus.el-jefe.me               # 401 (basic auth)
+        - https://netbox.el-jefe.me                   # 302 -> /login
+        - https://jellyfin-k8s.el-jefe.me             # 302 -> /web
+        - https://s3.el-jefe.me                       # 403 (anonymous S3)
+      labels:
+        probe_type: http
+        tier: ops
+---
+# --- ICMP ---------------------------------------------------------------------
+# Targets are Tailscale IPs, not names: MagicDNS names NXDOMAIN inside the pod
+# (verified 2026-11-05) and an IP target keeps a DNS fault from masquerading
+# as a node outage. The relabelings add a human `host` label per IP;
+# `instance` stays the IP. Keep this list in step with `tailscale status`.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-nodes-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: icmp
+    release: {{ .Release.Name }}
+spec:
+  jobName: icmp-nodes
+  module: icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 100.64.0.2     # m920s
+        - 100.64.0.3     # marmoset
+        - 100.64.0.8     # elitedesk
+        - 100.64.0.11    # m720q
+        - 100.64.0.12    # debian-marmoset
+        - 100.64.0.15    # neonmarmoset
+        - 100.64.0.14    # vmi3610371 (self; loopback over tailscale0)
+      labels:
+        probe_type: icmp
+        tier: nodes
+      relabelingConfigs:
+        - {sourceLabels: [instance], regex: '100\.64\.0\.2',  targetLabel: host, replacement: m920s}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.3',  targetLabel: host, replacement: marmoset}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.8',  targetLabel: host, replacement: elitedesk}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.11', targetLabel: host, replacement: m720q}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.12', targetLabel: host, replacement: debian-marmoset}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.15', targetLabel: host, replacement: neonmarmoset}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.14', targetLabel: host, replacement: vmi3610371}
+---
+# Home infrastructure reachable over Tailscale. be88u (100.64.0.6) is NOT
+# listed: it does not answer ICMP on its Tailscale address (verified
+# 2026-11-05, 5 s timeout), so it would be a permanent false alarm.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-infra-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: icmp
+    release: {{ .Release.Name }}
+spec:
+  jobName: icmp-infra
+  module: icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 100.64.0.5     # asustor
+        - 100.64.0.9     # synology
+        - 100.64.0.7     # ax86u (AX86U Pro)
+        - 100.64.0.13    # axe7800
+      labels:
+        probe_type: icmp
+        tier: infra
+      relabelingConfigs:
+        - {sourceLabels: [instance], regex: '100\.64\.0\.5',  targetLabel: host, replacement: asustor}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.9',  targetLabel: host, replacement: synology}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.7',  targetLabel: host, replacement: ax86u}
+        - {sourceLabels: [instance], regex: '100\.64\.0\.13', targetLabel: host, replacement: axe7800}
+---
+# Control group: public anycast resolvers. Both failing = the VPS lost
+# internet egress, which also explains every other probe going red at once.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-internet-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    probe-type: icmp
+    release: {{ .Release.Name }}
+spec:
+  jobName: icmp-internet
+  module: icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 1.1.1.1
+        - 8.8.8.8
+      labels:
+        probe_type: icmp
+        tier: internet
+      relabelingConfigs:
+        - {sourceLabels: [instance], regex: '1\.1\.1\.1', targetLabel: host, replacement: cloudflare}
+        - {sourceLabels: [instance], regex: '8\.8\.8\.8', targetLabel: host, replacement: google}

@@ -1,0 +1,102 @@
+# Blackbox exporter module definitions. Moved here from
+# portfolio-orchestration-platform/k8s/monitoring/blackbox-exporter.yaml on
+# 2026-11-05 so the modules and the Probes that name them ship in ONE release
+# (a Probe referencing a module the live ConfigMap lacks fails every scrape
+# with "unknown module"). The Deployment carries a checksum of this file, so a
+# module edit rolls the pod -- the exporter has no config reloader.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blackbox-exporter-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter
+    release: {{ .Release.Name }}
+data:
+  blackbox.yml: |
+    modules:
+      # --- DNS -------------------------------------------------------------
+      # Internal cluster resolution via kube-dns ClusterIP (see dns-probes.yaml).
+      dns_cluster:
+        prober: dns
+        timeout: 5s
+        dns:
+          query_name: "kubernetes.default.svc.cluster.local"
+          query_type: "A"
+          transport_protocol: "udp"
+          preferred_ip_protocol: "ip4"
+          valid_rcodes:
+            - NOERROR
+
+      # CoreDNS forwarding to upstream.
+      dns_external:
+        prober: dns
+        timeout: 5s
+        dns:
+          query_name: "google.com"
+          query_type: "A"
+          transport_protocol: "udp"
+          preferred_ip_protocol: "ip4"
+          valid_rcodes:
+            - NOERROR
+
+      # Authoritative health of our own zone as visitors see it: resolve
+      # el-jefe.me against PUBLIC resolvers (1.1.1.1, 8.8.8.8). Catches a
+      # Cloudflare DNS outage or a broken record before anyone reports the
+      # site "down". Requires an answer, not just NOERROR.
+      dns_eljefe:
+        prober: dns
+        timeout: 5s
+        dns:
+          query_name: "el-jefe.me"
+          query_type: "A"
+          transport_protocol: "udp"
+          preferred_ip_protocol: "ip4"
+          valid_rcodes:
+            - NOERROR
+          validate_answer_rrs:
+            fail_if_not_matches_regexp:
+              - "el-jefe\\.me\\.\\t.*\\tIN\\tA\\t.*"
+
+      # --- HTTP ------------------------------------------------------------
+      # Pages that must answer 2xx to an anonymous GET. Redirects are followed
+      # (www -> apex is a 301). fail_if_not_ssl: an http:// answer is a failure.
+      http_2xx:
+        prober: http
+        timeout: 10s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: []   # defaults to 2xx
+          method: GET
+          follow_redirects: true
+          fail_if_not_ssl: true
+          preferred_ip_protocol: "ip4"
+
+      # Auth-walled or login-redirecting apps: the stack answering with a
+      # 401/403 or a login 302 is "up"; only 5xx / timeout / TLS failure is
+      # down. Redirects are NOT followed so a 302 to the IdP counts as-is.
+      http_auth:
+        prober: http
+        timeout: 10s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: [200, 301, 302, 303, 307, 401, 403]
+          method: GET
+          follow_redirects: false
+          fail_if_not_ssl: true
+          preferred_ip_protocol: "ip4"
+
+      # --- ICMP ------------------------------------------------------------
+      # Verified 2026-11-05 from a throwaway pod on the VPS: works UNPRIVILEGED
+      # (uid 1000, no NET_RAW) because the pod's net.ipv4.ping_group_range is
+      # 0-2147483647, so the exporter uses an ICMP datagram socket.
+      icmp:
+        prober: icmp
+        timeout: 5s
+        icmp:
+          preferred_ip_protocol: "ip4"
+
+      # --- TCP -------------------------------------------------------------
+      tcp_connect:
+        prober: tcp
+        timeout: 5s

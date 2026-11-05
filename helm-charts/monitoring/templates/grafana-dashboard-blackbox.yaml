@@ -1,0 +1,16 @@
+{{- if index .Values "kube-prometheus-stack" "grafana" "enabled" }}
+# Blackbox Probes dashboard (HTTP / ICMP / DNS synthetic probes from the VPS).
+# Probe metrics are scraped by kube-prometheus's Prometheus via Probe objects,
+# NOT by Alloy into Mimir -- hence the 'Prometheus' datasource (uid prometheus,
+# values.yaml). Source JSON: ../dashboards/blackbox.json. Added 2026-11-05.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-blackbox
+  namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+data:
+  blackbox.json: |-
+{{ .Files.Get "dashboards/blackbox.json" | indent 4 }}
+{{- end }}

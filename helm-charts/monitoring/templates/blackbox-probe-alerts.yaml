@@ -1,0 +1,139 @@
+# Alerts for the HTTP / ICMP / public-DNS blackbox probes (blackbox-probes.yaml,
+# dns-probes.yaml). DNS-cluster alerts stay in dns-probes.yaml. Added 2026-11-05.
+#
+# Severity by tier: a public portfolio page down is critical; an ops surface
+# down is a warning; nodes unreachable over the overlay is critical (that is
+# the "node silently dropped off" case). `for` windows are at least two scrape
+# intervals so one dropped probe never pages.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: blackbox-probe-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+    # REQUIRED: Prometheus operator ruleSelector is matchLabels{release: prometheus}.
+    release: {{ .Release.Name }}
+spec:
+  groups:
+  - name: blackbox-http
+    rules:
+    - alert: PublicEndpointDown
+      expr: probe_success{job=~"http-public(-auth)?"} == 0
+      for: 3m
+      labels:
+        component: edge
+        severity: critical
+      annotations:
+        summary: "Public endpoint {{ "{{" }} $labels.instance {{ "}}" }} is down."
+        description: "Outside-in HTTP probe from the VPS has failed for 3 minutes (status {{ "{{" }} with query (printf \"probe_http_status_code{instance='%s',job='%s'}\" $labels.instance $labels.job) {{ "}}" }}{{ "{{" }} . | first | value {{ "}}" }}{{ "{{" }} end {{ "}}" }}). Visitors see this."
+        runbook: |
+          1. Is it everything or one host? Grafana dashboard "Blackbox Probes" (Prometheus datasource).
+          2. Everything red + icmp-internet red => VPS egress; check node vmi3610371 and traefik pods.
+          3. One host: kubectl get ingress -A | grep <host>; then the backing pods and their node.
+
+    - alert: OpsEndpointDown
+      expr: probe_success{job=~"http-ops(-auth)?"} == 0
+      for: 5m
+      labels:
+        component: edge
+        severity: warning
+      annotations:
+        summary: "Ops endpoint {{ "{{" }} $labels.instance {{ "}}" }} is down."
+        description: "Outside-in HTTP probe from the VPS has failed for 5 minutes."
+
+    - alert: EndpointSlow
+      expr: probe_duration_seconds{job=~"http-.*"} > 3
+      for: 10m
+      labels:
+        component: edge
+        severity: warning
+      annotations:
+        summary: "{{ "{{" }} $labels.instance {{ "}}" }} is answering slowly."
+        description: "Full HTTP probe time is {{ "{{" }} $value | humanizeDuration {{ "}}" }} (threshold 3 s) for 10 minutes. probe_http_duration_seconds splits it by phase (resolve/connect/tls/processing/transfer)."
+
+    - alert: TLSCertificateExpiringSoon
+      expr: (probe_ssl_earliest_cert_expiry{job=~"http-.*"} - time()) < 14 * 86400
+      for: 1h
+      labels:
+        component: edge
+        severity: warning
+      annotations:
+        summary: "TLS certificate for {{ "{{" }} $labels.instance {{ "}}" }} expires in under 14 days."
+        description: "Expires in {{ "{{" }} $value | humanizeDuration {{ "}}" }}. Renewal (cert-manager / Cloudflare edge) has stalled."
+
+    - alert: TLSCertificateExpiryImminent
+      expr: (probe_ssl_earliest_cert_expiry{job=~"http-.*"} - time()) < 3 * 86400
+      for: 15m
+      labels:
+        component: edge
+        severity: critical
+      annotations:
+        summary: "TLS certificate for {{ "{{" }} $labels.instance {{ "}}" }} expires in under 3 days."
+        description: "Expires in {{ "{{" }} $value | humanizeDuration {{ "}}" }}."
+
+    - alert: HTTPProbeNoData
+      expr: absent(probe_success{job="http-public"})
+      for: 5m
+      labels:
+        component: monitoring
+        severity: warning
+      annotations:
+        summary: "HTTP probe metrics are missing."
+        description: "No probe_success for job http-public for 5 minutes. Check the blackbox exporter pod and the Probe objects."
+
+  - name: blackbox-icmp
+    rules:
+    - alert: NodeUnreachableOverOverlay
+      expr: probe_success{job="icmp-nodes"} == 0
+      for: 2m
+      labels:
+        component: overlay
+        severity: critical
+      annotations:
+        summary: "Node {{ "{{" }} $labels.host {{ "}}" }} does not answer ICMP over Tailscale."
+        description: "ICMP from the VPS to {{ "{{" }} $labels.instance {{ "}}" }} has failed for 2 minutes. Node may be off, or its Tailscale/overlay path is down (kubelet will follow). Check tailscale status from another node."
+
+    - alert: InfraHostUnreachable
+      expr: probe_success{job="icmp-infra"} == 0
+      for: 5m
+      labels:
+        component: overlay
+        severity: warning
+      annotations:
+        summary: "{{ "{{" }} $labels.host {{ "}}" }} does not answer ICMP over Tailscale."
+        description: "ICMP from the VPS to {{ "{{" }} $labels.instance {{ "}}" }} has failed for 5 minutes."
+
+    - alert: VPSInternetEgressLost
+      expr: count(probe_success{job="icmp-internet"} == 0) == count(probe_success{job="icmp-internet"})
+      for: 2m
+      labels:
+        component: edge
+        severity: critical
+      annotations:
+        summary: "The VPS cannot reach any public anycast resolver."
+        description: "Both 1.1.1.1 and 8.8.8.8 unreachable by ICMP for 2 minutes. Every other outside-in probe will be red for the same reason."
+
+    - alert: OverlayLatencyHigh
+      expr: probe_icmp_duration_seconds{phase="rtt", job="icmp-nodes"} > 0.5
+      for: 10m
+      labels:
+        component: overlay
+        severity: warning
+      annotations:
+        summary: "ICMP RTT to {{ "{{" }} $labels.host {{ "}}" }} is {{ "{{" }} $value | humanizeDuration {{ "}}" }}."
+        description: "Round trip from the VPS over Tailscale above 500 ms for 10 minutes (normal 60-200 ms direct). A DERP relay fallback or a saturated home uplink are the usual causes."
+
+  - name: blackbox-dns-public
+    rules:
+    - alert: PublicDNSResolutionFailed
+      expr: probe_success{job="dns-public"} == 0
+      for: 5m
+      labels:
+        component: dns
+        probe_type: public
+        severity: critical
+      annotations:
+        summary: "el-jefe.me does not resolve via {{ "{{" }} $labels.host {{ "}}" }}."
+        description: "Public resolver {{ "{{" }} $labels.instance {{ "}}" }} has returned no A record for el-jefe.me for 5 minutes. Check the Cloudflare DNS zone."
