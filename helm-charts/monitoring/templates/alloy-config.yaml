@@ -160,7 +160,13 @@ data:
     }
 
     // --- Systemd Journal Collection ---
+    // `path` is REQUIRED in a container. Without it libsystemd opens the journal
+    // in machine-id mode (/var/log/journal/<machine-id>/) and the pod's
+    // /etc/machine-id is empty, so it tails nothing yet reports healthy
+    // (12 days at 0 lines, positions: {} on every node). Directory mode scans
+    // every machine subdirectory of the mounted host journal instead.
     loki.source.journal "systemd" {
+      path       = "/var/log/journal"
       forward_to = [loki.write.default.receiver]
       labels     = { job = "systemd-journal" }
     }
