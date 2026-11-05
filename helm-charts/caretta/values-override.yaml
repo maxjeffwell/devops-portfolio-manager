@@ -33,8 +33,16 @@ resources:
     # 2026-10-21: 128Mi -> 384Mi. 7-day p95 is 335-355Mi on every node and peaks
     # 400-506Mi (VPS, marmoset); the request was under a third of real use.
     memory: 384Mi
+  # 2026-11-05: CPU limit removed. The agent polls every 5 s and fans the
+  # eBPF-map walk across all node cores, so a 500m quota (50 ms/period) was
+  # exhausted in ~8 ms and the rest of the period sat throttled: 35-55 % of
+  # CFS periods on m920s/elitedesk/m720q, 71 % on the VPS (7-day) with a
+  # 477m peak and 4 s /metrics scrapes, while the 1 h average was 40-70m.
+  # CPUThrottlingHigh fired on 4/7 agents. Memory stays bounded. `null` is
+  # required: Helm merges maps, so omitting the key would bring the chart
+  # default (150m) back.
   limits:
-    cpu: 500m
+    cpu: null
     memory: 1Gi
 
 # Chart default tolerates only control-plane/master taints. Added here so the
