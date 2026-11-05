@@ -35,7 +35,7 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
+        "w": 3,
         "x": 0,
         "y": 0
       },
@@ -102,8 +102,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 4,
+        "w": 3,
+        "x": 3,
         "y": 0
       },
       "targets": [
@@ -169,8 +169,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 8,
+        "w": 3,
+        "x": 6,
         "y": 0
       },
       "targets": [
@@ -236,8 +236,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 12,
+        "w": 3,
+        "x": 9,
         "y": 0
       },
       "targets": [
@@ -303,8 +303,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 16,
+        "w": 3,
+        "x": 12,
         "y": 0
       },
       "targets": [
@@ -366,8 +366,8 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 4,
-        "x": 20,
+        "w": 3,
+        "x": 15,
         "y": 0
       },
       "targets": [
@@ -397,6 +397,140 @@
               {
                 "color": "green",
                 "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "auto",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 20,
+      "type": "stat",
+      "title": "LAN resolvers OK",
+      "description": "of 3 (be88u dnsmasq, ax86u unbound, asustor blocky), from inside the LAN.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(probe_success{job=\"dns-home\"} == 1)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 2
+              },
+              {
+                "color": "green",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "orientation": "auto",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 21,
+      "type": "stat",
+      "title": "LAN hosts reachable",
+      "description": "of 4 (be88u, ax86u, asustor, synology) by ICMP on the LAN.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(probe_success{job=\"icmp-lan\"} == 1)",
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 3
+              },
+              {
+                "color": "green",
+                "value": 4
               }
             ]
           }
@@ -899,7 +1033,7 @@
       "id": 15,
       "type": "state-timeline",
       "title": "Reachability",
-      "description": "nodes, infra, internet control group.",
+      "description": "nodes, infra, internet (from VPS); lan (from a home server).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -1067,7 +1201,7 @@
       "id": 18,
       "type": "timeseries",
       "title": "DNS probe time by resolver",
-      "description": "dns-cluster / dns-external = CoreDNS at 10.43.0.10 (kubernetes.default, google.com); dns-public = el-jefe.me via 1.1.1.1 / 8.8.8.8. Alert at 500 ms (dashed).",
+      "description": "dns-cluster / dns-external = CoreDNS at 10.43.0.10 (kubernetes.default, google.com); dns-public = el-jefe.me via 1.1.1.1 / 8.8.8.8. Alert at 500 ms (dashed). dns-home / dns-homearpa = LAN resolvers from inside the LAN (home vantage).",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"

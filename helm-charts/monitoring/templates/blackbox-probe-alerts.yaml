@@ -137,3 +137,58 @@ spec:
       annotations:
         summary: "el-jefe.me does not resolve via {{ "{{" }} $labels.host {{ "}}" }}."
         description: "Public resolver {{ "{{" }} $labels.instance {{ "}}" }} has returned no A record for el-jefe.me for 5 minutes. Check the Cloudflare DNS zone."
+
+  - name: blackbox-home
+    rules:
+    - alert: LANPrimaryResolverFailed
+      expr: probe_success{job="dns-home", host="be88u-dnsmasq"} == 0
+      for: 2m
+      labels:
+        component: dns
+        probe_type: lan
+        severity: critical
+      annotations:
+        summary: "BE88U dnsmasq (192.168.50.1) is not resolving."
+        description: "Primary LAN resolver has failed el-jefe.me lookups for 2 minutes from inside the LAN. Every .50 client and CoreDNS forwarding depend on it."
+
+    - alert: LANSecondaryResolverFailed
+      expr: probe_success{job="dns-home", host!="be88u-dnsmasq"} == 0
+      for: 5m
+      labels:
+        component: dns
+        probe_type: lan
+        severity: warning
+      annotations:
+        summary: "LAN resolver {{ "{{" }} $labels.host {{ "}}" }} is not resolving."
+        description: "{{ "{{" }} $labels.instance {{ "}}" }} has failed el-jefe.me lookups for 5 minutes. Nobody notices because .1 carries the load -- this is the Sep 2026 dead-unbound case. ax86u: check S61unbound; asustor: blocky container."
+
+    - alert: HomeArpaResolutionFailed
+      expr: probe_success{job="dns-homearpa"} == 0
+      for: 5m
+      labels:
+        component: dns
+        probe_type: lan
+        severity: warning
+      annotations:
+        summary: "{{ "{{" }} $labels.host {{ "}}" }} no longer resolves grafana.home.arpa."
+        description: "External lookups may still work; the home.arpa override was lost (unbound_manager sync wipes the appended server block; blocky customDNS is a hand-synced copy)."
+
+    - alert: LANHostUnreachable
+      expr: probe_success{job="icmp-lan"} == 0
+      for: 5m
+      labels:
+        component: lan
+        severity: warning
+      annotations:
+        summary: "{{ "{{" }} $labels.host {{ "}}" }} does not answer ICMP on the LAN."
+        description: "No ICMP reply from {{ "{{" }} $labels.instance {{ "}}" }} for 5 minutes, probed from a server node."
+
+    - alert: BlackboxExporterHomeDown
+      expr: up{job="blackbox-exporter-home"} == 0
+      for: 5m
+      labels:
+        component: monitoring
+        severity: warning
+      annotations:
+        summary: "Home blackbox exporter is not responding."
+        description: "LAN resolver and LAN ICMP probes are not running."

@@ -1,0 +1,114 @@
+# Second blackbox vantage point: INSIDE the home LAN. The VPS instance
+# (blackbox-exporter.yaml) cannot reach 192.168.50.0/24 (no route from the VPS
+# pod network; verified 2026-11-05), so the LAN resolvers -- the ones whose
+# secondary sat dead for 11 days in Sept 2026 -- were unmonitored. This pod
+# shares the module ConfigMap; Probes pick the vantage by prober.url.
+# Servers only (control-plane label), same convention as garage: keeps it off
+# the VPS, the laptop and the GPU nodes without picking between the servers.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blackbox-exporter-home
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    release: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blackbox-exporter-home
+  template:
+    metadata:
+      labels:
+        app: blackbox-exporter-home
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/blackbox-exporter-configmap.yaml") . | sha256sum }}
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      containers:
+      - name: blackbox-exporter
+        image: prom/blackbox-exporter:v0.25.0
+        args:
+          - --config.file=/etc/blackbox/blackbox.yml
+          - --log.level=info
+        ports:
+        - containerPort: 9115
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        volumeMounts:
+        - name: config
+          mountPath: /etc/blackbox
+          readOnly: true
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+      volumes:
+      - name: config
+        configMap:
+          name: blackbox-exporter-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blackbox-exporter-home
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    release: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9115
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: blackbox-exporter-home
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: blackbox-exporter-home
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    release: {{ .Release.Name }}
+spec:
+  endpoints:
+  - interval: 30s
+    path: /metrics
+    port: http
+  selector:
+    matchLabels:
+      app: blackbox-exporter-home

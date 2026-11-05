@@ -1,0 +1,111 @@
+# Probes run from INSIDE the home LAN (prober = blackbox-exporter-home, on a
+# server node). Added 2026-11-05. Every target here is unreachable from the
+# VPS instance. Label vantage=home distinguishes them from the VPS probes.
+#
+# Resolver roles (reference_lan_dns_architecture_home_arpa): .1 BE88U dnsmasq
+# = primary + home.arpa authority; .103 AX86U Pro unbound = DELIBERATE
+# secondary (was dead Sep 4-15 2026 unnoticed); .142 ASUSTOR blocky = third.
+# Synology is probed at .109, the address on-prem NFS clients use.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: dns-home-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    probe-type: dns
+    release: {{ .Release.Name }}
+spec:
+  jobName: dns-home
+  module: dns_eljefe
+  interval: 30s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter-home.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 192.168.50.1:53
+        - 192.168.50.103:53
+        - 192.168.50.142:53
+      labels:
+        probe_target: lan-resolver
+        probe_type: dns_home
+        vantage: home
+      relabelingConfigs:
+        - {sourceLabels: [instance], regex: '192\.168\.50\.1:53',   targetLabel: host, replacement: be88u-dnsmasq}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.103:53', targetLabel: host, replacement: ax86u-unbound}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.142:53', targetLabel: host, replacement: asustor-blocky}
+---
+# Same three resolvers, LAN-internal name. Catches a lost home.arpa override
+# (unbound_manager sync, blocky customDNS drift) even while external lookups
+# still work.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: dns-homearpa-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    probe-type: dns
+    release: {{ .Release.Name }}
+spec:
+  jobName: dns-homearpa
+  module: dns_homearpa
+  interval: 60s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter-home.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 192.168.50.1:53
+        - 192.168.50.103:53
+        - 192.168.50.142:53
+      labels:
+        probe_target: lan-resolver
+        probe_type: dns_homearpa
+        vantage: home
+      relabelingConfigs:
+        - {sourceLabels: [instance], regex: '192\.168\.50\.1:53',   targetLabel: host, replacement: be88u-dnsmasq}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.103:53', targetLabel: host, replacement: ax86u-unbound}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.142:53', targetLabel: host, replacement: asustor-blocky}
+---
+# LAN addresses of the infrastructure. be88u answers here (it does not on its
+# Tailscale IP). MoCA adapters (192.168.100.x) are on the OMR/T-Mobile side
+# and are deliberately NOT probed from the homelab.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: icmp-lan-probe
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: blackbox-exporter-home
+    probe-type: icmp
+    release: {{ .Release.Name }}
+spec:
+  jobName: icmp-lan
+  module: icmp
+  interval: 30s
+  scrapeTimeout: 10s
+  prober:
+    url: blackbox-exporter-home.{{ .Release.Namespace }}.svc.cluster.local:9115
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - 192.168.50.1       # be88u
+        - 192.168.50.103     # ax86u
+        - 192.168.50.142     # asustor
+        - 192.168.50.109     # synology (NFS address)
+      labels:
+        probe_type: icmp
+        tier: lan
+        vantage: home
+      relabelingConfigs:
+        - {sourceLabels: [instance], regex: '192\.168\.50\.1',   targetLabel: host, replacement: be88u}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.103', targetLabel: host, replacement: ax86u}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.142', targetLabel: host, replacement: asustor}
+        - {sourceLabels: [instance], regex: '192\.168\.50\.109', targetLabel: host, replacement: synology}

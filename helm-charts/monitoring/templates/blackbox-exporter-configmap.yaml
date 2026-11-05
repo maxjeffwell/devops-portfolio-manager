@@ -58,6 +58,25 @@ data:
             fail_if_not_matches_regexp:
               - "el-jefe\\.me\\.\\t.*\\tIN\\tA\\t.*"
 
+      # LAN-internal zone. grafana.home.arpa is served from the BE88U hosts
+      # file (addn-hosts), forwarded by unbound (.103) and copied into blocky
+      # (.142). A NOERROR with no A record (the dnsmasq AAAA/NXDOMAIN trap, or
+      # a resolver that lost its home.arpa override) must FAIL, hence the RR
+      # match. Used only from the home vantage (blackbox-exporter-home).
+      dns_homearpa:
+        prober: dns
+        timeout: 5s
+        dns:
+          query_name: "grafana.home.arpa"
+          query_type: "A"
+          transport_protocol: "udp"
+          preferred_ip_protocol: "ip4"
+          valid_rcodes:
+            - NOERROR
+          validate_answer_rrs:
+            fail_if_not_matches_regexp:
+              - "grafana\\.home\\.arpa\\.\\t.*\\tIN\\tA\\t192\\.168\\.50\\..*"
+
       # --- HTTP ------------------------------------------------------------
       # Pages that must answer 2xx to an anonymous GET. Redirects are followed
       # (www -> apex is a 301). fail_if_not_ssl: an http:// answer is a failure.
