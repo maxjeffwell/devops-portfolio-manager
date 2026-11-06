@@ -33,7 +33,7 @@ data:
           "title": "GPU state",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "gridPos": {
             "x": 0,
@@ -46,7 +46,7 @@ data:
               "refId": "A",
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "mimir"
               },
               "expr": "max by (node) (hw_status{namespace=\"intel-xpumd\",node=~\"$node\",hw_type=\"gpu\",hw_state!=\"ok\"})",
               "legendFormat": "{{node}}"
@@ -104,7 +104,7 @@ data:
           "title": "xpumd exporters up",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "gridPos": {
             "x": 12,
@@ -117,7 +117,7 @@ data:
               "refId": "A",
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "mimir"
               },
               "expr": "up{namespace=\"intel-xpumd\",node=~\"$node\"}",
               "legendFormat": "{{node}}"
@@ -175,7 +175,7 @@ data:
           "title": "Engine utilization (QSV encode/decode, render = OpenVINO/compute)",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "gridPos": {
             "x": 0,
@@ -188,7 +188,7 @@ data:
               "refId": "A",
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "mimir"
               },
               "expr": "max by (node, hw_gpu_task) (hw_gpu_utilization_ratio{namespace=\"intel-xpumd\",node=~\"$node\"})",
               "legendFormat": "{{node}} {{hw_gpu_task}}"
@@ -222,7 +222,7 @@ data:
           "title": "GPU frequency",
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "mimir"
           },
           "gridPos": {
             "x": 0,
@@ -235,7 +235,7 @@ data:
               "refId": "A",
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "mimir"
               },
               "expr": "max by (node) (hw_frequency_hertz{namespace=\"intel-xpumd\",node=~\"$node\",aggregation=\"avg\"})",
               "legendFormat": "{{node}}"
@@ -266,8 +266,8 @@ data:
           "type": "timeseries",
           "title": "Tdarr CPU vs QSV encode (fallback check)",
           "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
+            "type": "datasource",
+            "uid": "-- Mixed --"
           },
           "gridPos": {
             "x": 12,
@@ -289,7 +289,7 @@ data:
               "refId": "B",
               "datasource": {
                 "type": "prometheus",
-                "uid": "prometheus"
+                "uid": "mimir"
               },
               "expr": "sum by (node) (hw_gpu_utilization_ratio{namespace=\"intel-xpumd\",node=~\"$node\",hw_gpu_task=~\"media-encode.*\"})",
               "legendFormat": "{{node}} QSV encode (ratio)"
@@ -323,7 +323,7 @@ data:
             "type": "query",
             "datasource": {
               "type": "prometheus",
-              "uid": "prometheus"
+              "uid": "mimir"
             },
             "query": {
               "query": "label_values(up{namespace=\"intel-xpumd\"}, node)",
