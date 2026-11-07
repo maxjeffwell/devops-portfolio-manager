@@ -50,6 +50,16 @@ deschedulerPolicy:
             includedTaints:
               - gpu-priority=true
               - role=edge
+            # 2026-11-07: Velero 1.18 fs-backup runs each PodVolumeBackup in a
+            # short-lived hosting pod pinned (spec.nodeName) to the node of the
+            # source pod, with no tolerations. nodeFit ignores nodeName, so this
+            # rule evicted one on neonmarmoset 2 s after start; the node-agent
+            # never noticed and waited out the 4 h timeout (daily-backup
+            # 20261107 PartiallyFailed, vaultwarden volumes skipped). Any PVC pod
+            # on dm/neon/VPS is exposed, so exclude the namespace.
+            namespaces:
+              exclude:
+                - velero
       plugins:
         deschedule:
           enabled:
