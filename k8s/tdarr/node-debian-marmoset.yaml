@@ -25,7 +25,7 @@ spec:
         - {name: igpu, resourceClaimTemplateName: igpu}
       containers:
         - name: tdarr-node
-          image: ghcr.io/haveagitgat/tdarr_node:2.94.03
+          image: ghcr.io/haveagitgat/tdarr_node:3.06.00
           env:
             - {name: TZ, value: America/New_York}
             - {name: PUID, value: "999"}
