@@ -1,0 +1,25 @@
+# Shared CrowdSec ban API for the whole homelab (2026-11-09).
+# The in-cluster LAPI (helm-charts/monitoring crowdsec-lapi) is the single decision store:
+#   - agents: crowdsec-log-processor (VPS Traefik logs) + the ASUSTOR CrowdSec container
+#     (router syslog + VPS sshd via Loki), registered as machines
+#   - bouncers: Traefik plugin (ClusterIP), VPS host nftables bouncer (ClusterIP, it is a k3s node),
+#     BE88U router + Synology firewall bouncers (this NodePort on a home node's LAN IP)
+# LAN reachability only: the VPS restricts NodePorts to wg0/tailnet (kube-proxy nodeport-addresses),
+# and every client authenticates with its own machine password or bouncer key.
+apiVersion: v1
+kind: Service
+metadata:
+  name: crowdsec-lapi-lan
+  namespace: monitoring
+  labels:
+    app: crowdsec-lapi
+spec:
+  type: NodePort
+  selector:
+    app: crowdsec-lapi
+  ports:
+    - name: lapi
+      port: 8080
+      targetPort: 8080
+      nodePort: 30808
+      protocol: TCP
