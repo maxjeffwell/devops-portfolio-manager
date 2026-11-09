@@ -12,11 +12,9 @@ spec:
         matchLabels:
           app: cloudflared-ai-gateway
     ports:
-    # 8003 = gateway public listener (key required); shared-ai-gateway-service targets it.
-    # 8002 kept until the tunnel path is verified on 8003, then drop it.
+    # 8003 = gateway public listener (client key required); shared-ai-gateway-service targets it.
+    # cloudflared has no business on the internal port 8002.
     - port: 8003
-      protocol: TCP
-    - port: 8002
       protocol: TCP
   podSelector:
     matchLabels:
