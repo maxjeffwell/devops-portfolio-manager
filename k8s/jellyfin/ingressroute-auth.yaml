@@ -14,6 +14,10 @@ spec:
     - match: Host(`jellyfin-k8s.el-jefe.me`) && (PathPrefix(`/Users/AuthenticateByName`) || PathPrefix(`/Users/Public`))
       kind: Rule
       middlewares:
+        # CrowdSec first: this route REPLACES the standard Ingress's middleware chain for the
+        # login paths, so without it the brute-force target was the one path CrowdSec skipped.
+        - name: crowdsec-bouncer
+          namespace: kube-system
         - name: jellyfin-ratelimit
       services:
         - name: jellyfin
