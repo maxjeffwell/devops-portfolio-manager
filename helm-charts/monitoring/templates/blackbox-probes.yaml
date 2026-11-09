@@ -99,7 +99,7 @@ spec:
         - https://vaultwarden.el-jefe.me
         - https://immich.el-jefe.me
         - https://gotify.el-jefe.me
-        - https://ai-gateway.el-jefe.me
+        - https://ai-gateway.el-jefe.me/livez   # / needs a client key since 2026-11-09
         - https://goldpinger.el-jefe.me
         - https://headscale.el-jefe.me/health
         - https://influxdb.el-jefe.me/health
