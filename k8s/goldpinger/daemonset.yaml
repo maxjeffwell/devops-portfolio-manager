@@ -115,6 +115,9 @@ spec:
               cpu: 10m
               # 2026-10-21: 40Mi -> 64Mi (7-day p95 58Mi)
               memory: 64Mi
+            # 2026-11-10: CPU limit dropped. On the VPS the 200m quota was
+            # throttling the prober itself (4 of 63 periods in a 30 s
+            # sample), inflating the peer latency it reports and feeding
+            # GoldpingerPeerSlow. The request still sets its CPU share.
             limits:
-              cpu: 200m
               memory: 128Mi

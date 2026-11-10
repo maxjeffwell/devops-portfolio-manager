@@ -53,8 +53,10 @@ spec:
           requests:
             cpu: 10m
             memory: 32Mi
+          # 2026-11-10: CPU limit dropped. The 200m quota throttled 20 of
+          # 157 periods in a 30 s sample (~62,800 s lost since 11/5) and
+          # caused readiness-probe timeouts. Request unchanged.
           limits:
-            cpu: 200m
             memory: 128Mi
         # 2026-10-07: separate checks. Readiness (/-/ready) pulls the pod from
         # the Service quickly; liveness (/-/healthy, process alive) is more
