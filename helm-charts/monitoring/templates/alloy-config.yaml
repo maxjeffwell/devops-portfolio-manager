@@ -438,9 +438,23 @@ data:
       role = "pod"
     }
 
+    // Stamp each profile with the node it was collected on. Without this the
+    // eBPF profiles carry only service_name (ebpf/<ns>/<container>), so a
+    // DaemonSet's CPU on one node cannot be told apart from another's.
+    // service_name is left to pyroscope.ebpf's default, which reads the
+    // __meta_* labels that pass through this relabel unchanged.
+    discovery.relabel "local_pods_profiles" {
+      targets = discovery.kubernetes.local_pods.targets
+
+      rule {
+        source_labels = ["__meta_kubernetes_pod_node_name"]
+        target_label  = "node"
+      }
+    }
+
     pyroscope.ebpf "instance" {
       forward_to = [pyroscope.write.endpoint.receiver]
-      targets    = discovery.kubernetes.local_pods.targets
+      targets    = discovery.relabel.local_pods_profiles.output
     }
 
     pyroscope.write "endpoint" {
