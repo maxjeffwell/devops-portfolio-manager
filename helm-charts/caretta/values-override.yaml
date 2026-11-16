@@ -92,7 +92,10 @@ victoria-metrics-single:
         cpu: 50m
         memory: 256Mi
       limits:
-        cpu: 300m
+        # 2026-11-16: cpu limit 300m -> 500m. 7-day avg 38m / p95 51m, but the
+        # peak sat exactly on the 300m ceiling and 9.5% of CFS periods were
+        # throttled. Request unchanged.
+        cpu: 500m
         memory: 512Mi
 
 grafana:
