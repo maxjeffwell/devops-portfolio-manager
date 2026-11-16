@@ -169,6 +169,48 @@ patches:
                     cpu: 50m
                     memory: 192Mi
 
+  # ── dex + notifications resources (2026-11-16) ──────────────────────────
+  # Both were on the namespace LimitRange default (64Mi) while using more:
+  #   dex            7d avg 56Mi, p95 97Mi, 30d max 105Mi  -> 128Mi
+  #   notifications  7d avg 61Mi, p95 64Mi, 30d max 73Mi   -> 96Mi
+  # CPU stays at the default 10m (both use ~1m or less). Request only, no
+  # limit, like argocd-server. Checked the same day and left on the default:
+  # applicationset-controller (30d max 47Mi) and redis (30d max 14Mi).
+  - target:
+      kind: Deployment
+      name: argocd-dex-server
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-dex-server
+      spec:
+        template:
+          spec:
+            containers:
+              - name: dex
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 128Mi
+  - target:
+      kind: Deployment
+      name: argocd-notifications-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-notifications-controller
+      spec:
+        template:
+          spec:
+            containers:
+              - name: argocd-notifications-controller
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 96Mi
+
   # ── Two copies of the stateless parts (2026-10-07) ─────────────────────
   # Until now every component was one pod and all seven sat on m920s: a drain
   # or crash of that node took the UI, CLI and manifest rendering down with it.
