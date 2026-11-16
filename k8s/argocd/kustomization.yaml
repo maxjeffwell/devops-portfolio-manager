@@ -135,7 +135,7 @@ patches:
                     # reconcile bursts ran above the old request.
                     cpu: 200m
                     # 2026-11-16: memory 1Gi -> 1280Mi. 7d avg 941Mi, p95 1084Mi,
-                    # 7d/30d max 1241/1256Mi: it ran above the old request ~5% of
+                    # 7d/30d max 1241/1256Mi: it ran above the old request 12% of
                     # the time. Limit and GOMEMLIMIT unchanged.
                     memory: 1280Mi
                   limits:
