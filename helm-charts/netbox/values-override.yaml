@@ -73,10 +73,12 @@ extraEnvs:
   - name: AWS_RESPONSE_CHECKSUM_VALIDATION
     value: when_required
 resourcesPreset: "none"
+# 2026-11-16: memory request 768Mi -> 896Mi (7-day working set 815-828Mi, flat;
+# the pod ran above its request permanently). Limit unchanged.
 resources:
   requests:
     cpu: 100m
-    memory: 768Mi
+    memory: 896Mi
   limits:
     memory: 1536Mi
 
@@ -155,10 +157,11 @@ worker:
     - name: AWS_RESPONSE_CHECKSUM_VALIDATION
       value: when_required
   resourcesPreset: "none"
+  # 2026-11-16: memory request 256Mi -> 320Mi (7-day working set 275-280Mi, flat).
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 320Mi
     limits:
       memory: 768Mi
   affinity:

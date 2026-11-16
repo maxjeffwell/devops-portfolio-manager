@@ -541,22 +541,25 @@ kube-prometheus-stack:
 
     # Resource limits
     # 2026-10-09: cpu request 100m -> 25m (7-day per-pod p95 5m, max 9m); limit unchanged (500m).
+    # 2026-11-16: memory request 128Mi -> 256Mi (7-day avg 151-158Mi, p95 172Mi, max 212Mi).
     resources:
       requests:
         cpu: 25m
-        memory: 128Mi
+        memory: 256Mi
       limits:
         cpu: 500m
         memory: 512Mi
 
     # Grafana sidecar resources (required by monitoring-quota)
+    # 2026-11-16: memory 64Mi/128Mi -> 128Mi/192Mi (both sidecars sit flat at 89-94Mi,
+    # above the old request and at >70 % of the old limit).
     sidecar:
       resources:
         requests:
           cpu: 10m
-          memory: 64Mi
-        limits:
           memory: 128Mi
+        limits:
+          memory: 192Mi
       datasources:
         enabled: true
         defaultDatasourceEnabled: false
