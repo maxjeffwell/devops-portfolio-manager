@@ -15,7 +15,7 @@ strategy:
 image:
   client:
     repository: maxjeffwell/firebook
-    tag: 20261109-161849-c9b1cdc
+    tag: 20261120-063534-c9551a5
     pullPolicy: Always
 
 service:
