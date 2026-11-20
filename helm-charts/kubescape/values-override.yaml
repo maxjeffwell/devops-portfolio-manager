@@ -1,0 +1,63 @@
+# Overrides for the upstream kubescape-operator chart (1.42.0).
+#
+# Why (2026-11-20, user decision): continuous image-vulnerability and
+# configuration scanning, and stored results for the `kubescape` MCP server.
+# SCANNING ONLY. Deliberately off:
+#   - the node agent (privileged eBPF DaemonSet on every node): runtime
+#     observability, relevancy, network-policy/seccomp/profile services, HTTP
+#     detection, node scan, node SBOM generation. Heat and idle power matter on
+#     dm/neon/marmoset and two eBPF agents already run per node (Caretta, Alloy).
+#   - the admission controller (a webhook in the API write path).
+#   - any Kubescape cloud account: no `account`/`server`, nothing leaves the
+#     cluster except image pulls and the vulnerability-DB download.
+# What it installs: operator, kubescape (config scan), kubevuln (image scan),
+# storage (aggregated API spdx.softwarecomposition.kubescape.io + one 5Gi PVC),
+# and two daily scheduler CronJobs. No DaemonSet, no webhook.
+clusterName: homelab-k3s
+
+capabilities:
+  configurationScan: enable
+  vulnerabilityScan: enable
+  continuousScan: disable
+  nodeScan: disable
+  nodeSbomGeneration: disable
+  relevancy: disable
+  runtimeObservability: disable
+  networkPolicyService: disable
+  networkEventsStreaming: disable
+  nodeProfileService: disable
+  admissionController: disable
+  httpDetection: disable
+  seccompProfileService: disable
+  runtimeDetection: disable
+  malwareDetection: disable
+
+global:
+  # Least privilege: with this false the chart grants no cluster-wide Secret
+  # read (only a Role inside the kubescape namespace). Every image in the
+  # cluster pulled anonymously in the 2026-11-19 CLI scan, so pull secrets are
+  # not needed. Flip to true only if a private image must be scanned.
+  enableClusterWideSecretAccess: false
+
+persistence:
+  # NVMe is scarce: scan results go on the SATA pools.
+  storageClass: mayastor-sata-thin
+
+# Servers only (dm/neon are GPU nodes, marmoset is the laptop, the VPS is the
+# edge), preferring m920s for the bursty scanners (homelab/cpu-tier=high).
+customScheduling:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [elitedesk, m720q, m920s]
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 80
+          preference:
+            matchExpressions:
+              - key: homelab/cpu-tier
+                operator: In
+                values: [high]

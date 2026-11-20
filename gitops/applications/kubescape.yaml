@@ -1,0 +1,43 @@
+---
+# Kubescape operator, SCANNING ONLY (image vulnerabilities + configuration);
+# no node agent, no admission webhook, no cloud account. Added 2026-11-20
+# (user decision). Values and the reasoning for what is switched off:
+# helm-charts/kubescape/values-override.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubescape
+  namespace: argocd
+  labels:
+    app: kubescape
+    infrastructure: "true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://kubescape.github.io/helm-charts/
+      chart: kubescape-operator
+      targetRevision: 1.42.0
+      helm:
+        valueFiles:
+          - $values/helm-charts/kubescape/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubescape
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
