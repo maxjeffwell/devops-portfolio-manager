@@ -7,10 +7,14 @@ env:
   # cannot be a sub-path. Passkeys are bound to this host name.
   OPENTODO_BASE_URL: https://todo.el-jefe.me
   OPENTODO_ALLOW_SIGNUP: "false"
-  # Requests arrive Cloudflare -> Traefik -> pod. Both hops are named so the
-  # app sees the visitor's address rather than a Cloudflare one. Setting this
-  # replaces the default (private ranges only), hence both keywords.
-  OPENTODO_TRUSTED_PROXIES: "private, cloudflare"
+  # Whose forwarded headers to believe. Requests arrive Cloudflare -> Traefik
+  # -> pod, so exactly those two hops are listed: the cluster pod network
+  # (Traefik connects from its pod address) and Cloudflare's ranges. The app's
+  # default trusts every private range, which is wider than anything that
+  # should be talking to it. If this list ever stops matching Traefik, the app
+  # ignores X-Forwarded-Proto, believes the request came over plain HTTP and
+  # refuses sign-in: widen it here, do not remove it.
+  OPENTODO_TRUSTED_PROXIES: "10.42.0.0/16, cloudflare"
   # A consistent copy of the database (SQLite VACUUM INTO) written into
   # /data/backups every night at 01:00 UTC, an hour before Velero's daily
   # volume copy to Garage at 02:00 UTC. Velero copies files from a live volume;

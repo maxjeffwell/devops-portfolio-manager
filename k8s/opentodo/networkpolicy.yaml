@@ -23,14 +23,11 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
-    # Health probes from the monitoring namespace (/healthz), if added later
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: monitoring
-      ports:
-        - port: 8080
-          protocol: TCP
+    # Nothing else may connect. In particular there is no rule for the
+    # monitoring namespace: nothing scrapes this app, and every pod allowed in
+    # is a pod whose forwarded headers the app would believe (see
+    # OPENTODO_TRUSTED_PROXIES in helm-charts/opentodo/values-override.yaml).
+    # Probe it through its public address instead.
   egress:
     # DNS
     - to:
@@ -44,7 +41,13 @@ spec:
           protocol: TCP
     # Outbound HTTPS: web push delivery to browser push services, map tiles and
     # place search (fetched by the server on the client's behalf), and the
-    # update check. Private ranges are excluded.
+    # update check. The app fetches URLs a user gives it (webhooks, calendar
+    # feeds), so everything that is not the public internet is excluded:
+    #   10/8, 172.16/12, 192.168/16   pods, services, the home LAN
+    #   100.64/10                     the tailnet: every node, router and NAS
+    #   169.254/16                    link-local
+    # Destinations cannot be narrowed to named hosts: NetworkPolicy matches
+    # addresses only, and the push services publish no stable ranges.
     #
     # Not allowed, because not used: SMTP, IMAP, and S3 or WebDAV backup
     # targets inside the home network (Garage included). Turning any of those
@@ -56,6 +59,8 @@ spec:
               - 10.0.0.0/8
               - 172.16.0.0/12
               - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
       ports:
         - port: 443
           protocol: TCP
