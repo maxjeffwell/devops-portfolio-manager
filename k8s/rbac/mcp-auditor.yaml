@@ -48,6 +48,11 @@ rules:
 - apiGroups: ["policy"]
   resources: ["poddisruptionbudgets"]
   verbs: ["get", "list", "watch"]
+# Scan results stored by the Kubescape operator (vulnerability manifests,
+# SBOMs, configuration scans). Read-only, like everything else here.
+- apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
