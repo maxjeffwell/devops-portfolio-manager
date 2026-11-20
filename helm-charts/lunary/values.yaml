@@ -13,11 +13,11 @@ strategy:
 image:
   backend:
     repository: maxjeffwell/lunary-backend
-    tag: 20261120-074950-961a588
+    tag: 20261120-080224-02e175d
     pullPolicy: Always
   frontend:
     repository: maxjeffwell/lunary-frontend
-    tag: 20261120-074950-961a588
+    tag: 20261120-080224-02e175d
     pullPolicy: Always
 
 imagePullSecrets: []
