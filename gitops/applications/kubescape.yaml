@@ -28,6 +28,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: kubescape
+  # The storage pod's init container writes the CA into the APIService at
+  # runtime (certificates.strategy: initContainer); never diff or revert it.
+  ignoreDifferences:
+    - group: apiregistration.k8s.io
+      kind: APIService
+      name: v1beta1.spdx.softwarecomposition.kubescape.io
+      jsonPointers:
+        - /spec/caBundle
   syncPolicy:
     automated:
       prune: true
@@ -35,6 +43,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 5
       backoff:

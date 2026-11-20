@@ -32,6 +32,13 @@ capabilities:
   runtimeDetection: disable
   malwareDetection: disable
 
+# ArgoCD-safe certificates. The default ("template") generates a new random CA
+# on every render, so ArgoCD saw the APIService caBundle as permanently
+# OutOfSync and selfHeal could swap in a CA that no longer matches the storage
+# pod's certificate. "initContainer" generates them at runtime instead.
+certificates:
+  strategy: initContainer
+
 global:
   # Least privilege: with this false the chart grants no cluster-wide Secret
   # read (only a Role inside the kubescape namespace). Every image in the
