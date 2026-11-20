@@ -34,7 +34,7 @@ spec:
       - name: dashboard
         # Use versioned tags for reproducible deployments
         # Update this tag when deploying new versions
-        image: maxjeffwell/devops-portfolio-dashboard:20261006-165932-85f728f
+        image: maxjeffwell/devops-portfolio-dashboard:20261120-074104-f95cf33
         imagePullPolicy: Always
         ports:
         - containerPort: 80
