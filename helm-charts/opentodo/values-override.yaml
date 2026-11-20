@@ -28,7 +28,7 @@ env:
 
 # The first visitor to a new server becomes its owner. On a public address that
 # claim is guarded by a token, entered once on the setup screen. It comes from
-# Doppler (k8s/opentodo/externalsecret.yaml) rather than the chart's generator:
+# Doppler (k8s/opentodo/opentodo-externalsecret.yaml) rather than the chart's generator:
 # ArgoCD cannot read the old Secret, so a generated token would change on every
 # sync. It has no effect once the owner account exists.
 setupToken:
