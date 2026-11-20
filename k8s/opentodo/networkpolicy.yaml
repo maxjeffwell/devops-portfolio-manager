@@ -1,0 +1,61 @@
+# Default-deny for the OpenTodo pod (same shape as k8s/vaultwarden).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: opentodo
+  namespace: opentodo
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: opentodo
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Traefik (ingress) → app :8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - port: 8080
+          protocol: TCP
+    # Health probes from the monitoring namespace (/healthz), if added later
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 8080
+          protocol: TCP
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Outbound HTTPS: web push delivery to browser push services, map tiles and
+    # place search (fetched by the server on the client's behalf), and the
+    # update check. Private ranges are excluded.
+    #
+    # Not allowed, because not used: SMTP, IMAP, and S3 or WebDAV backup
+    # targets inside the home network (Garage included). Turning any of those
+    # on in the app needs a matching rule here first.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - port: 443
+          protocol: TCP
