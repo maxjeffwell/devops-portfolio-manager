@@ -1,0 +1,76 @@
+# mcp-auditor: READ-ONLY identity for the Kubescape MCP server / CLI scans run
+# from the workstation (2026-11-19). The MCP server gets a kubeconfig holding
+# this token, never the admin kubeconfig: read-only is enforced here by RBAC,
+# not by any flag on the server.
+#
+# Grants: built-in `view` (namespaced reads, NO Secrets, NO RBAC objects) plus
+# mcp-auditor-cluster-read below for the cluster-scoped and RBAC objects an
+# audit has to see. No write verbs and no Secret access anywhere.
+# Revoke: delete the Secret (the controller issues a new token, the old stops).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-auditor
+  namespace: kube-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-auditor-token
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: mcp-auditor
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-auditor-cluster-read
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "namespaces", "persistentvolumes", "serviceaccounts"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["storage.k8s.io", "scheduling.k8s.io", "node.k8s.io", "apiregistration.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingressclasses", "networkpolicies", "ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-auditor-view
+subjects:
+- kind: ServiceAccount
+  name: mcp-auditor
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-auditor-cluster-read
+subjects:
+- kind: ServiceAccount
+  name: mcp-auditor
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mcp-auditor-cluster-read
