@@ -95,7 +95,10 @@ victoria-metrics-single:
         # 2026-11-16: cpu limit 300m -> 500m. 7-day avg 38m / p95 51m, but the
         # peak sat exactly on the 300m ceiling and 9.5% of CFS periods were
         # throttled. Request unchanged.
-        cpu: 500m
+        # 2026-11-19: 500m did not help (still ~10% of periods). VM sees 0.5
+        # cores and runs single-threaded; a busy thread outruns a 50 ms slice
+        # per 100 ms window. 1000m = a full window, so one thread cannot.
+        cpu: 1000m
         memory: 512Mi
 
 grafana:
