@@ -45,4 +45,33 @@ data:
                   1)
       - meta: xff_rewritten
         expression: evt.Unmarshaled.xff.ClientHost
+  s3-api-whitelist.yaml: |
+    # Stops scoring S3 API requests that Garage ACCEPTED.
+    #
+    # Why: crowdsecurity/http-crawl-non_statics bans an address that fetches
+    # more than 40 distinct non-static paths faster than 2 per second. That is
+    # exactly what an S3 client does when it syncs a folder: on 2026-11-20 an
+    # Obsidian vault sync of 59 notes got the home VPN exit address banned for
+    # 4 hours, which also cut off every other site behind the bouncer
+    # (todo.el-jefe.me among them).
+    #
+    # Scope, deliberately narrow:
+    #   - only the Garage S3 host and its per-bucket subdomains
+    #   - only 2xx answers. Garage has no anonymous access, so a 2xx means the
+    #     request carried a valid signature from a key holder.
+    # Everything else on this host is still scored: 403 (bad or missing
+    # signature), 404, and anything probing it without credentials.
+    #
+    # A whitelist in s02-enrich drops the event before any scenario sees it,
+    # so this applies to every scenario, not only the crawl one.
+    name: local/s3-api-whitelist
+    description: "Do not score S3 API requests that Garage accepted (2xx)"
+    whitelist:
+      reason: "authenticated S3 API request accepted by Garage"
+      expression:
+        - >-
+          evt.Meta.service == 'http'
+          && (evt.Meta.target_fqdn == '{{ .Values.garage.ingress.host }}'
+              || evt.Meta.target_fqdn endsWith '.{{ .Values.garage.ingress.host }}')
+          && evt.Meta.http_status startsWith '2'
 {{- end }}
