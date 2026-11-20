@@ -1,34 +1,42 @@
 # Overrides for the upstream kubescape-operator chart (1.42.0).
 #
-# Why (2026-11-20, user decision): continuous image-vulnerability and
-# configuration scanning, and stored results for the `kubescape` MCP server.
-# SCANNING ONLY. Deliberately off:
-#   - the node agent (privileged eBPF DaemonSet on every node): runtime
-#     observability, relevancy, network-policy/seccomp/profile services, HTTP
-#     detection, node scan, node SBOM generation. Heat and idle power matter on
-#     dm/neon/marmoset and two eBPF agents already run per node (Caretta, Alloy).
+# Why (2026-11-20, user decisions): continuous image-vulnerability and
+# configuration scanning, stored results for the `kubescape` MCP server, and
+# (second decision, same day) the runtime NODE AGENT ON THE THREE SERVERS ONLY.
+#
+# Node agent = an eBPF DaemonSet (hostPID, SYS_ADMIN and friends, host / mounted
+# read-only). It gives relevancy (which CVEs sit in code that is actually
+# loaded), per-workload behaviour profiles, generated NetworkPolicies and
+# seccomp profiles, and host-level node scans. It is pinned to elitedesk, m720q
+# and m920s via nodeAgent.affinity below: NOT on dm/neon (GPU laptops whose idle
+# heat is tuned), NOT on marmoset (daily driver), NOT on the VPS edge.
+# NOTE: customScheduling does not apply to the DaemonSet; without
+# nodeAgent.affinity it would land on every untainted Linux node.
+#
+# Still deliberately off:
+#   - nodeSbomGeneration: the central scanner (kubevuln) keeps pulling and
+#     scanning images itself, so pods on the nodes WITHOUT an agent are covered.
+#   - runtimeDetection / malwareDetection / httpDetection / networkEventsStreaming:
+#     no alerting pipeline or cloud backend is configured for them.
 #   - the admission controller (a webhook in the API write path).
-#   - any Kubescape cloud account: no `account`/`server`, nothing leaves the
+#   - any Kubescape cloud account: no `account`/`server`; nothing leaves the
 #     cluster except image pulls and the vulnerability-DB download.
-# What it installs: operator, kubescape (config scan), kubevuln (image scan),
-# storage (aggregated API spdx.softwarecomposition.kubescape.io + one 5Gi PVC),
-# and two daily scheduler CronJobs. No DaemonSet, no webhook.
 clusterName: homelab-k3s
 
 capabilities:
   configurationScan: enable
   vulnerabilityScan: enable
   continuousScan: disable
-  nodeScan: disable
+  nodeScan: enable
   nodeSbomGeneration: disable
-  relevancy: disable
-  runtimeObservability: disable
-  networkPolicyService: disable
+  relevancy: enable
+  runtimeObservability: enable
+  networkPolicyService: enable
   networkEventsStreaming: disable
-  nodeProfileService: disable
+  nodeProfileService: enable
   admissionController: disable
   httpDetection: disable
-  seccompProfileService: disable
+  seccompProfileService: enable
   runtimeDetection: disable
   malwareDetection: disable
 
@@ -68,3 +76,17 @@ customScheduling:
               - key: homelab/cpu-tier
                 operator: In
                 values: [high]
+
+nodeAgent:
+  # Servers only. See the header for why.
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values: [linux]
+              - key: kubernetes.io/hostname
+                operator: In
+                values: [elitedesk, m720q, m920s]
