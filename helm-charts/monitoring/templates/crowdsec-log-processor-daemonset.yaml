@@ -66,6 +66,12 @@ spec:
         - name: acquis-config
           mountPath: /etc/crowdsec/parsers/s01-parse/00-traefik-xff-rightmost.yaml
           subPath: 00-traefik-xff-rightmost.yaml
+        # Local whitelist: accepted (2xx) S3 API requests to Garage are not
+        # scored. s02-enrich, because it reads the meta fields the s01 parser
+        # sets (target_fqdn, http_status). subPath for the same reason as above.
+        - name: acquis-config
+          mountPath: /etc/crowdsec/parsers/s02-enrich/s3-api-whitelist.yaml
+          subPath: s3-api-whitelist.yaml
         - name: traefik-logs
           mountPath: /var/log/traefik
           readOnly: true
