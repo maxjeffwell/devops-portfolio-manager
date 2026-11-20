@@ -1,0 +1,27 @@
+# OpenTodo's only state: the SQLite database, attachments, the push key and the
+# nightly backup archives, all under /data.
+#
+# mayastor-2-thin: two replicas on different servers, so the pod can move and a
+# server loss does not take the data with it; thin, so only written blocks use
+# pool space (a to-do list is a few MB). Worst case if it ever filled:
+# 5 GiB x 2 replicas on the internal pools.
+#
+# The storage class deletes the volume when its claim is deleted, so the claim
+# is fenced off from ArgoCD: it is never pruned if this file is removed, and it
+# is kept if the Application is deleted. Removing it is a deliberate
+# `kubectl delete pvc`.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: opentodo-data
+  namespace: opentodo
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: mayastor-2-thin
+  resources:
+    requests:
+      storage: 5Gi

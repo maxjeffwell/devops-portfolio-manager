@@ -1,0 +1,71 @@
+# OpenTodo values (chart: oci://ghcr.io/opentodoapp/charts/opentodo).
+# ArgoCD app: gitops/applications/opentodo.yaml. The image tag is not set here:
+# it follows the chart version pinned in that file.
+
+env:
+  # Must match the address in the browser exactly, or sign-in is refused. It
+  # cannot be a sub-path. Passkeys are bound to this host name.
+  OPENTODO_BASE_URL: https://todo.el-jefe.me
+  OPENTODO_ALLOW_SIGNUP: "false"
+  # Whose forwarded headers to believe. Requests arrive Cloudflare -> Traefik
+  # -> pod, so exactly those two hops are listed: the cluster pod network
+  # (Traefik connects from its pod address) and Cloudflare's ranges. The app's
+  # default trusts every private range, which is wider than anything that
+  # should be talking to it. If this list ever stops matching Traefik, the app
+  # ignores X-Forwarded-Proto, believes the request came over plain HTTP and
+  # refuses sign-in: widen it here, do not remove it.
+  OPENTODO_TRUSTED_PROXIES: "10.42.0.0/16, cloudflare"
+  # A consistent copy of the database (SQLite VACUUM INTO) written into
+  # /data/backups every night at 01:00 UTC, an hour before Velero's daily
+  # volume copy to Garage at 02:00 UTC. Velero copies files from a live volume;
+  # this guarantees each nightly copy contains a database that is not
+  # mid-write. These are presets: they apply once, on first start, and
+  # Settings > Server > Backups overrides them afterwards.
+  OPENTODO_BACKUP_DESTINATION: local
+  OPENTODO_BACKUP_SCHEDULE: daily
+  OPENTODO_BACKUP_TIME: "01:00"
+  OPENTODO_BACKUP_KEEP: "7"
+
+# The first visitor to a new server becomes its owner. On a public address that
+# claim is guarded by a token, entered once on the setup screen. It comes from
+# Doppler (k8s/opentodo/externalsecret.yaml) rather than the chart's generator:
+# ArgoCD cannot read the old Secret, so a generated token would change on every
+# sync. It has no effect once the owner account exists.
+setupToken:
+  generate: false
+  existingSecret: opentodo-setup-token
+  secretKey: setup-token
+
+# Declared in k8s/opentodo/pvc.yaml so it can carry its own deletion guards.
+persistence:
+  enabled: true
+  existingClaim: opentodo-data
+
+ingress:
+  enabled: true
+  className: traefik
+  host: todo.el-jefe.me
+  # Same as vaultwarden: Cloudflare-proxied, so the certificate is issued over
+  # DNS-01 (HTTP-01 is unreliable through the proxy), and CrowdSec in front.
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  tls:
+    - secretName: opentodo-tls
+      hosts:
+        - todo.el-jefe.me
+
+# Only nodes that can attach a Mayastor volume (same rule as vaultwarden). The
+# GPU workers match too, but their PreferNoSchedule taint keeps it on the
+# servers while they have room.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: openebs.io/engine
+              operator: In
+              values:
+                - mayastor

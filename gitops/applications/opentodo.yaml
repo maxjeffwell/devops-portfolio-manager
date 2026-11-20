@@ -1,0 +1,60 @@
+---
+# OpenTodo: self-hosted to-do list (https://open-todo.app). Added 2026-11-20.
+# One pod with SQLite on a Mayastor volume; it needs no database or cache.
+#
+# The chart is published to GHCR, an OCI registry: for those ArgoCD wants the
+# repoURL with no scheme and no oci:// prefix.
+#   values:              helm-charts/opentodo/values-override.yaml
+#   volume, setup-token
+#   secret, net policy:  k8s/opentodo
+#
+# Upgrading: bump targetRevision (chart version = app version). Migrations run
+# at startup and cannot be rolled back, so read the release notes first.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: opentodo
+  namespace: argocd
+  labels:
+    app: opentodo
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/opentodoapp/charts
+      chart: opentodo
+      targetRevision: 1.5.0
+      helm:
+        valueFiles:
+          - $values/helm-charts/opentodo/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      path: k8s/opentodo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: opentodo
+  ignoreDifferences:
+    # ESO injects defaults on every data entry — ignore to avoid permanent OutOfSync.
+    - group: external-secrets.io
+      kind: ExternalSecret
+      jqPathExpressions:
+        - .spec.data[].remoteRef.conversionStrategy
+        - .spec.data[].remoteRef.decodingStrategy
+        - .spec.data[].remoteRef.metadataPolicy
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
