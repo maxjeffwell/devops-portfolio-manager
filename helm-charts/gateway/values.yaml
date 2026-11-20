@@ -20,7 +20,7 @@ pdb:
 image:
   server:
     repository: maxjeffwell/graphql-gateway
-    tag: 20261120-162002-80b0e09
+    tag: 20261120-162755-a1f4380
     pullPolicy: Always
 
 service:
