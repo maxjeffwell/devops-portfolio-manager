@@ -1,0 +1,35 @@
+# The CSI snapshot-controller in kube-system (k8s/snapshot-controller =
+# vendored upstream + patches). Adopted from a hand-applied install on
+# 2026-11-21. The VolumeSnapshot CRDs are NOT in this app (see the
+# kustomization). No resources-finalizer: deleting this Application must not
+# remove the controller. selfHeal left unset (= off), like the argocd app.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snapshot-controller
+  namespace: argocd
+  labels:
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/snapshot-controller
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+      - ServerSideDiff=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,42 @@
+# cert-manager's install (k8s/cert-manager = vendored upstream + patches).
+# Adopted from a hand-applied install on 2026-11-21.
+#
+# No resources-finalizer on purpose: deleting THIS Application must never
+# cascade-delete cert-manager, its CRDs and with them every Certificate.
+# The CRDs and the namespace additionally carry Prune=false (set in the
+# kustomization). selfHeal is left unset (= off), like the argocd app: an
+# emergency `kubectl patch` stays in place and shows as OutOfSync.
+# Server-side apply is required (CRDs exceed the last-applied size limit) and
+# PruneLast keeps a bad render from pruning before replacements exist.
+# The ClusterIssuers are not part of this app (k8s/cert-manager/cluster-issuers.yaml
+# is a record of hand-applied objects).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+  labels:
+    infrastructure: "true"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+    targetRevision: main
+    path: k8s/cert-manager
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+      - ServerSideDiff=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

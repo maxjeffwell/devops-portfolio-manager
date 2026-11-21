@@ -1,0 +1,117 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# cert-manager's install, under GitOps since 2026-11-21 (ArgoCD app
+# `cert-manager`, gitops/applications/cert-manager.yaml).
+#
+# install.yaml is the pristine upstream static manifest, vendored (not a remote
+# URL) because the ArgoCD repo-server blocks remote kustomize resources -- same
+# layout as k8s/argocd. Do NOT edit install.yaml; every local change is a patch
+# below so it survives re-vendoring.
+#   source: https://github.com/cert-manager/cert-manager/releases/download/v1.21.2/cert-manager.yaml
+#   version: v1.21.2
+#   sha256: e03b668ec8675214af6b0a671699d088f2601fa3878e0dbe1b41d3feafd1879f
+# Upgrade: replace install.yaml with the next release's cert-manager.yaml (one
+# minor at a time), update the three lines above, bump the acmesolver tag in the
+# args patch, `kubectl diff --server-side -k k8s/cert-manager`, commit.
+#
+# History: installed 2025-12 with `kubectl apply` of this manifest, upgraded the
+# same way through v1.21.2 on 2026-09-22. The leader-election flags, the DNS-01
+# resolver flags and the memory requests were live `kubectl patch`es that every
+# re-apply wiped; this overlay captured them from the cluster on 2026-11-21.
+#
+# cluster-issuers.yaml in this directory is NOT part of this kustomization: it
+# is a record of the hand-applied ClusterIssuers and is not synced.
+resources:
+  - install.yaml
+
+patches:
+  # ── Never prune the CRDs or the namespace ───────────────────────────────
+  # Deleting a cert-manager CRD deletes every Certificate/Issuer of that kind.
+  # If a future render ever drops one, ArgoCD must report it, not act on it.
+  - target:
+      kind: CustomResourceDefinition
+    patch: |-
+      - op: add
+        path: /metadata/annotations/argocd.argoproj.io~1sync-options
+        value: Prune=false
+  - target:
+      kind: Namespace
+      name: cert-manager
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: cert-manager
+        annotations:
+          argocd.argoproj.io/sync-options: Prune=false
+
+  # ── controller ──────────────────────────────────────────────────────────
+  # The args list is replaced as a whole (a strategic merge cannot append).
+  # First four = upstream v1.21.2 defaults; the rest are ours:
+  #   leader election 120s/90s (upstream 60s/40s): renewals timed out against
+  #     the slow datastore and crash-looped the pod.
+  #   dns01-recursive-nameservers over DoH: the LAN hijacks :53, so the plain
+  #     self-check never saw the TXT record and DNS-01 hung "not yet propagated"
+  #     (2026-11-09).
+  # Memory: request 128Mi (2026-09-30). Limit added 2026-11-21 as a runaway
+  # guard: 15d peak 86Mi, 144Mi seen in September.
+  - target:
+      kind: Deployment
+      name: cert-manager
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - --v=2
+          - --cluster-resource-namespace=$(POD_NAMESPACE)
+          - --leader-election-namespace=kube-system
+          - --acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:v1.21.2
+          - --max-concurrent-challenges=60
+          - --leader-election-lease-duration=120s
+          - --leader-election-renew-deadline=90s
+          - --dns01-recursive-nameservers-only
+          - --dns01-recursive-nameservers=https://1.1.1.1/dns-query
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: 128Mi
+          limits:
+            memory: 512Mi
+
+  # ── cainjector ──────────────────────────────────────────────────────────
+  # Same leader-election timings. Request 256Mi (2026-09-30); it spikes at
+  # start-up while it lists every Secret and CRD: 15d peak 198Mi, 242Mi seen.
+  - target:
+      kind: Deployment
+      name: cert-manager-cainjector
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value:
+          - --v=2
+          - --leader-election-namespace=kube-system
+          - --leader-election-lease-duration=120s
+          - --leader-election-renew-deadline=90s
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: 256Mi
+          limits:
+            memory: 768Mi
+
+  # ── webhook ─────────────────────────────────────────────────────────────
+  # Request 128Mi (2026-09-30). 15d peak 58Mi, 90Mi seen.
+  - target:
+      kind: Deployment
+      name: cert-manager-webhook
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: 128Mi
+          limits:
+            memory: 256Mi
