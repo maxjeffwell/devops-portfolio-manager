@@ -1125,6 +1125,13 @@ alloy:
         # restarts; otherwise every restart re-ingests all of /var/log/pods.
         - name: alloy-storage
           mountPath: /tmp/alloy
+        # The host's root, read-only, so prometheus.exporter.unix measures the
+        # host's filesystems (rootfs_path in alloy-config.yaml). HostToContainer
+        # keeps mounts made after the pod started visible.
+        - name: hostroot
+          mountPath: /host/root
+          readOnly: true
+          mountPropagation: HostToContainer
     extraPorts:
       - name: otlp-grpc
         port: 4317
@@ -1208,6 +1215,10 @@ alloy:
         effect: NoSchedule
     volumes:
       extra:
+        - name: hostroot
+          hostPath:
+            path: /
+            type: Directory
         - name: journal
           hostPath:
             path: /var/log/journal

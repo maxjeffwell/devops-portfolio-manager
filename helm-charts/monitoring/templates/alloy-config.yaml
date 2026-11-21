@@ -149,8 +149,21 @@ data:
     }
 
     // --- Host Metrics (unix exporter) ---
+    // `rootfs_path` is REQUIRED in a container. The mount list comes from the
+    // host (hostPID, /proc/1/mounts) but without it the sizes were read by
+    // calling statfs on the same path INSIDE the container, i.e. on the
+    // container's own overlay. Every node reported whatever volume holds
+    // containerd as its "/" (m720q showed 82% when its root was 23%), and no
+    // other host filesystem was reported at all. 2026-11-21.
+    // Pod volumes under /var/lib/kubelet are left out: they come and go with
+    // pods and kubelet_volume_stats_* already covers them.
     prometheus.exporter.unix "node" {
+      rootfs_path    = "/host/root"
       set_collectors = ["cpu", "diskstats", "filesystem", "hwmon", "loadavg", "meminfo", "netdev", "rapl", "uname"]
+
+      filesystem {
+        mount_points_exclude = "^/(dev|proc|run/credentials/.+|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)"
+      }
     }
 
     prometheus.scrape "node_metrics" {
