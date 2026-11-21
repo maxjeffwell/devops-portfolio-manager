@@ -8,13 +8,19 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: helm-viewer
+# Read-only since 2026-11-21. The API (Podrick) runs `helm list -A`, `helm get`
+# and `helm history`; Helm keeps releases in Secrets and RBAC cannot filter
+# Secrets by type, so cluster-wide Secret READ is unavoidable for this app.
+# update/patch/delete were removed together with the API's rollback route: they
+# let an internet-facing app (basic-auth only) rewrite any Secret or ConfigMap,
+# and the rollback could not patch Deployments with this role anyway.
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
-  verbs: ["get", "list", "watch", "update", "patch", "delete"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: [""]
   resources: ["configmaps"]
-  verbs: ["get", "list", "watch", "update", "patch", "delete"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: [""]
   resources: ["namespaces"]
   verbs: ["get", "list"]

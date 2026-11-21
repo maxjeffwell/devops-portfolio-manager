@@ -1115,6 +1115,43 @@ alloy:
   # (bookmarked's Faro 2.x failed every preflight on v1.18.1). 2026-10-06.
   image:
     tag: v1.20.1
+  # 2026-11-21: the chart's default rule list, minus `secrets`. The default lets
+  # Alloy get/list/watch every Secret in the cluster ("for remote.kubernetes.*"),
+  # and this DaemonSet runs with hostPID on every node, the VPS included. The
+  # config uses no remote.kubernetes.secret, so the access was unused.
+  # Helm replaces lists, so the WHOLE list is restated here: when bumping the
+  # alloy chart, diff this against its values.yaml `rbac.rules` for new entries.
+  # If a remote.kubernetes.secret is ever added, grant that one Secret with a
+  # namespaced Role, not by restoring the cluster-wide rule.
+  rbac:
+    rules:
+      - apiGroups: ["", "discovery.k8s.io", "networking.k8s.io"]
+        resources: ["endpoints", "endpointslices", "ingresses", "pods", "services"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: [""]
+        resources: ["pods", "pods/log", "namespaces"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["monitoring.grafana.com"]
+        resources: ["podlogs"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["monitoring.coreos.com"]
+        resources: ["prometheusrules"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["monitoring.coreos.com"]
+        resources: ["alertmanagerconfigs"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["monitoring.coreos.com"]
+        resources: ["podmonitors", "servicemonitors", "probes", "scrapeconfigs"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["apps", "extensions"]
+        resources: ["replicasets"]
+        verbs: ["get", "list", "watch"]
   alloy:
     clustering:
       enabled: true
