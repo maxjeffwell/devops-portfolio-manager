@@ -41,3 +41,6 @@ patches:
           requests:
             cpu: 10m
             memory: 96Mi
+          # 2026-11-21: memory limit as a runaway guard (15d peak 48Mi).
+          limits:
+            memory: 192Mi

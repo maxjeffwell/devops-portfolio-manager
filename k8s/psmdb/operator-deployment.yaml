@@ -99,6 +99,10 @@ spec:
             # request); half of the trim walked back.
             cpu: 200m
             memory: 128Mi
+          # 2026-11-21: memory limit as a runaway guard. 15d peak 125Mi, i.e.
+          # right at the request, so the limit is 4x that, not 3x.
+          limits:
+            memory: 512Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
       dnsPolicy: ClusterFirst

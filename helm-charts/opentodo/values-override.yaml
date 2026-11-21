@@ -69,3 +69,13 @@ affinity:
               operator: In
               values:
                 - mayastor
+
+# 2026-11-21: requests restated at the chart default the pod already ran on,
+# plus a memory limit as a runaway guard. 15d peak 62Mi; the limit is generous
+# on purpose (an app, sized for use, not for its idle footprint).
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 384Mi

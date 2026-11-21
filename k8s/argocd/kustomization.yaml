@@ -152,8 +152,10 @@ patches:
 
   # ── server resources ────────────────────────────────────────────────────
   # 2026-09-30: was running on the namespace LimitRange default (64Mi) while
-  # using 109Mi (15d peak 112Mi). Request only, no limit, like the rest of the
-  # namespace policy.
+  # using 109Mi (15d peak 112Mi).
+  # 2026-11-21: memory limit added (user decision after the Kubescape triage;
+  # until then this namespace was request-only). 15d peak 137Mi -> 512Mi.
+  # Limits here are a runaway guard at ~3x the observed peak, not a tight fit.
   - target:
       kind: Deployment
       name: argocd-server
@@ -171,14 +173,17 @@ patches:
                   requests:
                     cpu: 50m
                     memory: 192Mi
+                  limits:
+                    memory: 512Mi
 
   # ── dex + notifications resources (2026-11-16) ──────────────────────────
   # Both were on the namespace LimitRange default (64Mi) while using more:
   #   dex            7d avg 56Mi, p95 97Mi, 30d max 105Mi  -> 128Mi
   #   notifications  7d avg 61Mi, p95 64Mi, 30d max 73Mi   -> 96Mi
-  # CPU stays at the default 10m (both use ~1m or less). Request only, no
-  # limit, like argocd-server. Checked the same day and left on the default:
-  # applicationset-controller (30d max 47Mi) and redis (30d max 14Mi).
+  # CPU stays at the default 10m (both use ~1m or less).
+  # 2026-11-21: memory limits added, ~3x the 15d peak (dex 105Mi -> 384Mi,
+  # notifications 69Mi -> 256Mi). applicationset-controller and redis get their
+  # own patch below.
   - target:
       kind: Deployment
       name: argocd-dex-server
@@ -196,6 +201,8 @@ patches:
                   requests:
                     cpu: 10m
                     memory: 128Mi
+                  limits:
+                    memory: 384Mi
   - target:
       kind: Deployment
       name: argocd-notifications-controller
@@ -213,6 +220,52 @@ patches:
                   requests:
                     cpu: 10m
                     memory: 96Mi
+                  limits:
+                    memory: 256Mi
+
+  # ── applicationset-controller + redis memory limits (2026-11-21) ────────
+  # Requests are written out at the LimitRange default they already ran on
+  # (10m / 64Mi): a container with a limit and NO request gets request = limit,
+  # which would have raised both requests. 15d peaks: applicationset 48Mi,
+  # redis 30Mi (it was 14Mi on 11/16, so it gets extra room).
+  - target:
+      kind: Deployment
+      name: argocd-applicationset-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-applicationset-controller
+      spec:
+        template:
+          spec:
+            containers:
+              - name: argocd-applicationset-controller
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                  limits:
+                    memory: 192Mi
+  - target:
+      kind: Deployment
+      name: argocd-redis
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: argocd-redis
+      spec:
+        template:
+          spec:
+            containers:
+              - name: redis
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                  limits:
+                    memory: 256Mi
 
   # ── Two copies of the stateless parts (2026-10-07) ─────────────────────
   # Until now every component was one pod and all seven sat on m920s: a drain
