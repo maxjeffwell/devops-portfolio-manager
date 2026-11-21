@@ -32,7 +32,11 @@ jobs:
       - name: Fetch secrets from Doppler
         run: |
           echo "DOCKERHUB_USERNAME=$(doppler secrets get DOCKERHUB_USERNAME --plain)" >> $GITHUB_ENV
-          echo "DOCKERHUB_TOKEN=$(doppler secrets get DOCKERHUB_TOKEN --plain)" >> $GITHUB_ENV
+          # Values read from Doppler at run time are not repository secrets, so
+          # GitHub prints them in the log unless they are registered with add-mask.
+          dockerhub_token_value=$(doppler secrets get DOCKERHUB_TOKEN --plain)
+          echo "::add-mask::$dockerhub_token_value"
+          echo "DOCKERHUB_TOKEN=$dockerhub_token_value" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
