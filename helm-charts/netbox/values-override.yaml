@@ -277,3 +277,68 @@ extraDeploy:
       data:
         - secretKey: ca.crt
           remoteRef: {key: PG_HA_TLS_CA_CRT}
+  # Default-deny for every pod in the namespace (web, worker, any future job). Added 2026-11-21:
+  # NetBox now holds the full fleet inventory. A NEW dependency (webhook target, SMTP, LDAP, a
+  # plugin calling out, an in-cluster API client) needs a rule here. `kubectl port-forward`
+  # still works: it enters the pod's own network namespace.
+  - apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: netbox
+      namespace: netbox
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Ingress
+        - Egress
+      ingress:
+        # Traefik (ingress) -> web :8080
+        - from:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: traefik
+          ports:
+            - port: 8080
+              protocol: TCP
+      egress:
+        # DNS
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+          ports:
+            - port: 53
+              protocol: UDP
+            - port: 53
+              protocol: TCP
+        # Postgres -> Patroni HA VIP (HAProxy primary port)
+        - to:
+            - ipBlock:
+                cidr: 192.168.50.60/32
+          ports:
+            - port: 5000
+              protocol: TCP
+        # Redis HA (tasks DB 2, cache DB 3); the matching ingress rule is in
+        # k8s/network-policies/redis-ha.yaml
+        - to:
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: default
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/instance: redis-ha
+          ports:
+            - port: 6379
+              protocol: TCP
+        # Media storage: Garage through the public endpoint https://s3.el-jefe.me, which is the
+        # edge address. If the edge IP changes, change it here too. No other internet egress:
+        # release checks are off and nothing else calls out.
+        - to:
+            - ipBlock:
+                cidr: 31.220.98.70/32
+          ports:
+            - port: 443
+              protocol: TCP
