@@ -152,8 +152,23 @@ spec:
   - host: influxdb.el-jefe.me
     http:
       paths:
-      - path: /
-        pathType: Prefix
+      # 2026-11-21: only these two paths are public. Before, the whole server was
+      # routed: the API needs a token, but /metrics (bucket IDs, shard paths,
+      # client user agents, version) and the login UI answered anyone.
+      #   /api/v2/write = BE88U cron wireguard_to_influxdb.sh (token auth)
+      #   /health       = outside-in blackbox probe
+      # Everything else on this host is now a Traefik 404. The UI is reached over
+      # the tailnet through Service influxdb-tailnet below; in-cluster clients
+      # (analytics-service, Grafana, backup CronJobs) use the ClusterIP Service.
+      - path: /api/v2/write
+        pathType: Exact
+        backend:
+          service:
+            name: influxdb
+            port:
+              number: 8086
+      - path: /health
+        pathType: Exact
         backend:
           service:
             name: influxdb
@@ -163,3 +178,27 @@ spec:
   - hosts:
     - influxdb.el-jefe.me
     secretName: influxdb-tls
+---
+# InfluxDB UI + full API for tailnet/LAN use (2026-11-21, replaces the public UI).
+# Open http://<any home node tailnet IP>:30086, e.g. http://100.64.0.11:30086
+# (m720q, where the pod runs). Plain HTTP: the tailnet already encrypts it.
+# Not reachable from the internet: home nodes have no public address and the VPS
+# limits NodePorts to wg0/tailnet (kube-proxy nodeport-addresses, 2026-11-09).
+# Same pattern as crowdsec-lapi-lan (30808). InfluxDB's own login still applies.
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb-tailnet
+  namespace: monitoring
+  labels:
+    app: influxdb
+spec:
+  type: NodePort
+  selector:
+    app: influxdb
+  ports:
+    - name: http
+      port: 8086
+      targetPort: 8086
+      nodePort: 30086
+      protocol: TCP

@@ -100,7 +100,6 @@ spec:
         - https://immich.el-jefe.me
         - https://gotify.el-jefe.me
         - https://ai-gateway.el-jefe.me/livez   # / needs a client key since 2026-11-09
-        - https://goldpinger.el-jefe.me
         - https://headscale.el-jefe.me/health
         - https://influxdb.el-jefe.me/health
         - https://crowdsec-lapi.el-jefe.me/health     # / is 404
@@ -130,6 +129,7 @@ spec:
       static:
         - https://grafana.el-jefe.me                  # 302 -> /login
         - https://prometheus.el-jefe.me               # 401 (basic auth)
+        - https://goldpinger.el-jefe.me               # 401 (basic auth since 2026-11-21)
         - https://netbox.el-jefe.me                   # 302 -> /login
         - https://jellyfin-k8s.el-jefe.me             # 302 -> /web
         - https://s3.el-jefe.me                       # 403 (anonymous S3)

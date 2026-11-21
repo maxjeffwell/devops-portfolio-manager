@@ -1,7 +1,11 @@
 # Standard Ingress catches all traffic to goldpinger.el-jefe.me with the
-# CrowdSec bouncer middleware (cluster-wide IP reputation filtering).
+# CrowdSec bouncer middleware (cluster-wide IP reputation filtering) and the
+# shared admin basic-auth (same chain as prometheus.el-jefe.me).
 # cert-manager provisions goldpinger-tls automatically via the annotation.
-# Mirrors the convention used by jellyfin-k8s.el-jefe.me and prometheus.el-jefe.me.
+# 2026-11-21: basic-auth added. Until then the UI, /check_all and /metrics were
+# readable by anyone and listed every node's tailnet IP, pod IPs and pod names;
+# the bouncer only filters known-bad IPs, it does not authenticate.
+# Prometheus scrapes the pods directly (ServiceMonitor), not this hostname.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,7 +14,7 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd,kube-system-admin-basic-auth@kubernetescrd
     traefik.ingress.kubernetes.io/router.tls: "true"
 spec:
   ingressClassName: traefik
