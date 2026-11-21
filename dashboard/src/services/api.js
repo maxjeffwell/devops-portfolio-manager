@@ -193,15 +193,6 @@ export const api = {
     return makeRequest(`${API_BASE}/api/helm/releases/${namespace}/${name}`);
   },
 
-  async rollbackHelmRelease(namespace, name, revision = null) {
-    // Clear cache after rollback action
-    cache.clear('helm:');
-    return makeRequest(`${API_BASE}/api/helm/releases/${namespace}/${name}/rollback`, {
-      method: 'POST',
-      body: JSON.stringify({ revision })
-    });
-  },
-
   // GitHub (optional service - returns Result)
   async getGitHubWorkflows() {
     return makeCachedRequest(

@@ -38,19 +38,6 @@ router.get('/releases/:namespace/:name/history', validators.helm.getReleaseHisto
   }
 });
 
-// Rollback release
-router.post('/releases/:namespace/:name/rollback', validators.helm.rollbackRelease, async (req, res) => {
-  try {
-    const { namespace, name } = req.params;
-    const { revision } = req.body;
-    const revisionArg = revision ? revision : '';
-    const { stdout } = await execAsync(`helm rollback ${name} ${revisionArg} -n ${namespace}`);
-    res.json({ success: true, message: stdout });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Get release values
 router.get('/releases/:namespace/:name/values', validators.helm.getReleaseValues, async (req, res) => {
   try {

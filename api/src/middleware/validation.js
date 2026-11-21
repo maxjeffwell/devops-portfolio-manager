@@ -152,14 +152,6 @@ const validations = {
       });
   },
 
-  // Helm revision validation
-  helmRevision: () => {
-    return body('revision')
-      .optional()
-      .isInt({ min: 0, max: 999999 }).withMessage('revision must be a positive integer')
-      .toInt();
-  },
-
   // Pagination limit validation
   paginationLimit: () => {
     return query('per_page')
@@ -222,12 +214,6 @@ const validators = {
     getReleaseHistory: [
       validations.namespace(),
       validations.applicationName(),
-      handleValidationErrors
-    ],
-    rollbackRelease: [
-      validations.namespace(),
-      validations.applicationName(),
-      validations.helmRevision(),
       handleValidationErrors
     ],
     getReleaseValues: [
