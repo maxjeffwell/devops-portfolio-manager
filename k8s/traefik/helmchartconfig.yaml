@@ -44,8 +44,12 @@ spec:
           - 2405:8100::/32
           - 2a06:98c0::/29
           - 2c0f:f248::/32
-          - 10.42.0.0/16
-          - 10.43.0.0/16
+          # 2026-11-21: the pod and service CIDRs (10.42.0.0/16, 10.43.0.0/16) were removed
+          # from this list. With them, any pod could send X-Forwarded-For and Traefik logged
+          # and forwarded the fake address (CrowdSec parses that log, so a pod could get an
+          # innocent IP banned). 17 h of access logs showed no in-cluster caller using a
+          # forwarded header; visitors arrive from Cloudflare addresses directly
+          # (externalTrafficPolicy: Local). Cloudflare only, on purpose.
     experimental:
       plugins:
         crowdsec-bouncer:
