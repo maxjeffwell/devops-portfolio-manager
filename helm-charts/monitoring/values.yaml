@@ -729,12 +729,25 @@ kube-prometheus-stack:
     enabled: false
   kubeProxy:
     enabled: false
-  # 2026-10-07: k3s runs etcd embedded in the server process -- no component=etcd
-  # pod, and :2381 is not exposed (etcd-expose-metrics off), so this Service had no
-  # endpoints and its ServiceMonitor/etcd rules never had data. Disabled like the
-  # other in-process k3s components above.
+  # k3s runs etcd embedded in the server process, so there is no component=etcd
+  # pod for the stack to discover. 2026-10-07 this was disabled because :2381 was
+  # bound to 127.0.0.1 only. 2026-11-21: the three servers now set
+  # `etcd-expose-metrics: true` in /etc/rancher/k3s/config.yaml, which adds a
+  # plain-HTTP metrics listener on each node IP (tailnet only), so the stack
+  # scrapes those addresses directly and its etcd alert rules have data.
+  # A server added or replaced later needs the k3s setting AND its IP here.
   kubeEtcd:
-    enabled: false
+    enabled: true
+    endpoints:
+      - 100.64.0.2    # m920s
+      - 100.64.0.11   # m720q
+      - 100.64.0.8    # elitedesk
+    service:
+      enabled: true
+      port: 2381
+      targetPort: 2381
+    serviceMonitor:
+      scheme: http
 
   kube-state-metrics:
     # Deliberately NOT pinned to a node. It used to carry
