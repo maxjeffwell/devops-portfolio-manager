@@ -94,3 +94,46 @@ nodeAgent:
               - key: kubernetes.io/hostname
                 operator: In
                 values: [m720q, m920s]
+  # 2026-11-21: the chart's mount list restated with `mountPropagation:
+  # HostToContainer` on the four host trees. Without it each hostPath is a
+  # PRIVATE copy of the host's mount tree taken when the agent starts, so every
+  # CSI volume mounted at that moment stays mounted inside the agent after the
+  # host unmounts it. Found the hard way: Mayastor's NodeUnstage then times out
+  # ("Timed out waiting for '/proc/fs/jbd2/nvmeXn1-8' to be removed"), the
+  # VolumeAttachment never clears and the PV cannot be deleted or moved to
+  # another node until the agent pod is restarted. HostToContainer makes the
+  # agent's view follow the host (the host mounts are `shared`).
+  # Helm replaces lists: when bumping the chart, diff this against its
+  # values.yaml `nodeAgent.volumeMounts` for added or changed entries.
+  volumeMounts:
+    - mountPath: /host
+      name: host
+      readOnly: true
+      mountPropagation: HostToContainer
+    - mountPath: /var/lib/kubelet
+      name: kubeletdir
+      mountPropagation: HostToContainer
+    - mountPath: /run
+      name: run
+      mountPropagation: HostToContainer
+    - mountPath: /var
+      name: var
+      readOnly: true
+      mountPropagation: HostToContainer
+    - mountPath: /lib/modules
+      name: modules
+      readOnly: true
+    - mountPath: /sys/kernel/debug
+      name: debugfs
+    - mountPath: /sys/fs/cgroup
+      name: cgroup
+      readOnly: true
+    - mountPath: /sys/fs/bpf
+      name: bpffs
+    - mountPath: /data
+      name: data
+    - mountPath: /profiles
+      name: profiles
+    - mountPath: /boot
+      name: boot
+      readOnly: true
