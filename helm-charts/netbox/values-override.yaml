@@ -333,12 +333,19 @@ extraDeploy:
           ports:
             - port: 6379
               protocol: TCP
-        # Media storage: Garage through the public endpoint https://s3.el-jefe.me, which is the
-        # edge address. If the edge IP changes, change it here too. No other internet egress:
-        # release checks are off and nothing else calls out.
+        # Media storage: Garage through the public endpoint https://s3.el-jefe.me. That name is
+        # the Traefik LoadBalancer IP, which kube-proxy rewrites in-cluster to the Traefik pods
+        # on :8443 BEFORE the policy is evaluated, so the rule must name the pods, not the IP
+        # (an ipBlock for the edge IP never matches; tested 2026-11-21). This also lets NetBox
+        # reach the other sites Traefik serves, all of which are public anyway. No internet
+        # egress: release checks are off and nothing else calls out.
         - to:
-            - ipBlock:
-                cidr: 31.220.98.70/32
+            - namespaceSelector:
+                matchLabels:
+                  kubernetes.io/metadata.name: kube-system
+              podSelector:
+                matchLabels:
+                  app.kubernetes.io/name: traefik
           ports:
-            - port: 443
+            - port: 8443
               protocol: TCP
