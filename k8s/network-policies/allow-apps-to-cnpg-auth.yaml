@@ -11,14 +11,9 @@ metadata:
   namespace: default
 spec:
   egress:
-  - ports:
-    - port: 5432
-      protocol: TCP
-    to:
-    - podSelector:
-        matchLabels:
-          cnpg.io/cluster: cnpg-auth
-  # Patroni HA VIP (HAProxy primary port) — 2026-10-23; cnpg-auth rule above kept until that cluster is retired
+  # Patroni HA VIP (HAProxy primary port) — 2026-10-23. The rule for the old
+  # cnpg-auth cluster was removed 2026-11-21 when that cluster was retired; the
+  # policy keeps its name so the object is not deleted and recreated.
   - ports:
     - port: 5000
       protocol: TCP

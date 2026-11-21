@@ -1,6 +1,6 @@
-# Default-deny for the Vaultwarden app pod. (CNPG pods are governed separately
-# by the operator and are intentionally not selected here — restricting them
-# risks breaking replication / WAL archiving to B2.)
+# Default-deny for the Vaultwarden app pod. The database is the Patroni HA
+# cluster (VIP below); the old in-namespace cnpg-vaultwarden cluster and its
+# egress rule were retired 2026-11-21.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -43,14 +43,6 @@ spec:
         - port: 53
           protocol: UDP
         - port: 53
-          protocol: TCP
-    # Postgres → cnpg-vaultwarden
-    - to:
-        - podSelector:
-            matchLabels:
-              cnpg.io/cluster: cnpg-vaultwarden
-      ports:
-        - port: 5432
           protocol: TCP
     # Postgres → Patroni HA VIP (HAProxy primary port) — 2026-10-23
     - to:

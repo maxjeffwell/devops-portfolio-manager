@@ -16,17 +16,9 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: kube-system
-  - ports:
-    - port: 5432
-      protocol: TCP
-    to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: default
-      podSelector:
-        matchLabels:
-          cnpg.io/cluster: cnpg-lunary
-  # Patroni HA VIP (HAProxy primary port) — 2026-10-23; cnpg-lunary rule above kept until the CNPG cluster is retired
+  # Patroni HA VIP (HAProxy primary port) — 2026-10-23. The rule for the old
+  # cnpg-lunary cluster was removed 2026-11-21 when that cluster was retired; the
+  # policy keeps its name so the object is not deleted and recreated.
   - ports:
     - port: 5000
       protocol: TCP

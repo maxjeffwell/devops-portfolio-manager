@@ -146,7 +146,7 @@ spec:
               # snapshot only because the CNPG clusters use mayastor-snapclass-cnpg
               # (deletionPolicy Delete) since 2026-09-25; with the old Retain class
               # every pruned snapshot left an orphan backend snapshot behind.
-              for pair in default/cnpg-auth default/cnpg-codetalk default/cnpg-lunary default/cnpg-bookmarked immich/cnpg-immich vaultwarden/cnpg-vaultwarden; do
+              for pair in default/cnpg-codetalk default/cnpg-bookmarked immich/cnpg-immich; do
                 ns="${pair%%/*}"; cluster="${pair#*/}"
                 echo "--- ${ns}/${cluster} ---"
                 if ! kubectl get volumesnapshot -n "$ns" -l "cnpg.io/cluster=${cluster}" \

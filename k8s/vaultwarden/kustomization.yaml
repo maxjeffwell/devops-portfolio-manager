@@ -4,10 +4,6 @@ namespace: vaultwarden
 resources:
   - namespace.yaml
   - vaultwarden-externalsecret.yaml
-  - b2-externalsecret.yaml
-  - objectstore.yaml
-  - cnpg-cluster.yaml
-  - cnpg-scheduledbackup.yaml
   - pvc.yaml
   - deployment.yaml
   - service.yaml

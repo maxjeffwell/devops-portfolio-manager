@@ -38,40 +38,6 @@ spec:
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:
-  name: cnpg-auth-b2
-  namespace: default
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
-spec:
-  retentionPolicy: "30d"
-  # The plugin injects a sidecar into every instance pod. The default
-  # namespace's ResourceQuota rejects containers without requests/limits
-  # (pod creation failed, 2026-10-01). Observed usage ~70Mi.
-  instanceSidecarConfiguration:
-    resources:
-      requests:
-        cpu: 10m
-        memory: 96Mi
-      limits:
-        memory: 512Mi
-  configuration:
-    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-auth"
-    endpointURL: "https://s3.us-east-005.backblazeb2.com"
-    s3Credentials:
-      accessKeyId:
-        name: cnpg-b2-creds
-        key: ACCESS_KEY_ID
-      secretAccessKey:
-        name: cnpg-b2-creds
-        key: ACCESS_SECRET_KEY
-    wal:
-      compression: gzip
-    data:
-      compression: gzip
----
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
   name: cnpg-bookmarked-b2
   namespace: default
   annotations:
@@ -137,40 +103,6 @@ spec:
     data:
       compression: gzip
 ---
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: cnpg-lunary-b2
-  namespace: default
-  annotations:
-    argocd.argoproj.io/sync-wave: "-1"
-spec:
-  retentionPolicy: "30d"
-  # The plugin injects a sidecar into every instance pod. The default
-  # namespace's ResourceQuota rejects containers without requests/limits
-  # (pod creation failed, 2026-10-01). Observed usage ~70Mi.
-  instanceSidecarConfiguration:
-    resources:
-      requests:
-        cpu: 10m
-        memory: 96Mi
-      limits:
-        memory: 512Mi
-  configuration:
-    destinationPath: "s3://k3s-velero-eljefe-backups/cnpg-lunary"
-    endpointURL: "https://s3.us-east-005.backblazeb2.com"
-    s3Credentials:
-      accessKeyId:
-        name: cnpg-b2-creds
-        key: ACCESS_KEY_ID
-      secretAccessKey:
-        name: cnpg-b2-creds
-        key: ACCESS_SECRET_KEY
-    wal:
-      compression: gzip
-    data:
-      compression: gzip
----
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
@@ -199,34 +131,6 @@ spec:
   backupOwnerReference: self
   cluster:
     name: cnpg-bookmarked
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
----
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: cnpg-auth-b2-daily
-  namespace: default
-spec:
-  schedule: "0 0 2 * * *"   # 6-field CNPG cron (UTC)
-  backupOwnerReference: self
-  cluster:
-    name: cnpg-auth
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
----
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: cnpg-lunary-b2-daily
-  namespace: default
-spec:
-  schedule: "0 30 2 * * *"   # 6-field CNPG cron (UTC)
-  backupOwnerReference: self
-  cluster:
-    name: cnpg-lunary
   method: plugin
   pluginConfiguration:
     name: barman-cloud.cloudnative-pg.io
