@@ -1326,7 +1326,7 @@ crowdsec:
     priorityClassName: system-node-critical
     image:
       repository: crowdsecurity/crowdsec
-      tag: "v1.8.0"
+      tag: "v1.8.2"
     resources:
       requests:
         cpu: 50m
@@ -1347,7 +1347,7 @@ crowdsec:
     disableOnlineApi: false
     image:
       repository: crowdsecurity/crowdsec
-      tag: "v1.8.0"
+      tag: "v1.8.2"
     collections: "crowdsecurity/traefik crowdsecurity/linux"
     # Expose the LAPI for the OFF-CLUSTER ASUSTOR agent (agent-only; it pushes
     # router-syslog decisions IN). TLS via cert-manager; deliberately NO crowdsec
