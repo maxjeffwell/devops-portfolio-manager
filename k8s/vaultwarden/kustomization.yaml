@@ -8,5 +8,6 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - ingressroute-admin-tailnet.yaml
   - networkpolicy.yaml
   - export-cronjob.yaml
