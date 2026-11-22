@@ -94,9 +94,14 @@ data:
     #
     # Scope, deliberately narrow:
     #   - only the Jellyfin host
-    #   - only status 403
-    #   - not /metrics, which a separate Traefik route answers with 403 for
-    #     everyone
+    #   - only status 403 that Jellyfin ITSELF returned (OriginStatus 403).
+    #     A 403 made by Traefik has OriginStatus 0 and is still scored: the
+    #     /metrics block route and the CrowdSec bouncer's answer to an already
+    #     banned address.
+    #   - never the 2FA plugin's own endpoints (/TwoFactorAuth/...) nor the
+    #     password login (/Users/Authenticate...), so wrong codes and wrong
+    #     passwords stay visible to every scenario. The path is lower-cased
+    #     first because Jellyfin routes are case-insensitive.
     # Jellyfin answers 401, not 403, when the token is missing or invalid, and
     # 404 for paths that do not exist (checked 2026-11-21), so a 403 from this
     # host means the request carried a valid login token. Scanners without
@@ -110,5 +115,7 @@ data:
           evt.Meta.service == 'http'
           && evt.Meta.target_fqdn == '{{ .Values.crowdsec.logProcessor.jellyfinHost }}'
           && evt.Meta.http_status == '403'
-          && !(evt.Meta.http_path startsWith '/metrics')
+          && evt.Unmarshaled.traefik.OriginStatus == 403
+          && !(Lower(evt.Meta.http_path) startsWith '/twofactorauth')
+          && !(Lower(evt.Meta.http_path) startsWith '/users/authenticate')
 {{- end }}
