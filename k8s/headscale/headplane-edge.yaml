@@ -1,0 +1,46 @@
+# Edge protection for the Headscale admin UI (headplane, /admin) — 2026-11-22.
+# The admin UI controls tailnet membership, so its login gets the same
+# treatment as the other public logins: CrowdSec (annotation on the headplane
+# Ingress in headscale.yaml) plus a per-client rate limit on the login path.
+#
+# Deliberately NOT applied to the headscale control-plane route ("/"): a ban or
+# a limiter there would cut nodes off from the coordination server.
+#
+# Case-insensitive regex that also accepts repeated slashes, so path variants
+# cannot skip the limiter (see k8s/immich/edge.yaml for the background).
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: headplane-ratelimit
+  namespace: headscale
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  rateLimit:
+    average: 5
+    burst: 10
+    period: 1m
+    sourceCriterion:
+      ipStrategy:
+        depth: 1
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: headplane-login
+  namespace: headscale
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`headscale.el-jefe.me`) && PathRegexp(`(?i)^/+admin/+login`)
+      kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: headplane-ratelimit
+      services:
+        - name: headplane
+          port: 3000
+  tls:
+    secretName: headscale-tls

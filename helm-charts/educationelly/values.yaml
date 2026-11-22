@@ -225,10 +225,11 @@ ingress:
   # canonical name, repointed 2026-09-22 from the retired ASUSTOR "marmoset" cloudflared tunnel
   extraHosts:
     - educationelly.el-jefe.me
+  # /metrics is intentionally NOT routed publicly (removed 2026-11-22: it served
+  # process metrics to anyone). Prometheus scrapes the service in-cluster.
   apiPaths:
     - /api
     - /health
-    - /metrics
 
 topologySpreadConstraints:
   enabled: true
