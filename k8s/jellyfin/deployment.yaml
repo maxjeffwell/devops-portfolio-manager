@@ -158,9 +158,9 @@ spec:
       containers:
         - name: jellyfin
           # Pinned to a dated build. Jellyfin 12 tags are MAJOR.MINOR or dated builds — no x.y.z. Bump deliberately.
-          # 2026-11-22: 12.1.20260915-010956 -> 12.4.20261026-211555. The ASUSTOR standby is still on
-          # 12.1: Jellyfin cannot downgrade, so this /config can only be copied back to the standby
-          # after the standby is brought to the same build.
+          # 2026-11-22: 12.1.20260915-010956 -> 12.4.20261026-211555. The ASUSTOR standby runs
+          # jellyfin/jellyfin:latest under Watchtower (12.4.0 on 2026-11-22). Jellyfin cannot
+          # downgrade, so only copy this /config to the standby while it is on the same or a newer build.
           image: jellyfin/jellyfin:12.4.20261026-211555
           imagePullPolicy: IfNotPresent
           securityContext:
