@@ -12,4 +12,6 @@ resources:
   - networkpolicy.yaml
   - redis.yaml
   - ml.yaml
+  - edge.yaml
   - server.yaml
+  - prometheusrule.yaml

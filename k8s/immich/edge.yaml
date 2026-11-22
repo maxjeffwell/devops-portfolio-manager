@@ -1,0 +1,88 @@
+# Edge protection for immich.el-jefe.me (2026-11-22).
+#
+# Immich login is password-only until upstream enables passkeys, and Immich has
+# no login throttling of its own, so the throttling lives here.
+#
+# immich-ratelimit: 5 requests/minute (burst 10) per client address on the
+# credential endpoints only. Normal API traffic (uploads, thumbnails, sync,
+# /api/auth/validateToken) is NOT limited.
+#
+# immich-headers: HSTS for this hostname (no includeSubDomains, no preload),
+# nosniff, and same-origin framing. Attached to the main Ingress (annotation in
+# server.yaml) and to both routes below.
+#
+# Two IngressRoutes on purpose: Traefik names its metrics service after the
+# IngressRoute, so `immich-immich-login-…@kubernetescrd` counts login responses
+# only (401 = wrong password, 429 = throttled). prometheusrule.yaml alerts on it.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: immich-ratelimit
+  namespace: immich
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"   # must exist before the routes reference it
+spec:
+  rateLimit:
+    average: 5
+    burst: 10
+    period: 1m
+    sourceCriterion:
+      ipStrategy:
+        depth: 1
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: immich-headers
+  namespace: immich
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  headers:
+    stsSeconds: 31536000
+    contentTypeNosniff: true
+    customFrameOptionsValue: SAMEORIGIN
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: immich-login
+  namespace: immich
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`immich.el-jefe.me`) && PathPrefix(`/api/auth/login`)
+      kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: immich-ratelimit
+        - name: immich-headers
+      services:
+        - name: immich-server
+          port: 2283
+  tls:
+    secretName: immich-tls
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: immich-auth-sensitive
+  namespace: immich
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`immich.el-jefe.me`) && (PathPrefix(`/api/auth/admin-sign-up`) || PathPrefix(`/api/auth/change-password`) || PathPrefix(`/api/auth/pin-code`) || PathPrefix(`/api/auth/session/unlock`))
+      kind: Rule
+      middlewares:
+        - name: crowdsec-bouncer
+          namespace: kube-system
+        - name: immich-ratelimit
+        - name: immich-headers
+      services:
+        - name: immich-server
+          port: 2283
+  tls:
+    secretName: immich-tls

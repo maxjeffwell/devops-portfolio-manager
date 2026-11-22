@@ -1,0 +1,31 @@
+# Login alerts for Immich, from Traefik's per-route request counters (the
+# dedicated immich-login IngressRoute in edge.yaml). Log-based alerting is not
+# used because Loki's ruler is not managed from this repo.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: immich-login
+  namespace: immich
+  labels:
+    app: immich
+    release: prometheus
+spec:
+  groups:
+    - name: immich-login
+      rules:
+        - alert: ImmichFailedLogins
+          expr: sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="401"}[15m])) >= 5
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Immich: {{ $value | printf \"%.0f\" }} failed logins in 15 min"
+            description: "Wrong-password responses on immich.el-jefe.me/api/auth/login. Immich logs each one as 'Failed login attempt for user … from ip address …' (kubectl -n immich logs deploy/immich-server). If it is not you, check `cscli decisions list` and consider banning the address."
+        - alert: ImmichLoginThrottled
+          expr: sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"}[10m])) > 0
+          for: 0m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Immich: login attempts are being rate-limited"
+            description: "A client exceeded 5 login requests/minute on immich.el-jefe.me (Traefik middleware immich-ratelimit). Sustained hits mean password guessing."
