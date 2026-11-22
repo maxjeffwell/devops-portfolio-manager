@@ -1390,7 +1390,7 @@ mimirMonolithic:
   enabled: true
   image:
     repository: grafana/mimir
-    tag: "3.1.11"
+    tag: "3.2.6"
   priorityClassName: monitoring
   # 2026-09-27: moved off elitedesk (spread the monitoring stack across nodes).
   # The PV is lvm-localpv in m920s vg0, so the pod must stay on that node.
