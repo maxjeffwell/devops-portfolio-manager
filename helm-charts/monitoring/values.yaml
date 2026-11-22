@@ -388,7 +388,10 @@ kube-prometheus-stack:
     # Plugins
     plugins:
       - grafana-polystat-panel
-      - yesoreyeram-infinity-datasource 3.7.1
+      # id@version: the Grafana chart since v13 installs plugins through
+      # GF_PLUGINS_PREINSTALL_SYNC, which does not accept the old "id version" form
+      # (it read "3.7.1" as a plugin name and Grafana crash-looped, 2026-11-22).
+      - yesoreyeram-infinity-datasource@3.7.1
       - marcusolsson-treemap-panel
 
     # Init container to install URL-based plugins not in the Grafana catalog

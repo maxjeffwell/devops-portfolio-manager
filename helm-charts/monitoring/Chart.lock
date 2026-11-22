@@ -1,7 +1,7 @@
 dependencies:
 - name: kube-prometheus-stack
   repository: https://prometheus-community.github.io/helm-charts
-  version: 65.8.1
+  version: 93.6.1
 - name: minio
   repository: https://charts.min.io/
   version: 5.4.0
@@ -14,5 +14,5 @@ dependencies:
 - name: mimir-distributed
   repository: https://grafana.github.io/helm-charts
   version: 6.0.5
-digest: sha256:30aee6350f2ac6f9886077faf1fa020381afaac8f9f4936c897e0ac3326ec195
-generated: "2026-10-06T20:08:02.686816807-04:00"
+digest: sha256:740b39d8a62f75c90b9459095b502de4f9551b585507f36a5d1cf09b1df19105
+generated: "2026-11-22T03:28:48.165579383-05:00"
