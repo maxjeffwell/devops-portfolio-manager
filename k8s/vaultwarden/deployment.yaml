@@ -55,10 +55,12 @@ spec:
       initContainers:
         - name: wait-for-db
           image: ghcr.io/cloudnative-pg/postgresql:17
+          # -U is required: the pod runs as uid 1000, which has no passwd entry
+          # in this image, and without a user name pg_isready makes no attempt.
           command:
             - sh
             - -c
-            - 'until pg_isready -h 192.168.50.60 -p 5000; do echo "waiting for db (patroni vip)"; sleep 3; done'
+            - 'until pg_isready -h 192.168.50.60 -p 5000 -U probe; do echo "waiting for db (patroni vip)"; sleep 3; done'
           resources:
             requests:
               cpu: 10m
