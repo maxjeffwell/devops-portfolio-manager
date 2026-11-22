@@ -6,6 +6,7 @@ resources:
   - storage.yaml
   - gpu-claim.yaml
   - middleware-ratelimit.yaml
+  - middleware-hsts.yaml
   - networkpolicy.yaml
   - configmap-encoding.yaml
   - deployment.yaml

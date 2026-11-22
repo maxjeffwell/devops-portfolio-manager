@@ -1,0 +1,13 @@
+# HSTS for this hostname only (no includeSubDomains, no preload): browsers that
+# have visited once refuse plain HTTP and refuse to click through a bad cert.
+# Attached to the main Ingress (annotation) and to the jellyfin-auth route.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: jellyfin-hsts
+  namespace: jellyfin
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"   # must exist before the routes reference it
+spec:
+  headers:
+    stsSeconds: 31536000
