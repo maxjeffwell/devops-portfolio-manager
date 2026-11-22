@@ -8,9 +8,9 @@ namespace: argocd
 # URL) because the ArgoCD repo-server blocks remote kustomize resources — same
 # reason as k8s/barman-cloud-plugin. Do NOT edit install.yaml; every local
 # change is a patch below so it survives re-vendoring.
-#   source: https://raw.githubusercontent.com/argoproj/argo-cd/v3.4.14/manifests/install.yaml
-#   version: v3.4.14
-#   sha256: ebe231e0efd46f7d6aeea352fb1a26c67ffb0aa79aaf12c7c525e37ace3f2a3d
+#   source: https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.8/manifests/install.yaml
+#   version: v3.5.8
+#   sha256: 948e7e3a70b03130f70e4c02ee2357c1cc97fb766674b6bddaed0f537cd5a00f
 # Upgrade: ./upgrade.sh v3.x.y  →  kubectl diff --server-side -k k8s/argocd  →  commit.
 #
 # History: until 2026-09-30 this install was `kubectl apply`d by hand and its
