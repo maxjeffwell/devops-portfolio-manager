@@ -11,6 +11,10 @@
 # nosniff, and same-origin framing. Attached to the main Ingress (annotation in
 # server.yaml) and to both routes below.
 #
+# The matches are case-insensitive regexes that also accept repeated slashes:
+# Immich's router ignores case and extra slashes, so a plain PathPrefix let
+# /API/AUTH/LOGIN reach the login handler through the unthrottled catch-all.
+#
 # Two IngressRoutes on purpose: Traefik names its metrics service after the
 # IngressRoute, so `immich-immich-login-…@kubernetescrd` counts login responses
 # only (401 = wrong password, 429 = throttled). prometheusrule.yaml alerts on it.
@@ -52,7 +56,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`immich.el-jefe.me`) && PathPrefix(`/api/auth/login`)
+    - match: Host(`immich.el-jefe.me`) && PathRegexp(`(?i)^/+api/+auth/+login`)
       kind: Rule
       middlewares:
         - name: crowdsec-bouncer
@@ -74,7 +78,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`immich.el-jefe.me`) && (PathPrefix(`/api/auth/admin-sign-up`) || PathPrefix(`/api/auth/change-password`) || PathPrefix(`/api/auth/pin-code`) || PathPrefix(`/api/auth/session/unlock`))
+    - match: Host(`immich.el-jefe.me`) && PathRegexp(`(?i)^/+api/+auth/+(admin-sign-up|change-password|pin-code|session/+unlock)`)
       kind: Rule
       middlewares:
         - name: crowdsec-bouncer

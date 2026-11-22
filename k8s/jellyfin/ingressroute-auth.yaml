@@ -2,6 +2,8 @@
 # above with the additional jellyfin-ratelimit middleware. Traefik route
 # matching uses path priority, so this more-specific Rule beats the catch-all.
 # Reuses jellyfin-tls Secret created by cert-manager from the standard Ingress.
+# 2026-11-22: case-insensitive regex (also accepts repeated slashes). Jellyfin's
+# routes ignore case, so PathPrefix let /users/authenticatebyname skip this limiter.
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -11,7 +13,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`jellyfin-k8s.el-jefe.me`) && (PathPrefix(`/Users/AuthenticateByName`) || PathPrefix(`/Users/Public`))
+    - match: Host(`jellyfin-k8s.el-jefe.me`) && PathRegexp(`(?i)^/+Users/+(AuthenticateByName|Public)`)
       kind: Rule
       middlewares:
         # CrowdSec first: this route REPLACES the standard Ingress's middleware chain for the
