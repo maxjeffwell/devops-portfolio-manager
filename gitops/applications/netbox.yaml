@@ -15,7 +15,7 @@ spec:
   sources:
     - repoURL: https://charts.netbox.oss.netboxlabs.com/
       chart: netbox
-      targetRevision: 8.3.93
+      targetRevision: 8.3.110
       helm:
         valueFiles:
           - $values/helm-charts/netbox/values-override.yaml
