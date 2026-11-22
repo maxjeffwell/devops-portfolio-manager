@@ -13,7 +13,7 @@ data:
       role = "pod"
       selectors {
         role  = "pod"
-        field = "spec.nodeName=" + env("HOSTNAME")
+        field = "spec.nodeName=" + sys.env("HOSTNAME")
       }
     }
 
@@ -261,7 +261,7 @@ data:
       targets = [{ "__address__" = "192.168.50.1:9100", "instance" = "be88u" }]
       rule {
         target_label = "__tmp_nodename"
-        replacement  = env("HOSTNAME")
+        replacement  = sys.env("HOSTNAME")
       }
       rule {
         source_labels = ["__tmp_nodename"]
@@ -279,7 +279,7 @@ data:
 
     // --- WireGuard Metrics (scraped from node's prometheus_wireguard_exporter) ---
     prometheus.scrape "wireguard" {
-      targets         = [{ "__address__" = env("HOST_IP") + ":9586" }]
+      targets         = [{ "__address__" = sys.env("HOST_IP") + ":9586" }]
       forward_to      = [prometheus.remote_write.mimir.receiver]
       scrape_interval = "30s"
       job_name        = "wireguard"
@@ -445,7 +445,7 @@ data:
     // --- eBPF CPU Profiler (Pyroscope) ---
     discovery.kubernetes "local_pods" {
       selectors {
-        field = "spec.nodeName=" + env("HOSTNAME")
+        field = "spec.nodeName=" + sys.env("HOSTNAME")
         role  = "pod"
       }
       role = "pod"

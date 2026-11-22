@@ -1113,8 +1113,12 @@ alloy:
   # sizing and prometheus.remote_write WAL replay fixes). v1.20.0+ is needed
   # for the Faro receiver to allow the SDK's idempotency-key header in CORS
   # (bookmarked's Faro 2.x failed every preflight on v1.18.1). 2026-10-06.
+  # 2026-11-22: v1.22.0 (matches the NAS). `alloy validate` on v1.22 rejects the
+  # deprecated env() stdlib call, so templates/alloy-config.yaml now uses sys.env().
+  # Validate both configs against a new tag before bumping it:
+  #   kubectl run … --image=grafana/alloy:<tag> -- validate /etc/alloy/config.alloy
   image:
-    tag: v1.20.1
+    tag: v1.22.0
   # 2026-11-21: the chart's default rule list, minus `secrets`. The default lets
   # Alloy get/list/watch every Secret in the cluster ("for remote.kubernetes.*"),
   # and this DaemonSet runs with hostPID on every node, the VPS included. The
@@ -1386,7 +1390,7 @@ mimirMonolithic:
   enabled: true
   image:
     repository: grafana/mimir
-    tag: "3.0.1"
+    tag: "3.1.11"
   priorityClassName: monitoring
   # 2026-09-27: moved off elitedesk (spread the monitoring stack across nodes).
   # The PV is lvm-localpv in m920s vg0, so the pod must stay on that node.
