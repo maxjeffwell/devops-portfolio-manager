@@ -307,7 +307,7 @@ kube-prometheus-stack:
     # Patroni migrates one-way (pre-upgrade dump: ~/backups/grafana-pre-upgrade-20261122
     # on marmoset). Bump deliberately, never skip a major.
     image:
-      tag: "12.4.15"
+      tag: "13.3.1"
 
     # 2026-10-23: Grafana state moved to the native Patroni HA Postgres (db/role `grafana`,
     # VIP 192.168.50.60:5000, verify-full). Everything else is provisioned (33 dashboards,
