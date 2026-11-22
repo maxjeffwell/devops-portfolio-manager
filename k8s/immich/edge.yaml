@@ -17,7 +17,8 @@
 #
 # Two IngressRoutes on purpose: Traefik names its metrics service after the
 # IngressRoute, so `immich-immich-login-…@kubernetescrd` counts login responses
-# only (401 = wrong password, 429 = throttled). prometheusrule.yaml alerts on it.
+# only (401 = wrong password; throttled requests are not counted at service
+# level). prometheusrule.yaml alerts on the 401s.
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

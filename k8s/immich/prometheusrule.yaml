@@ -28,15 +28,7 @@ spec:
           annotations:
             summary: "Immich: {{ $value | printf \"%.0f\" }} failed logins in 15 min"
             description: "Wrong-password responses on immich.el-jefe.me/api/auth/login. Immich logs each one as 'Failed login attempt for user … from ip address …' (kubectl -n immich logs deploy/immich-server). If it is not you, check `cscli decisions list` and consider banning the address."
-        - alert: ImmichLoginThrottled
-          expr: >-
-            (sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"}[10m])) > 0)
-            or
-            ((sum(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"})
-              - (sum(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"} offset 10m) or vector(0))) > 0)
-          for: 0m
-          labels:
-            severity: warning
-          annotations:
-            summary: "Immich: login attempts are being rate-limited"
-            description: "A client exceeded 5 login requests/minute on immich.el-jefe.me (Traefik middleware immich-ratelimit). Sustained hits mean password guessing."
+        # No separate "throttled" alert: requests rejected by the rate-limit middleware
+        # never reach the Traefik service, so they are not in
+        # traefik_service_requests_total (router-level metrics are not enabled).
+        # Guessing still shows up above: the attempts that pass the limiter are 401s.
