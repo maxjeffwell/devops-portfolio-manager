@@ -45,7 +45,7 @@ spec:
         app: headplane
     spec:
       containers:
-      - image: ghcr.io/tale/headplane:0.7.0
+      - image: ghcr.io/tale/headplane:0.8.2
         name: headplane
         ports:
         - containerPort: 3000
