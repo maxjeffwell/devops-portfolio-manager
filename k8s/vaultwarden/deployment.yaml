@@ -32,6 +32,18 @@ spec:
       # pods for it. During the m920s drain every Mayastor node was full on CPU
       # requests and the vault sat Pending at priority 0 for ~3.7 h.
       priorityClassName: portfolio-critical
+      # 2026-11-22: run as non-root. The image defaults to uid 0; nothing in it
+      # needs root (port 80 is bindable unprivileged in this runtime). fsGroup
+      # makes the kubelet give group 1000 read/write on the existing /data files
+      # (config.json, icon_cache were root-owned).
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -75,6 +87,11 @@ spec:
               value: "true"
             - name: SHOW_PASSWORD_HINT
               value: "false"
+            # Real client address for logs, new-device mails and the built-in
+            # login rate limiter. Only safe together with the cdn-only
+            # middleware (middlewares.yaml); default X-Real-IP is the CDN edge.
+            - name: IP_HEADER
+              value: "CF-Connecting-IP"
             - name: ADMIN_TOKEN
               valueFrom:
                 secretKeyRef:
