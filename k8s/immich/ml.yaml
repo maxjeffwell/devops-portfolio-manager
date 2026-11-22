@@ -59,7 +59,7 @@ spec:
         - { name: igpu, resourceClaimTemplateName: igpu }
       containers:
         - name: ml
-          image: ghcr.io/immich-app/immich-machine-learning:v3.3.5-openvino   # kept in step with the server (2026-10-22)
+          image: ghcr.io/immich-app/immich-machine-learning:v3.4.1-openvino   # 2026-11-21: upstream never published v3.4.2-openvino (issue 33470); ML code is identical in 3.4.1 and 3.4.2 apart from the version string
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
