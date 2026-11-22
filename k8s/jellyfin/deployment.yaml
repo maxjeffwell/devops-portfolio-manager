@@ -138,7 +138,7 @@ spec:
         # and needs no privilege. ~61 MB. Keep the image tag identical to the
         # jellyfin container below.
         - name: seed-web
-          image: jellyfin/jellyfin:12.1.20260915-010956
+          image: jellyfin/jellyfin:12.4.20261026-211555
           imagePullPolicy: IfNotPresent
           command: ["sh", "-c"]
           args:
@@ -157,9 +157,11 @@ spec:
             - { name: web, mountPath: /web }
       containers:
         - name: jellyfin
-          # Pinned to the exact dated build the ASUSTOR runs (12.1, 12.1.20260915-010956, digest 78d3ea12…)
-          # so a copied /config needs no downgrade. Jellyfin 12 tags are MAJOR.MINOR or dated builds — no x.y.z. Bump deliberately.
-          image: jellyfin/jellyfin:12.1.20260915-010956
+          # Pinned to a dated build. Jellyfin 12 tags are MAJOR.MINOR or dated builds — no x.y.z. Bump deliberately.
+          # 2026-11-22: 12.1.20260915-010956 -> 12.4.20261026-211555. The ASUSTOR standby is still on
+          # 12.1: Jellyfin cannot downgrade, so this /config can only be copied back to the standby
+          # after the standby is brought to the same build.
+          image: jellyfin/jellyfin:12.4.20261026-211555
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
