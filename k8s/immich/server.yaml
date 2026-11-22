@@ -66,6 +66,10 @@ spec:
             - { name: TZ, value: America/New_York }
             - { name: IMMICH_PORT, value: "2283" }
             - { name: IMMICH_MEDIA_LOCATION, value: /data }
+            # 2026-11-22: the edge-node pod range (Traefik is pinned there), so Immich
+            # reads the real client address from X-Forwarded-For for its login
+            # log lines and the per-device session list instead of Traefik's pod IP.
+            - { name: IMMICH_TRUSTED_PROXIES, value: "10.42.6.0/24" }
             - { name: DB_HOSTNAME, value: cnpg-immich-rw }
             - { name: DB_PORT, value: "5432" }
             - { name: DB_VECTOR_EXTENSION, value: vectorchord }

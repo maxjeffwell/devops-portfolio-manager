@@ -14,7 +14,14 @@ spec:
     - name: immich-login
       rules:
         - alert: ImmichFailedLogins
-          expr: sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="401"}[15m])) >= 5
+          # Two forms OR-ed: increase() misses a counter series that is born already
+          # above zero (first event after a Traefik start); the "now minus then-or-zero"
+          # form catches that case.
+          expr: >-
+            (sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="401"}[15m])) >= 5)
+            or
+            ((sum(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="401"})
+              - (sum(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="401"} offset 15m) or vector(0))) >= 5)
           for: 0m
           labels:
             severity: warning
@@ -22,7 +29,11 @@ spec:
             summary: "Immich: {{ $value | printf \"%.0f\" }} failed logins in 15 min"
             description: "Wrong-password responses on immich.el-jefe.me/api/auth/login. Immich logs each one as 'Failed login attempt for user … from ip address …' (kubectl -n immich logs deploy/immich-server). If it is not you, check `cscli decisions list` and consider banning the address."
         - alert: ImmichLoginThrottled
-          expr: sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"}[10m])) > 0
+          expr: >-
+            (sum(increase(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"}[10m])) > 0)
+            or
+            ((sum(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"})
+              - (sum(traefik_service_requests_total{exported_service=~"immich-immich-login-.*@kubernetescrd", code="429"} offset 10m) or vector(0))) > 0)
           for: 0m
           labels:
             severity: warning
