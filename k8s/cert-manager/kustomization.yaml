@@ -8,15 +8,15 @@ kind: Kustomization
 # URL) because the ArgoCD repo-server blocks remote kustomize resources -- same
 # layout as k8s/argocd. Do NOT edit install.yaml; every local change is a patch
 # below so it survives re-vendoring.
-#   source: https://github.com/cert-manager/cert-manager/releases/download/v1.21.2/cert-manager.yaml
-#   version: v1.21.2
-#   sha256: e03b668ec8675214af6b0a671699d088f2601fa3878e0dbe1b41d3feafd1879f
+#   source: https://github.com/cert-manager/cert-manager/releases/download/v1.21.3/cert-manager.yaml
+#   version: v1.21.3
+#   sha256: c04a51295adda2b1a775146751f973e787190778c7f35180861d9678876e5c74
 # Upgrade: replace install.yaml with the next release's cert-manager.yaml (one
 # minor at a time), update the three lines above, bump the acmesolver tag in the
 # args patch, `kubectl diff --server-side -k k8s/cert-manager`, commit.
 #
 # History: installed 2025-12 with `kubectl apply` of this manifest, upgraded the
-# same way through v1.21.2 on 2026-09-22. The leader-election flags, the DNS-01
+# same way through v1.21.2 on 2026-09-22; v1.21.3 via GitOps on 2026-11-22. The leader-election flags, the DNS-01
 # resolver flags and the memory requests were live `kubectl patch`es that every
 # re-apply wiped; this overlay captured them from the cluster on 2026-11-21.
 #
@@ -48,7 +48,7 @@ patches:
 
   # ── controller ──────────────────────────────────────────────────────────
   # The args list is replaced as a whole (a strategic merge cannot append).
-  # First four = upstream v1.21.2 defaults; the rest are ours:
+  # First four = upstream v1.21.3 defaults; the rest are ours:
   #   leader election 120s/90s (upstream 60s/40s): renewals timed out against
   #     the slow datastore and crash-looped the pod.
   #   dns01-recursive-nameservers over DoH: the LAN hijacks :53, so the plain
@@ -66,7 +66,7 @@ patches:
           - --v=2
           - --cluster-resource-namespace=$(POD_NAMESPACE)
           - --leader-election-namespace=kube-system
-          - --acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:v1.21.2
+          - --acme-http01-solver-image=quay.io/jetstack/cert-manager-acmesolver:v1.21.3
           - --max-concurrent-challenges=60
           - --leader-election-lease-duration=120s
           - --leader-election-renew-deadline=90s
