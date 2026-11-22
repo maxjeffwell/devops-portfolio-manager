@@ -7,3 +7,4 @@ resources:
   - server.yaml
   - node-debian-marmoset.yaml
   - networkpolicy.yaml
+  - lan-proxy.yaml
