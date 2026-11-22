@@ -72,6 +72,10 @@ spec:
         - name: acquis-config
           mountPath: /etc/crowdsec/parsers/s02-enrich/s3-api-whitelist.yaml
           subPath: s3-api-whitelist.yaml
+        # Local whitelist: Jellyfin 403s for sessions that have not finished 2FA.
+        - name: acquis-config
+          mountPath: /etc/crowdsec/parsers/s02-enrich/jellyfin-2fa-whitelist.yaml
+          subPath: jellyfin-2fa-whitelist.yaml
         - name: traefik-logs
           mountPath: /var/log/traefik
           readOnly: true

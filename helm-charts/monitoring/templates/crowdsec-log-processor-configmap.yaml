@@ -81,4 +81,34 @@ data:
               || evt.Meta.target_fqdn endsWith '.{{ .Values.garage.ingress.host }}')
           && evt.Meta.http_verb in ['GET', 'HEAD']
           && evt.Meta.http_status startsWith '2'
+  jellyfin-2fa-whitelist.yaml: |
+    # Stops scoring the 403s Jellyfin's two-factor plugin returns while a
+    # signed-in session has not finished its 2FA challenge.
+    #
+    # Why: the plugin answers EVERY API call with 403 until the challenge is
+    # completed, and a Jellyfin client fires dozens of calls at once. On
+    # 2026-11-21 one sign-in from home produced 33 such 403s in 10 seconds;
+    # crowdsecurity/http-probing banned the home address for 4 hours, and the
+    # VPS firewall bouncer then dropped the WireGuard mesh with it
+    # (headscale.el-jefe.me/health went 504).
+    #
+    # Scope, deliberately narrow:
+    #   - only the Jellyfin host
+    #   - only status 403
+    #   - not /metrics, which a separate Traefik route answers with 403 for
+    #     everyone
+    # Jellyfin answers 401, not 403, when the token is missing or invalid, and
+    # 404 for paths that do not exist (checked 2026-11-21), so a 403 from this
+    # host means the request carried a valid login token. Scanners without
+    # credentials are still scored on their 401s and 404s.
+    name: local/jellyfin-2fa-whitelist
+    description: "Do not score Jellyfin 403s (valid session blocked pending 2FA)"
+    whitelist:
+      reason: "Jellyfin 403 for an authenticated session (2FA pending or not permitted)"
+      expression:
+        - >-
+          evt.Meta.service == 'http'
+          && evt.Meta.target_fqdn == '{{ .Values.crowdsec.logProcessor.jellyfinHost }}'
+          && evt.Meta.http_status == '403'
+          && !(evt.Meta.http_path startsWith '/metrics')
 {{- end }}

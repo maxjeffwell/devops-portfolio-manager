@@ -1316,6 +1316,8 @@ crowdsec:
   logProcessor:
     enabled: true
     localApiUrl: "http://crowdsec-lapi.monitoring.svc.cluster.local:8080"
+    # Host whose 403s are not scored (jellyfin-2fa-whitelist.yaml).
+    jellyfinHost: jellyfin-k8s.el-jefe.me
     # 2026-10-02: was priority 0 (preemption victim); node agent -> node-critical.
     priorityClassName: system-node-critical
     image:
