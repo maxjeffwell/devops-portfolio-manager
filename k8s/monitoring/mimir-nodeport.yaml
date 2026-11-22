@@ -1,3 +1,17 @@
+# External write/read path into Mimir for hosts outside the cluster (the NAS:
+# metrics remote_write and its Grafana datasource).
+#
+# 2026-11-22: was type NodePort (30090 on EVERY node address, so the
+# unauthenticated Mimir API and admin pages were open to the whole LAN).
+# Now a ClusterIP service with one externalIP: kube-proxy only answers for
+# <overlay address of the edge node>:30090, which is the address the outside
+# clients already use. No node listens on 30090 on its LAN address any more.
+#
+# Mimir runs with multitenancy off and has no authentication of its own, so
+# this address must stay reachable only over the private overlay. In-cluster
+# clients use the chart's own ClusterIP service, not this one.
+#
+# File name kept (mimir-nodeport.yaml) so history stays in one place.
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,13 +21,14 @@ metadata:
     app.kubernetes.io/name: mimir
     app.kubernetes.io/component: monolithic
 spec:
-  type: NodePort
+  type: ClusterIP
+  externalIPs:
+    - 10.0.0.1
   selector:
     app.kubernetes.io/component: monolithic
     app.kubernetes.io/name: mimir
   ports:
-    - port: 8080
+    - port: 30090
       targetPort: http-metrics
-      nodePort: 30090
       protocol: TCP
       name: http-metrics
