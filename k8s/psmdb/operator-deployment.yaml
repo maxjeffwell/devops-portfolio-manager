@@ -9,6 +9,11 @@
 #   - soft nodeAffinity -> debian-marmoset (CPU headroom; elitedesk was at 87%).
 # 🪤 On an operator upgrade, update the image here instead of re-applying the
 # bundle Deployment, or the tuning above is lost.
+# Upgrade recipe (used 2026-11-22 for 1.23.0 -> 1.23.1): diff the two bundle.yaml
+# files; apply ONLY the CustomResourceDefinitions from the new bundle with
+# `kubectl apply --server-side --force-conflicts`; apply the Role only if it
+# changed (it did not); then bump the image below. crVersion in the cluster
+# manifests stays as it is, so database pods are not restarted.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -76,7 +81,7 @@ spec:
           value: 'false'
         - name: MAX_CONCURRENT_RECONCILES
           value: '3'
-        image: percona/percona-server-mongodb-operator:1.23.0
+        image: percona/percona-server-mongodb-operator:1.23.1
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
