@@ -1,0 +1,47 @@
+# /admin is not served through the ingress at all (2026-11-21).
+#
+# The admin panel is guarded by a single shared token and is NOT covered by
+# user 2FA; an admin can delete accounts and strip 2FA from users. It must not
+# be reachable from the internet.
+#
+# Deny-all idiom (same as k8s/jellyfin/ingressroute-metrics-block.yaml):
+# ipAllowList scoped to loopback, checked against the TCP peer address (no
+# ipStrategy, so X-Forwarded-For cannot influence it) → Traefik answers 403
+# for every client before the request reaches Vaultwarden.
+#
+# A source-address allowlist for the tailnet does not work here: traffic that
+# does not arrive on the load-balancer address is source-NATed before Traefik
+# sees it, so tailnet clients are indistinguishable by address.
+#
+# To use the admin panel:
+#   kubectl -n vaultwarden port-forward deploy/vaultwarden 8080:80
+#   → http://localhost:8080/admin
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: vaultwarden-admin-deny
+  namespace: vaultwarden
+spec:
+  ipAllowList:
+    sourceRange:
+      - 127.0.0.1/32
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vaultwarden-admin-block
+  namespace: vaultwarden
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`vaultwarden.el-jefe.me`) && PathPrefix(`/admin`)
+      kind: Rule
+      priority: 1000
+      middlewares:
+        - name: vaultwarden-admin-deny
+      services:
+        - name: vaultwarden
+          port: 80
+  tls:
+    secretName: vaultwarden-tls
