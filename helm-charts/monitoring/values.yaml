@@ -302,6 +302,12 @@ kube-prometheus-stack:
   grafana:
     enabled: true
     adminPassword: "REPLACE_AT_DEPLOY_TIME"
+    # 2026-11-22: Grafana pinned explicitly (the bundled chart defaults to 11.3.0).
+    # Upgraded 11.3.0 -> 12.4.15 -> 13.3.1 one major at a time; the database on
+    # Patroni migrates one-way (pre-upgrade dump: ~/backups/grafana-pre-upgrade-20261122
+    # on marmoset). Bump deliberately, never skip a major.
+    image:
+      tag: "12.4.15"
 
     # 2026-10-23: Grafana state moved to the native Patroni HA Postgres (db/role `grafana`,
     # VIP 192.168.50.60:5000, verify-full). Everything else is provisioned (33 dashboards,
