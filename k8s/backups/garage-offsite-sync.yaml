@@ -93,22 +93,25 @@ spec:
                 --retries=3 \
                 --low-level-retries=10
 
-              # The zenbook laptop's restic repository (whole bucket). The laptop
-              # backs up to Garage only; this is its off-site copy (added
-              # 2026-11-25, velero-key has READ-only on it). Pack files are
+              # The zenbook laptop's backup repositories (whole buckets): restic and
+              # the two Kopia ones. The laptop backs up to Garage only; this is
+              # its off-site copy (restic added 2026-11-25, Kopia 2026-11-26;
+              # velero-key has READ-only on each). Pack and blob files are
               # immutable, so copying a live repository is safe apart from a
-              # small race with a prune, which the next run fixes.
-              echo "[$(date -u)] --- syncing bucket: ${ZENBOOK_BUCKET} ---"
-              rclone sync \
-                "garage:${ZENBOOK_BUCKET}" \
-                "b2:${OFFSITE_BUCKET}/${ZENBOOK_BUCKET}" \
-                --transfers=4 \
-                --checkers=8 \
-                --stats=30s \
-                --stats-one-line \
-                --bwlimit=20M \
-                --retries=3 \
-                --low-level-retries=10
+              # small race with maintenance, which the next run fixes.
+              for bucket in ${ZENBOOK_BUCKETS}; do
+                echo "[$(date -u)] --- syncing bucket: ${bucket} ---"
+                rclone sync \
+                  "garage:${bucket}" \
+                  "b2:${OFFSITE_BUCKET}/${bucket}" \
+                  --transfers=4 \
+                  --checkers=8 \
+                  --stats=30s \
+                  --stats-one-line \
+                  --bwlimit=20M \
+                  --retries=3 \
+                  --low-level-retries=10
+              done
 
               echo "[$(date -u)] Off-site sync complete"
               rclone size "b2:${OFFSITE_BUCKET}" || true
@@ -117,8 +120,8 @@ spec:
               value: "app-dumps"
             - name: NEON_BUCKET
               value: "neon-storage"
-            - name: ZENBOOK_BUCKET
-              value: "restic-zenbook"
+            - name: ZENBOOK_BUCKETS
+              value: "restic-zenbook kopia-zenbook kopia-zenbook-sync"
             - name: OFFSITE_BUCKET
               value: "garage-offsite"   # create on B2 first; lifecycle: 90d
             - name: GARAGE_ENDPOINT
