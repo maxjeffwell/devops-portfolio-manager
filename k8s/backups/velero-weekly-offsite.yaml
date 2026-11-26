@@ -53,3 +53,12 @@ spec:
       # qdrant: 5 Gi iSCSI PVC, ~174 MB of vectors. Its only off-site copy since
       # k8up was removed 2026-10-06 (k8up kept 6 monthly points in garage, on-site).
       - qdrant
+      # Added 2026-11-26: these had daily and weekly backups at home but no
+      # off-site copy, because this list is an allowlist. Their media volumes
+      # stay excluded by the pods' own annotations; what goes off-site is the
+      # application data (opentodo 5 Gi, jellyfin config 20 Gi, channels-dvr
+      # data 15 Gi, kubescape storage 5 Gi).
+      - opentodo
+      - jellyfin
+      - channels-dvr
+      - kubescape
