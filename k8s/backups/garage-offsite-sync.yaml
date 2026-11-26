@@ -96,14 +96,11 @@ spec:
                 --retries=3 \
                 --low-level-retries=10
 
-              # The zenbook laptop's backup repositories (whole buckets): restic and
-              # the current Kopia one (kopia-zenbook-sync mirrors the repository on the
-              # Synology; the older kopia-zenbook bucket is no longer written and is
-              # left out). The laptop backs up to Garage only; this is
-              # its off-site copy (restic added 2026-11-25, Kopia 2026-11-26;
-              # velero-key has READ-only on each). Pack and blob files are
-              # immutable, so copying a live repository is safe apart from a
-              # small race with maintenance, which the next run fixes.
+              # The zenbook laptop's restic repository (whole bucket; the list is in
+              # ZENBOOK_BUCKETS). The laptop backs up to Garage only; this is its
+              # off-site copy (added 2026-11-25, velero-key has READ-only on it).
+              # Pack files are immutable, so copying a live repository is safe
+              # apart from a small race with a prune, which the next run fixes.
               for bucket in ${ZENBOOK_BUCKETS}; do
                 echo "[$(date -u)] --- syncing bucket: ${bucket} ---"
                 rclone sync \
@@ -125,8 +122,11 @@ spec:
               value: "app-dumps"
             - name: NEON_BUCKET
               value: "neon-storage"
+            # restic only (owner, 2026-11-26). The Kopia mirror (kopia-zenbook-sync,
+            # 75 GiB) backs up the same folder, so sending it too would upload the
+            # laptop twice; it stays at home, on the Synology and in Garage.
             - name: ZENBOOK_BUCKETS
-              value: "restic-zenbook kopia-zenbook-sync"
+              value: "restic-zenbook"
             # Upload ceiling for every rclone call in this job (bytes per second,
             # rclone units). 2M = 2 MiB/s, about half of the home uplink, the same
             # ceiling the two NAS sync jobs use. Was 20M until 2026-11-26, which is
