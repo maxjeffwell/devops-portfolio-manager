@@ -16,6 +16,11 @@
 # 2026-11-26: third copy embeddings-3 on m920s (older GPU, own runtime image).
 # Returns exactly the same vectors and scores; single requests are as fast as on
 # the laptops, large batches two to five times slower.
+# 2026-11-26 later (user decision): the copy named "embeddings" moved from
+# neonmarmoset to elitedesk (older GPU, same legacy runtime as m920s).
+# neonmarmoset evicted it under memory pressure that afternoon and could not
+# hold it alongside Jellyfin and the LLM copy. Copies are now: elitedesk,
+# debian-marmoset, m920s.
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
@@ -46,9 +51,9 @@ spec:
         effect: PreferNoSchedule
     nodeSelector:
       gpu-node: "true"
-      # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + embeddings;
-      # debian-marmoset Xe = immich-ml + the LLM. Hostname-pinned.
-      kubernetes.io/hostname: neonmarmoset
+      # 2026-11-26: on elitedesk (UHD 630, legacy runtime below); was neonmarmoset.
+      intel-gpu-gen: gen9
+      kubernetes.io/hostname: elitedesk
     priorityClassName: portfolio-critical
     serviceAccountName: ovms-models
     terminationGracePeriodSeconds: 30
@@ -75,8 +80,8 @@ spec:
       - { uri: "s3://ovms-models/interval_ai", mountPath: /mnt/models/interval_ai }
     model:
       modelFormat:
-        name: openvino-graph
-      runtime: ovms-gpu-graph
+        name: openvino-graph-legacy
+      runtime: ovms-gpu-graph-legacy
       volumeMounts:
         - { name: config, mountPath: /config, readOnly: true }
       resources:
