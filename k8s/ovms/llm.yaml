@@ -1,28 +1,11 @@
-# 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
+# 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + embeddings;
 # debian-marmoset Xe = immich-ml + the LLM.
 # 2026-11-26: the qwen2.5-1.5b-instruct LLM is served by KServe (InferenceService
-# qwen-llm in kserve-llm.yaml). This file keeps what callers and the model depend
-# on: the stable ovms-llm Service name, and the old model volume (no longer
-# mounted since KServe downloads from Garage; kept as a fallback for now).
-# OpenAI-compatible chat at http://ovms-llm.ovms:8000/v3 (model "qwen2.5-1.5b-instruct")
-# for shared-ai-gateway's auto tier and litellm's local-llama / ollama-llama3.2-3b.
+# qwen-llm in kserve-llm.yaml, model downloaded from Garage). This file keeps the
+# stable ovms-llm Service name that callers use
+# (shared-ai-gateway's auto tier, litellm's local-llama / ollama-llama3.2-3b):
+# http://ovms-llm.ovms:8000/v3, model "qwen2.5-1.5b-instruct".
 # Weights: OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov (Apache-2.0) in s3://ovms-models.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ovms-llm-models
-  namespace: ovms
-  labels:
-    app: ovms-llm
-    portfolio: "true"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: mayastor-ovms-models
-  resources:
-    requests:
-      storage: 4Gi
----
 apiVersion: v1
 kind: Service
 metadata:
