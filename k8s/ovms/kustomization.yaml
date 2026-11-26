@@ -7,7 +7,7 @@ resources:
   - model-pvc.yaml
   - gpu-claim.yaml
   - embeddings-config.yaml
-  - deployment.yaml
+  - kserve-embeddings.yaml
   - llm.yaml
   - kserve-runtime.yaml
   - kserve-llm.yaml

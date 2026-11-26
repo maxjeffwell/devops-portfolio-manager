@@ -14,8 +14,9 @@ data:
   # graph. graph_path points at /config/graph.pbtxt (this ConfigMap mount). NOT base_path:
   # /config: OVMS then re-reads this config.json as e5-large's subconfig and logs
   # "Duplicated model names: interval_ai" + "Loading Mediapipe e5-large ... failed".
-  # The model files stay on the read-only PVC, referenced by absolute
-  # models_path in the graph.
+  # KServe downloads each model from Garage into /mnt/models/<name> before the
+  # server starts (storageUris in kserve-embeddings.yaml); the graphs reference
+  # them by absolute models_path.
   config.json: |
     {
       "mediapipe_config_list": [
@@ -27,7 +28,7 @@ data:
         {
           "config": {
             "name": "interval_ai",
-            "base_path": "/models/interval_ai",
+            "base_path": "/mnt/models/interval_ai",
             "target_device": "GPU",
             "plugin_config": { "INFERENCE_PRECISION_HINT": "f32" }
           }
@@ -47,7 +48,7 @@ data:
       output_stream: "RESPONSE_PAYLOAD:output"
       node_options: {
         [type.googleapis.com / mediapipe.EmbeddingsCalculatorOVOptions]: {
-          models_path: "/models/e5-large/1",
+          models_path: "/mnt/models/e5-large/1",
           plugin_config: '{"NUM_STREAMS": "1"}',
           normalize_embeddings: true,
           pooling: CLS,
@@ -73,7 +74,7 @@ data:
       output_stream: "RESPONSE_PAYLOAD:output"
       node_options: {
         [type.googleapis.com / mediapipe.EmbeddingsCalculatorOVOptions]: {
-          models_path: "/models/qwen3-embedding-0.6b",
+          models_path: "/mnt/models/qwen3-embedding-0.6b",
           plugin_config: '{"NUM_STREAMS": "1"}',
           normalize_embeddings: true,
           pooling: LAST,
@@ -104,7 +105,7 @@ data:
       output_stream: "RESPONSE_PAYLOAD:output"
       node_options: {
         [type.googleapis.com / mediapipe.RerankCalculatorOVOptions]: {
-          models_path: "/models/qwen3-reranker-0.6b",
+          models_path: "/mnt/models/qwen3-reranker-0.6b",
           max_allowed_chunks: 10000,
           target_device: "GPU",
           plugin_config: '{"NUM_STREAMS": "1"}'

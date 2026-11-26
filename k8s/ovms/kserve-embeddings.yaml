@@ -1,0 +1,84 @@
+# Embeddings + reranking served through KServe (2026-11-26). Replaced the
+# hand-written ovms-embeddings Deployment after a side-by-side comparison
+# (identical vectors and rerank scores).
+#
+# ONE server process holds all four models, as before: e5-large and
+# qwen3-embedding-0.6b (/v3/embeddings), qwen3-reranker-0.6b (/v3/rerank) and
+# interval_ai (/v2/models/interval_ai). Splitting them into one InferenceService
+# each would mean four processes inside neonmarmoset's memory budget.
+# Models and graphs are listed in the ovms-embeddings-config ConfigMap.
+# Callers use the ovms-embeddings Service (service.yaml), which selects this pod:
+# http://ovms-embeddings.ovms:8000.
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: embeddings
+  namespace: ovms
+  labels:
+    portfolio: "true"
+  annotations:
+    serving.kserve.io/deploymentMode: Standard
+    # One GPU per node: nothing to scale to, so no HPA.
+    serving.kserve.io/autoscalerClass: none
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    labels:
+      portfolio: "true"
+    deploymentStrategy:
+      type: Recreate
+    # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
+    # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
+    tolerations:
+      - key: gpu-priority
+        operator: Equal
+        value: "true"
+        effect: PreferNoSchedule
+    nodeSelector:
+      gpu-node: "true"
+      # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + embeddings;
+      # debian-marmoset Xe = immich-ml + the LLM. Hostname-pinned.
+      kubernetes.io/hostname: neonmarmoset
+    priorityClassName: portfolio-critical
+    serviceAccountName: ovms-models
+    terminationGracePeriodSeconds: 30
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+      # GID 992 = `render` group, owns /dev/dri/renderD128.
+      supplementalGroups: [992]
+    # Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml).
+    resourceClaims:
+      - { name: igpu, resourceClaimTemplateName: igpu }
+    volumes:
+      - name: config
+        configMap:
+          name: ovms-embeddings-config
+    # Downloaded from Garage on every pod start (about 30 s for ~3 GB) into an
+    # emptyDir. Credentials come from the ovms-models ServiceAccount.
+    # interval_ai is a TensorFlow SavedModel with numbered version folders; the
+    # server loads the highest one.
+    storageUris:
+      - { uri: "s3://ovms-models/e5-large", mountPath: /mnt/models/e5-large }
+      - { uri: "s3://ovms-models/qwen3-embedding-0.6b", mountPath: /mnt/models/qwen3-embedding-0.6b }
+      - { uri: "s3://ovms-models/qwen3-reranker-0.6b", mountPath: /mnt/models/qwen3-reranker-0.6b }
+      - { uri: "s3://ovms-models/interval_ai", mountPath: /mnt/models/interval_ai }
+    model:
+      modelFormat:
+        name: openvino-graph
+      runtime: ovms-gpu-graph
+      volumeMounts:
+        - { name: config, mountPath: /config, readOnly: true }
+      resources:
+        requests:
+          cpu: "1"
+          # 2026-10-02: 5Gi after the LLM moved to its own pod. Measured working set
+          # with the four models loaded: about 3.3-4.2Gi (2026-11-26).
+          memory: 5Gi
+        limits:
+          # History: the pod was OOMKilled on model load at lower limits; 8Gi was set
+          # when it measured 6.3Gi with the LLM still inside. Do not lower without
+          # re-measuring a cold start.
+          memory: 8Gi
+        claims: [{ name: igpu }]
