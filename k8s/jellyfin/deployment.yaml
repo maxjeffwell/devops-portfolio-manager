@@ -48,6 +48,13 @@ spec:
       # After a failover, restart the deployment once neon is back to move it home.
       # 2026-10-02 later (user decision): HOME moved back to debian-marmoset -- neon
       # lacked the room. Preferred (not required) so it can still fail over.
+      # 2026-10-06 (user decision): HOME moved to neonmarmoset again (the preferred
+      # affinity below). 2026-11-26: immich-ml left the laptops for m920s, and the
+      # model servers now run as KServe copies on BOTH laptops, so the split is:
+      # neonmarmoset = jellyfin + tdarr server + one LLM copy + one embeddings copy;
+      # debian-marmoset = tdarr worker + channels-dvr + one LLM copy + one embeddings
+      # copy. Jellyfin stays on neon (user 11/26): dm already carries the other video
+      # transcoders.
       # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
       # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
       # 2026-10-06 (user decision): HOME = neonmarmoset again, restoring the 10/2
