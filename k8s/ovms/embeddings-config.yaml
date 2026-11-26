@@ -57,7 +57,12 @@ data:
           models_path: "/mnt/models/e5-large/1",
           plugin_config: '{"NUM_STREAMS": "1", "CACHE_DIR": "/cache"}',
           normalize_embeddings: true,
+          # CLS is deliberate: on the 2026-10-01 eval (62 bookmarks, 20 queries) CLS
+          # with prefixes scored 15/20, MEAN 13/20, although the model card says mean.
           pooling: CLS,
+          # 2026-11-26: cut inputs over the 512-token limit instead of answering 400.
+          # Does not change vectors for inputs that already fit.
+          truncate: true,
           target_device: "GPU"   # explicit: bookmarked + intervalai embeddings run on the i915, not the CPU
         }
       }
