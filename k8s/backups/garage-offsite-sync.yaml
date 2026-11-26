@@ -94,7 +94,9 @@ spec:
                 --low-level-retries=10
 
               # The zenbook laptop's backup repositories (whole buckets): restic and
-              # the two Kopia ones. The laptop backs up to Garage only; this is
+              # the current Kopia one (kopia-zenbook-sync mirrors the repository on the
+              # Synology; the older kopia-zenbook bucket is no longer written and is
+              # left out). The laptop backs up to Garage only; this is
               # its off-site copy (restic added 2026-11-25, Kopia 2026-11-26;
               # velero-key has READ-only on each). Pack and blob files are
               # immutable, so copying a live repository is safe apart from a
@@ -121,7 +123,7 @@ spec:
             - name: NEON_BUCKET
               value: "neon-storage"
             - name: ZENBOOK_BUCKETS
-              value: "restic-zenbook kopia-zenbook kopia-zenbook-sync"
+              value: "restic-zenbook kopia-zenbook-sync"
             - name: OFFSITE_BUCKET
               value: "garage-offsite"   # create on B2 first; lifecycle: 90d
             - name: GARAGE_ENDPOINT
