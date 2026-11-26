@@ -13,6 +13,9 @@
 # embeddings-2 on debian-marmoset). Bookmarked and IntervalAI call this server
 # directly and have no hosted fallback, so the second copy is what keeps search
 # working when one laptop is down. Same model files, same settings, same vectors.
+# 2026-11-26: third copy embeddings-3 on m920s (older GPU, own runtime image).
+# Returns exactly the same vectors and scores; single requests are as fast as on
+# the laptops, large batches two to five times slower.
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
@@ -152,6 +155,84 @@ spec:
       modelFormat:
         name: openvino-graph
       runtime: ovms-gpu-graph
+      volumeMounts:
+        - { name: config, mountPath: /config, readOnly: true }
+      resources:
+        requests:
+          cpu: "1"
+          # 2026-11-26: 5Gi -> 3Gi. With idle unload the three retrieval models are
+          # out of memory most of the day, and each GPU node now holds an LLM copy
+          # and an embeddings copy. Loaded, the pod measures 3.3-5.4Gi including
+          # cached model files, so the limit stays at 8Gi.
+          memory: 3Gi
+        limits:
+          # History: the pod was OOMKilled on model load at lower limits; 8Gi was set
+          # when it measured 6.3Gi with the LLM still inside. Do not lower without
+          # re-measuring a cold start.
+          memory: 8Gi
+        claims: [{ name: igpu }]
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: embeddings-3
+  namespace: ovms
+  labels:
+    portfolio: "true"
+  annotations:
+    serving.kserve.io/deploymentMode: Standard
+    # One GPU per node: nothing to scale to, so no HPA.
+    serving.kserve.io/autoscalerClass: none
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    labels:
+      portfolio: "true"
+      # Shared by both copies; the ovms-embeddings Service selects it.
+      model-group: retrieval
+    deploymentStrategy:
+      type: Recreate
+    # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
+    # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
+    tolerations:
+      - key: gpu-priority
+        operator: Equal
+        value: "true"
+        effect: PreferNoSchedule
+    nodeSelector:
+      gpu-node: "true"
+      # Third copy, on m920s's UHD Graphics 630 (needs the legacy-driver runtime).
+      intel-gpu-gen: gen9
+      kubernetes.io/hostname: m920s
+    priorityClassName: portfolio-critical
+    serviceAccountName: ovms-models
+    terminationGracePeriodSeconds: 30
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+      # GID 992 = `render` group, owns /dev/dri/renderD128.
+      supplementalGroups: [992]
+    # Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml).
+    resourceClaims:
+      - { name: igpu, resourceClaimTemplateName: igpu }
+    volumes:
+      - name: config
+        configMap:
+          name: ovms-embeddings-config
+    # Downloaded from Garage on every pod start (about 30 s for ~3 GB) into an
+    # emptyDir. Credentials come from the ovms-models ServiceAccount.
+    # interval_ai is a TensorFlow SavedModel with numbered version folders; the
+    # server loads the highest one.
+    storageUris:
+      - { uri: "s3://ovms-models/e5-large", mountPath: /mnt/models/e5-large }
+      - { uri: "s3://ovms-models/qwen3-embedding-0.6b", mountPath: /mnt/models/qwen3-embedding-0.6b }
+      - { uri: "s3://ovms-models/qwen3-reranker-0.6b", mountPath: /mnt/models/qwen3-reranker-0.6b }
+      - { uri: "s3://ovms-models/interval_ai", mountPath: /mnt/models/interval_ai }
+    model:
+      modelFormat:
+        name: openvino-graph-legacy
+      runtime: ovms-gpu-graph-legacy
       volumeMounts:
         - { name: config, mountPath: /config, readOnly: true }
       resources:

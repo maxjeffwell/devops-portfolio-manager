@@ -73,3 +73,73 @@ spec:
     - name: cache
       emptyDir:
         sizeLimit: 6Gi
+---
+# Same runtime for older Intel graphics (Gen8-Gen11, e.g. UHD Graphics 630 in
+# m920s). The stock image's driver does not recognise those chips and the server
+# then only sees the CPU; this image adds Intel's legacy driver.
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: ovms-gpu-graph-legacy
+  namespace: ovms
+  labels:
+    portfolio: "true"
+spec:
+  annotations:
+    prometheus.kserve.io/path: /metrics
+    prometheus.kserve.io/port: "8000"
+  supportedModelFormats:
+    - name: openvino-graph-legacy
+      version: "1"
+      autoSelect: false
+  protocolVersions:
+    - v2
+    - grpc-v2
+  containers:
+    - name: kserve-container
+      # Same server version as ovms-gpu-graph, plus the legacy driver
+      # (docker/ovms-legacy-gpu). Bump both images together.
+      image: maxjeffwell/ovms-legacy-gpu:2026.4.1
+      imagePullPolicy: IfNotPresent
+      args:
+        - "--config_path=/config/config.json"
+        - "--port=9000"
+        - "--rest_port=8000"
+        - "--log_level=INFO"
+        - "--metrics_enable"
+        # Idle unload (preview feature, needs 2026.4+): after 15 minutes without an
+        # inference request the models are dropped from GPU and system memory and
+        # reloaded on the next request. Probes and metrics scrapes do not count as
+        # requests. Measured wake-up with the cache below: LLM 0.9 s, the three
+        # retrieval models together about 4 s (2026-11-26).
+        - "--idle_unload_timeout_seconds=900"
+        # Compiled-model cache, so a wake-up imports instead of recompiling.
+        - "--cache_dir=/cache"
+      ports:
+        - { name: rest, containerPort: 8000, protocol: TCP }
+      volumeMounts:
+        - { name: cache, mountPath: /cache }
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+        runAsUser: 5000
+      livenessProbe:
+        httpGet: { path: /v2/health/live, port: 8000 }
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        failureThreshold: 5
+      readinessProbe:
+        httpGet: { path: /v2/health/ready, port: 8000 }
+        periodSeconds: 10
+      startupProbe:
+        httpGet: { path: /v2/health/ready, port: 8000 }
+        periodSeconds: 10
+        # GPU compile on first load can take minutes.
+        failureThreshold: 60
+  # Lives as long as the pod: enough for idle wake-ups; a new pod recompiles once.
+  volumes:
+    - name: cache
+      emptyDir:
+        sizeLimit: 6Gi
