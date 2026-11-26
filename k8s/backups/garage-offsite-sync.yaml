@@ -73,7 +73,7 @@ spec:
                   --checkers=8 \
                   --stats=30s \
                   --stats-one-line \
-                  --bwlimit=20M \
+                  --bwlimit="${UPLOAD_LIMIT}" \
                   --retries=3 \
                   --low-level-retries=10
               done
@@ -92,7 +92,7 @@ spec:
                 --checkers=8 \
                 --stats=30s \
                 --stats-one-line \
-                --bwlimit=20M \
+                --bwlimit="${UPLOAD_LIMIT}" \
                 --retries=3 \
                 --low-level-retries=10
 
@@ -113,7 +113,7 @@ spec:
                   --checkers=8 \
                   --stats=30s \
                   --stats-one-line \
-                  --bwlimit=20M \
+                  --bwlimit="${UPLOAD_LIMIT}" \
                   --retries=3 \
                   --low-level-retries=10
               done
@@ -127,6 +127,12 @@ spec:
               value: "neon-storage"
             - name: ZENBOOK_BUCKETS
               value: "restic-zenbook kopia-zenbook-sync"
+            # Upload ceiling for every rclone call in this job (bytes per second,
+            # rclone units). 2M = 2 MiB/s, about half of the home uplink, the same
+            # ceiling the two NAS sync jobs use. Was 20M until 2026-11-26, which is
+            # above the uplink, so the job took all of it for as long as it ran.
+            - name: UPLOAD_LIMIT
+              value: "2M"
             - name: OFFSITE_BUCKET
               value: "garage-offsite"   # create on B2 first; lifecycle: 90d
             - name: GARAGE_ENDPOINT
