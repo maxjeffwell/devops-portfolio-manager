@@ -60,9 +60,9 @@ data:
           # CLS is deliberate: on the 2026-10-01 eval (62 bookmarks, 20 queries) CLS
           # with prefixes scored 15/20, MEAN 13/20, although the model card says mean.
           pooling: CLS,
-          # 2026-11-26: cut inputs over the 512-token limit instead of answering 400.
-          # Does not change vectors for inputs that already fit.
-          truncate: true,
+          # No `truncate` here: tried 2026-11-26 on OVMS 2026.4.1 and inputs over the
+          # limit were still rejected ("Input length 902 longer than allowed 514").
+          # Callers must keep E5 inputs under 512 tokens (/v3/tokenize counts them).
           target_device: "GPU"   # explicit: bookmarked + intervalai embeddings run on the i915, not the CPU
         }
       }
