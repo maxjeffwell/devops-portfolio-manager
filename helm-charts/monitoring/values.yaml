@@ -922,7 +922,14 @@ garage:
   # was hard-pinned to m920s: the m920s reboot that night left it Pending for
   # ~5 min and every consumer lost S3. Two gateway pods, required anti-affinity
   # across nodes, readiness-probed Service endpoints => one node down costs 0.
-  replicas: 2
+  # 2026-11-26: 2 -> 3, one gateway per server. With two, draining one server
+  # left a single gateway, so a second fault during maintenance cost every
+  # consumer its S3 endpoint. The required anti-affinity plus the servers-only
+  # nodeSelector below put the third on the one server without a gateway
+  # (m720q; ports 3920-3923 are free there, its native node uses 3900-3903).
+  # A new gateway must be added to the Garage layout by hand
+  # (layout assign -g -z k8s, then layout apply).
+  replicas: 3
   antiAffinity: true
   # 2026-10-07: servers only. garage-0 had slipped onto debian-marmoset (GPU
   # node, gpu-priority PreferNoSchedule taint is soft); dm + neon are kept for
