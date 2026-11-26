@@ -1,7 +1,8 @@
 # 2026-10-02 GPU split (user decision): neonmarmoset Xe = jellyfin + ovms-embeddings;
-# debian-marmoset Xe = immich-ml + ovms-llm.
-# The qwen2.5-1.5b-instruct LLM has its own OVMS pod; ovms-embeddings keeps the
-# embedding graphs + interval_ai.
+# debian-marmoset Xe = immich-ml + the LLM.
+# 2026-11-26: the qwen2.5-1.5b-instruct LLM is served by KServe (InferenceService
+# qwen-llm in kserve-llm.yaml). This file keeps what callers and the model depend
+# on: the model volume and the stable ovms-llm Service name.
 # OpenAI-compatible chat at http://ovms-llm.ovms:8000/v3 (model "qwen2.5-1.5b-instruct")
 # for shared-ai-gateway's auto tier and litellm's local-llama / ollama-llama3.2-3b.
 # Weights: OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov (Apache-2.0) in s3://ovms-models.
@@ -22,194 +23,6 @@ spec:
       storage: 4Gi
 ---
 apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ovms-llm-config
-  namespace: ovms
-  labels:
-    app: ovms-llm
-    portfolio: "true"
-data:
-  config.json: |
-    {
-      "mediapipe_config_list": [
-        { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" }
-      ],
-      "model_config_list": []
-    }
-  llm-graph.pbtxt: |
-    input_stream: "HTTP_REQUEST_PAYLOAD:input"
-    output_stream: "HTTP_RESPONSE_PAYLOAD:output"
-    node: {
-      name: "LLMExecutor"
-      calculator: "HttpLLMCalculator"
-      input_stream: "LOOPBACK:loopback"
-      input_stream: "HTTP_REQUEST_PAYLOAD:input"
-      input_side_packet: "LLM_NODE_RESOURCES:llm"
-      output_stream: "LOOPBACK:loopback"
-      output_stream: "HTTP_RESPONSE_PAYLOAD:output"
-      input_stream_info: {
-        tag_index: 'LOOPBACK:0',
-        back_edge: true
-      }
-      node_options: {
-        [type.googleapis.com / mediapipe.LLMCalculatorOptions]: {
-          models_path: "/models/qwen2.5-1.5b-instruct",
-          plugin_config: '{}',
-          enable_prefix_caching: false,
-          cache_size: 1,
-          max_num_seqs: 4,
-          device: "GPU"
-        }
-      }
-      input_stream_handler {
-        input_stream_handler: "SyncSetInputStreamHandler",
-        options {
-          [mediapipe.SyncSetInputStreamHandlerOptions.ext] {
-            sync_set {
-              tag_index: "LOOPBACK:0"
-            }
-          }
-        }
-      }
-    }
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ovms-llm
-  namespace: ovms
-  labels:
-    app: ovms-llm
-    portfolio: "true"
-spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: ovms-llm
-  template:
-    metadata:
-      labels:
-        app: ovms-llm
-        portfolio: "true"
-    spec:
-      # 2026-10-05 (user decision): dm + neon carry a gpu-priority=true:PreferNoSchedule
-      # taint so the scheduler steers non-GPU work elsewhere; GPU workloads tolerate it.
-      tolerations:
-        - key: gpu-priority
-          operator: Equal
-          value: "true"
-          effect: PreferNoSchedule
-      nodeSelector:
-        gpu-node: "true"
-        intel-gpu-gen: xe
-        # 2026-10-02 GPU split (user decision): the LLM runs on debian-marmoset's Xe iGPU.
-        kubernetes.io/hostname: debian-marmoset
-      priorityClassName: portfolio-critical
-      terminationGracePeriodSeconds: 30
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-        # GID 992 = `render` group (same on every iGPU node), owns /dev/dri/renderD128.
-        supplementalGroups: [992]
-      # 2026-10-07: Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml)
-      # instead of the device plugin's gpu.intel.com/i915.
-      resourceClaims:
-        - {name: igpu, resourceClaimTemplateName: igpu}
-      volumes:
-        - name: models
-          persistentVolumeClaim:
-            claimName: ovms-llm-models
-        - name: config
-          configMap:
-            name: ovms-llm-config
-      initContainers:
-        - name: model-loader
-          image: amazon/aws-cli:2.17.43
-          imagePullPolicy: IfNotPresent
-          command:
-            - sh
-            - -c
-            - |
-              set -eu
-              name=qwen2.5-1.5b-instruct
-              if [ -f "/models/$name/openvino_model.bin" ]; then
-                echo "$name already present, skipping sync"
-              else
-                echo "Syncing s3://ovms-models/$name -> /models/$name ..."
-                aws --endpoint-url=http://garage.monitoring.svc.cluster.local:3900 s3 sync "s3://ovms-models/$name" "/models/$name"
-                ls -la "/models/$name/"
-              fi
-              # Partial downloads left by a killed sync (aws-cli writes <file>.<8 random chars>).
-              rm -f /models/*/*.bin.????????
-              echo "Sync complete"
-          env:
-            - { name: AWS_REGION, value: garage }
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: ovms-s3-credentials
-                  key: AWS_ACCESS_KEY_ID
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: ovms-s3-credentials
-                  key: AWS_SECRET_ACCESS_KEY
-          volumeMounts:
-            - { name: models, mountPath: /models }
-          resources:
-            requests: { cpu: 100m, memory: 64Mi }
-            # aws-cli transfer buffers OOMed at 256Mi against in-cluster garage.
-            limits:   { memory: 1Gi }
-      containers:
-        - name: ovms
-          image: openvino/model_server:2025.4-gpu
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-          args:
-            - "--config_path=/config/config.json"
-            - "--port=9000"
-            - "--rest_port=8000"
-            - "--log_level=INFO"
-            - "--metrics_enable"
-          ports:
-            - { name: rest, containerPort: 8000, protocol: TCP }
-            - { name: grpc, containerPort: 9000, protocol: TCP }
-          volumeMounts:
-            - { name: models, mountPath: /models, readOnly: true }
-            - { name: config, mountPath: /config, readOnly: true }
-          resources:
-            requests:
-              cpu: "1"
-              # Initial: int4 weights ~0.9 GB + 1 GB KV cache (cache_size: 1) + runtime.
-              # 2026-10-06 re-measured: working set 14d p95 3.2-3.9Gi across the last
-              # three instances (RSS only ~0.6Gi -- the rest is the memory-mapped
-              # weights, which the kubelet counts toward the working set and eviction).
-              # 3Gi -> 4Gi to match; limit 5Gi unchanged.
-              memory: 4Gi
-            limits:
-              memory: 5Gi
-            claims: [{name: igpu}]
-          livenessProbe:
-            httpGet: { path: /v2/health/live, port: 8000 }
-            initialDelaySeconds: 30
-            periodSeconds: 30
-            failureThreshold: 5
-          readinessProbe:
-            httpGet: { path: /v2/health/ready, port: 8000 }
-            periodSeconds: 10
-          startupProbe:
-            httpGet: { path: /v2/health/ready, port: 8000 }
-            periodSeconds: 10
-            # GPU compile on first load can take minutes.
-            failureThreshold: 60
----
-apiVersion: v1
 kind: Service
 metadata:
   name: ovms-llm
@@ -218,8 +31,9 @@ metadata:
     app: ovms-llm
 spec:
   type: ClusterIP
+  # Alias onto the KServe-managed pod so callers keep http://ovms-llm.ovms:8000.
   selector:
-    app: ovms-llm
+    serving.kserve.io/inferenceservice: qwen-llm
   ports:
     - { name: rest, port: 8000, targetPort: 8000, protocol: TCP }
     - { name: grpc, port: 9000, targetPort: 9000, protocol: TCP }

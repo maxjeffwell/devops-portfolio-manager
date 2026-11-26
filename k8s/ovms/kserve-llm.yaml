@@ -1,7 +1,7 @@
 # qwen2.5-1.5b-instruct served through KServe (2026-11-26).
-# TRIAL: runs beside the hand-written ovms-llm Deployment (llm.yaml) on the same
-# node and GPU until the two have been compared; callers still use ovms-llm.
-# Reachable in-cluster at http://qwen-llm-predictor.ovms/v3 (Service port 80 -> 8000).
+# Replaced the hand-written ovms-llm Deployment on 2026-11-26 after a side-by-side
+# comparison (same answers, same latency). Callers use the ovms-llm Service
+# (llm.yaml), which selects this pod: http://ovms-llm.ovms:8000/v3.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,8 +17,7 @@ data:
       ],
       "model_config_list": []
     }
-  # Same graph as ovms-llm-config; only models_path differs (KServe mounts the
-  # model volume at /mnt/models).
+  # KServe mounts the model volume at /mnt/models.
   llm-graph.pbtxt: |
     input_stream: "HTTP_REQUEST_PAYLOAD:input"
     output_stream: "HTTP_RESPONSE_PAYLOAD:output"
@@ -111,9 +110,9 @@ spec:
       resources:
         requests:
           cpu: "1"
-          # Trial value: dm cannot reserve another 4Gi while ovms-llm still runs.
-          # Raise to 4Gi (as in llm.yaml) when the old Deployment is removed.
-          memory: 2Gi
+          # 2026-10-06 measured: working set 14d p95 3.2-3.9Gi (RSS only ~0.6Gi; the
+          # rest is the memory-mapped weights, which count toward eviction).
+          memory: 4Gi
         limits:
           memory: 5Gi
         claims: [{ name: igpu }]
