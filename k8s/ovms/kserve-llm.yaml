@@ -1,0 +1,119 @@
+# qwen2.5-1.5b-instruct served through KServe (2026-11-26).
+# TRIAL: runs beside the hand-written ovms-llm Deployment (llm.yaml) on the same
+# node and GPU until the two have been compared; callers still use ovms-llm.
+# Reachable in-cluster at http://qwen-llm-predictor.ovms/v3 (Service port 80 -> 8000).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qwen-llm-kserve-config
+  namespace: ovms
+  labels:
+    portfolio: "true"
+data:
+  config.json: |
+    {
+      "mediapipe_config_list": [
+        { "name": "qwen2.5-1.5b-instruct", "graph_path": "/config/llm-graph.pbtxt" }
+      ],
+      "model_config_list": []
+    }
+  # Same graph as ovms-llm-config; only models_path differs (KServe mounts the
+  # model volume at /mnt/models).
+  llm-graph.pbtxt: |
+    input_stream: "HTTP_REQUEST_PAYLOAD:input"
+    output_stream: "HTTP_RESPONSE_PAYLOAD:output"
+    node: {
+      name: "LLMExecutor"
+      calculator: "HttpLLMCalculator"
+      input_stream: "LOOPBACK:loopback"
+      input_stream: "HTTP_REQUEST_PAYLOAD:input"
+      input_side_packet: "LLM_NODE_RESOURCES:llm"
+      output_stream: "LOOPBACK:loopback"
+      output_stream: "HTTP_RESPONSE_PAYLOAD:output"
+      input_stream_info: {
+        tag_index: 'LOOPBACK:0',
+        back_edge: true
+      }
+      node_options: {
+        [type.googleapis.com / mediapipe.LLMCalculatorOptions]: {
+          models_path: "/mnt/models/qwen2.5-1.5b-instruct",
+          plugin_config: '{}',
+          enable_prefix_caching: false,
+          cache_size: 1,
+          max_num_seqs: 4,
+          device: "GPU"
+        }
+      }
+      input_stream_handler {
+        input_stream_handler: "SyncSetInputStreamHandler",
+        options {
+          [mediapipe.SyncSetInputStreamHandlerOptions.ext] {
+            sync_set {
+              tag_index: "LOOPBACK:0"
+            }
+          }
+        }
+      }
+    }
+---
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: qwen-llm
+  namespace: ovms
+  labels:
+    portfolio: "true"
+  annotations:
+    serving.kserve.io/deploymentMode: Standard
+    # One GPU per node: nothing to scale to, so no HPA.
+    serving.kserve.io/autoscalerClass: none
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 1
+    labels:
+      portfolio: "true"
+    deploymentStrategy:
+      type: Recreate
+    tolerations:
+      - key: gpu-priority
+        operator: Equal
+        value: "true"
+        effect: PreferNoSchedule
+    nodeSelector:
+      gpu-node: "true"
+      intel-gpu-gen: xe
+      # 2026-10-02 GPU split (user decision): the LLM runs on debian-marmoset's Xe iGPU.
+      kubernetes.io/hostname: debian-marmoset
+    priorityClassName: portfolio-critical
+    terminationGracePeriodSeconds: 30
+    securityContext:
+      seccompProfile:
+        type: RuntimeDefault
+      # GID 992 = `render` group, owns /dev/dri/renderD128.
+      supplementalGroups: [992]
+    # Iris Xe via Intel GPU DRA (adminAccess claim, gpu-claim.yaml).
+    resourceClaims:
+      - { name: igpu, resourceClaimTemplateName: igpu }
+    volumes:
+      - name: config
+        configMap:
+          name: qwen-llm-kserve-config
+    model:
+      modelFormat:
+        name: openvino-graph
+      runtime: ovms-gpu-graph
+      # Existing model volume (filled by ovms-llm's model-loader), mounted read-only
+      # at /mnt/models.
+      storageUri: pvc://ovms-llm-models/
+      volumeMounts:
+        - { name: config, mountPath: /config, readOnly: true }
+      resources:
+        requests:
+          cpu: "1"
+          # Trial value: dm cannot reserve another 4Gi while ovms-llm still runs.
+          # Raise to 4Gi (as in llm.yaml) when the old Deployment is removed.
+          memory: 2Gi
+        limits:
+          memory: 5Gi
+        claims: [{ name: igpu }]

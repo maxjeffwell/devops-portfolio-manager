@@ -1,0 +1,58 @@
+# KServe ServingRuntime for OpenVINO Model Server on the Intel iGPUs (2026-11-26).
+# Based on upstream extras/kserve/kserve-openvino.yaml, with three differences:
+#   - image pinned to the GPU build this cluster already runs (not `weekly`)
+#   - --config_path instead of --model_name/--model_path: the models here are
+#     MediaPipe graphs listed in a config.json, which each InferenceService
+#     mounts at /config from its own ConfigMap
+#   - REST stays on 8000, the port every caller already uses
+# GPU access (resource claim, render group, node pinning) is set on the
+# InferenceService, not here.
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: ovms-gpu-graph
+  namespace: ovms
+  labels:
+    portfolio: "true"
+spec:
+  annotations:
+    prometheus.kserve.io/path: /metrics
+    prometheus.kserve.io/port: "8000"
+  supportedModelFormats:
+    - name: openvino-graph
+      version: "1"
+      autoSelect: false
+  protocolVersions:
+    - v2
+    - grpc-v2
+  containers:
+    - name: kserve-container
+      image: openvino/model_server:2025.4-gpu
+      imagePullPolicy: IfNotPresent
+      args:
+        - "--config_path=/config/config.json"
+        - "--port=9000"
+        - "--rest_port=8000"
+        - "--log_level=INFO"
+        - "--metrics_enable"
+      ports:
+        - { name: rest, containerPort: 8000, protocol: TCP }
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
+        runAsNonRoot: true
+        runAsUser: 5000
+      livenessProbe:
+        httpGet: { path: /v2/health/live, port: 8000 }
+        initialDelaySeconds: 30
+        periodSeconds: 30
+        failureThreshold: 5
+      readinessProbe:
+        httpGet: { path: /v2/health/ready, port: 8000 }
+        periodSeconds: 10
+      startupProbe:
+        httpGet: { path: /v2/health/ready, port: 8000 }
+        periodSeconds: 10
+        # GPU compile on first load can take minutes.
+        failureThreshold: 60

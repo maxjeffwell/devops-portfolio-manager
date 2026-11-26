@@ -9,6 +9,8 @@ resources:
   - embeddings-config.yaml
   - deployment.yaml
   - llm.yaml
+  - kserve-runtime.yaml
+  - kserve-llm.yaml
   - service.yaml
   - networkpolicy.yaml
   - servicemonitor.yaml

@@ -15,3 +15,22 @@ spec:
       ports:
         - { port: 8000, protocol: TCP }
         - { port: 9000, protocol: TCP }
+---
+# Same rule for the KServe-managed model pods (their `app` label is set by KServe).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ovms-kserve-allow-cluster
+  namespace: ovms
+spec:
+  podSelector:
+    matchExpressions:
+      - { key: serving.kserve.io/inferenceservice, operator: Exists }
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - { port: 8000, protocol: TCP }
+        - { port: 9000, protocol: TCP }
