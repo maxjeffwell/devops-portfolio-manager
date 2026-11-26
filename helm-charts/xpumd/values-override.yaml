@@ -49,8 +49,10 @@ affinity:
         - matchExpressions:
             - key: kubernetes.io/hostname
               operator: In
-              # Iris Xe only. The UHD 630 servers (Gen9.5) are not targeted.
-              values: [neonmarmoset, debian-marmoset]
+              # Iris Xe nodes, plus m920s (UHD 630) since 2026-11-26: it now
+              # carries immich-ml and an embeddings copy. The other UHD 630
+              # servers are not targeted.
+              values: [neonmarmoset, debian-marmoset, m920s]
 
 tolerations:
   - key: gpu-priority
