@@ -1518,7 +1518,7 @@ snmpExporter:
   enabled: true
   image:
     repository: prom/snmp-exporter
-    tag: v0.28.0
+    tag: v0.31.0
   priorityClassName: monitoring
   resources:
     requests:
