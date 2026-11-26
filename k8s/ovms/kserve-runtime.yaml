@@ -27,7 +27,9 @@ spec:
     - grpc-v2
   containers:
     - name: kserve-container
-      image: openvino/model_server:2025.4-gpu
+      # 2026-11-26: 2025.4-gpu -> 2026.4.1-gpu after side-by-side trials (identical
+      # embeddings and rerank scores; LLM same speed, wording differs slightly).
+      image: openvino/model_server:2026.4.1-gpu
       imagePullPolicy: IfNotPresent
       args:
         - "--config_path=/config/config.json"
