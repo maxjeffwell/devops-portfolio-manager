@@ -293,7 +293,6 @@ spec:
                 values:
                 - neonmarmoset
                 - debian-marmoset
-                - m920s   # 2026-11-26: UHD 630, now runs immich-ml + an embeddings copy
       tolerations:
         - effect: PreferNoSchedule
           key: gpu-priority

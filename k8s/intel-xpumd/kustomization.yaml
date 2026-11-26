@@ -8,9 +8,18 @@ namespace: intel-xpumd
 resources:
   - namespace.yaml
   - rendered-2.2.0.yaml
+  - daemonset-legacy.yaml
   - prometheusrule.yaml
   - grafana-dashboard.yaml
 patches:
+  # One Service (and so one ServiceMonitor) for both DaemonSets: select on the
+  # app name only, not the per-DaemonSet instance label.
+  - target:
+      kind: Service
+      name: xpumd
+    patch: |-
+      - op: remove
+        path: /spec/selector/app.kubernetes.io~1instance
   # Chart scrapes every 5 s; 30 s matches the rest of the cluster and is plenty
   # for utilization graphs and a 2 m reset alert.
   - target:

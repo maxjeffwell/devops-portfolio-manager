@@ -1,0 +1,104 @@
+# xpumd for the UHD 630 on m920s (2026-11-26). Same pod as the stock DaemonSet in
+# rendered-2.2.0.yaml, with two differences: the image carries Intel's legacy
+# Level Zero driver (docker/xpumd-legacy-gpu; the stock image cannot read
+# Gen9 graphics and exports nothing there), and it runs on m920s only.
+# Regenerate from the rendered DaemonSet when the chart is bumped.
+# The instance label differs so the two DaemonSets do not share a selector; the
+# Service selector is patched in kustomization.yaml to cover both.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: xpumd-legacy
+  labels:
+    helm.sh/chart: xpumd-2.2.0
+    app.kubernetes.io/name: xpumd
+    app.kubernetes.io/instance: xpumd-legacy
+    app.kubernetes.io/version: v2.2.0
+    app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: xpumd
+      app.kubernetes.io/instance: xpumd-legacy
+  template:
+    metadata:
+      annotations:
+        checksum/config: d479e17c7f420452c93d33ad69814c2cab400ad4445c0056fd2a5efeefcafbd4
+      labels:
+        app.kubernetes.io/name: xpumd
+        app.kubernetes.io/instance: xpumd-legacy
+    spec:
+      serviceAccountName: xpumd
+      resourceClaims:
+      - name: xpumd
+        resourceClaimTemplateName: xpumd
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: xpumd
+        image: docker.io/maxjeffwell/xpumd-legacy-gpu:v2.2.0
+        imagePullPolicy: IfNotPresent
+        args:
+        - --config=/etc/xpumd/config-receiver-crashlog.yaml
+        - --config=/etc/xpumd/config-receiver-infolog.yaml
+        - --config=/etc/xpumd/config-processor-xpustatus.yaml
+        - --config=/etc/xpumd/config-exporter-xpuinfo.yaml
+        - --config=/etc/xpumd/config.yaml
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - PERFMON
+            - SYS_ADMIN
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsUser: 0
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 10m
+            memory: 128Mi
+          claims:
+          - name: xpumd
+          limits:
+            memory: 2Gi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/xpumd
+          readOnly: true
+        - name: rundir
+          mountPath: /run/xpumd
+        - name: crashlog
+          mountPath: /var/log/crashlog
+          readOnly: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - m920s
+      tolerations:
+      - effect: PreferNoSchedule
+        key: gpu-priority
+        operator: Equal
+        value: 'true'
+      volumes:
+      - name: config
+        configMap:
+          name: xpumd-config
+      - name: rundir
+        hostPath:
+          path: /run/xpumd
+          type: DirectoryOrCreate
+      - name: crashlog
+        hostPath:
+          path: /var/log/crashlog
+          type: DirectoryOrCreate

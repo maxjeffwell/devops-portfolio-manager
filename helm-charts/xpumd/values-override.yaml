@@ -49,10 +49,9 @@ affinity:
         - matchExpressions:
             - key: kubernetes.io/hostname
               operator: In
-              # Iris Xe nodes, plus m920s (UHD 630) since 2026-11-26: it now
-              # carries immich-ml and an embeddings copy. The other UHD 630
-              # servers are not targeted.
-              values: [neonmarmoset, debian-marmoset, m920s]
+              # Iris Xe only. m920s (UHD 630) gets its own DaemonSet with a
+              # legacy-driver image: k8s/intel-xpumd/daemonset-legacy.yaml.
+              values: [neonmarmoset, debian-marmoset]
 
 tolerations:
   - key: gpu-priority
