@@ -7,10 +7,10 @@ metadata:
     app: ovms-embeddings
 spec:
   type: ClusterIP
-  # Alias onto the KServe-managed pod (InferenceService embeddings) so callers
+  # Alias onto the KServe-managed pods (both copies) so callers
   # keep http://ovms-embeddings.ovms:8000.
   selector:
-    serving.kserve.io/inferenceservice: embeddings
+    model-group: retrieval
   ports:
     - { name: rest, port: 8000, targetPort: 8000, protocol: TCP }
     - { name: grpc, port: 9000, targetPort: 9000, protocol: TCP }
