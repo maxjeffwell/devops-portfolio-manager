@@ -91,6 +91,7 @@ spec:
           # History: the pod was OOMKilled on model load at lower limits; 8Gi was set
           # when it measured 6.3Gi with the LLM still inside. Do not lower without
           # re-measuring a cold start.
+          # 6Gi since 2026-11-26 (was 8Gi): real need is ~3.6Gi (3.0 GPU + 0.6 program); the rest was file cache from --cache_dir read back on wake, which pushed neonmarmoset into a kubelet memory eviction at 6.9Gi. A tighter limit makes the kernel trim that cache inside the pod.
           memory: 8Gi
         claims: [{ name: igpu }]
 ---
@@ -169,6 +170,7 @@ spec:
           # History: the pod was OOMKilled on model load at lower limits; 8Gi was set
           # when it measured 6.3Gi with the LLM still inside. Do not lower without
           # re-measuring a cold start.
+          # 6Gi since 2026-11-26 (was 8Gi): real need is ~3.6Gi (3.0 GPU + 0.6 program); the rest was file cache from --cache_dir read back on wake, which pushed neonmarmoset into a kubelet memory eviction at 6.9Gi. A tighter limit makes the kernel trim that cache inside the pod.
           memory: 8Gi
         claims: [{ name: igpu }]
 ---
@@ -247,5 +249,6 @@ spec:
           # History: the pod was OOMKilled on model load at lower limits; 8Gi was set
           # when it measured 6.3Gi with the LLM still inside. Do not lower without
           # re-measuring a cold start.
-          memory: 8Gi
+          # 6Gi since 2026-11-26 (was 8Gi): real need is ~3.6Gi (3.0 GPU + 0.6 program); the rest was file cache from --cache_dir read back on wake, which pushed neonmarmoset into a kubelet memory eviction at 6.9Gi. A tighter limit makes the kernel trim that cache inside the pod.
+          memory: 6Gi
         claims: [{ name: igpu }]
