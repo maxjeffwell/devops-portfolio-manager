@@ -1,0 +1,30 @@
+# Disruption budgets for two cluster helpers that are not deployed from this
+# repository (2026-11-26, when both went from one replica to two):
+#   - the CloudNativePG operator is a Helm release applied by hand,
+#   - metrics-server is the k3s add-on.
+# With two copies on different servers, a node drain must leave one running:
+# the operator performs database failover, and five autoscalers read from
+# metrics-server. They live in this app because it already carries
+# cluster-wide policy objects with explicit namespaces.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cnpg-cloudnative-pg
+  namespace: cnpg-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudnative-pg
+      app.kubernetes.io/instance: cnpg
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: metrics-server
+  namespace: kube-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      k8s-app: metrics-server
