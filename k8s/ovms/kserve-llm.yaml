@@ -17,7 +17,7 @@ data:
       ],
       "model_config_list": []
     }
-  # KServe mounts the model volume at /mnt/models.
+  # KServe downloads the model into /mnt/models before the server starts.
   llm-graph.pbtxt: |
     input_stream: "HTTP_REQUEST_PAYLOAD:input"
     output_stream: "HTTP_RESPONSE_PAYLOAD:output"
@@ -35,7 +35,7 @@ data:
       }
       node_options: {
         [type.googleapis.com / mediapipe.LLMCalculatorOptions]: {
-          models_path: "/mnt/models/qwen2.5-1.5b-instruct",
+          models_path: "/mnt/models",
           plugin_config: '{}',
           enable_prefix_caching: false,
           cache_size: 1,
@@ -85,6 +85,7 @@ spec:
       # 2026-10-02 GPU split (user decision): the LLM runs on debian-marmoset's Xe iGPU.
       kubernetes.io/hostname: debian-marmoset
     priorityClassName: portfolio-critical
+    serviceAccountName: ovms-models
     terminationGracePeriodSeconds: 30
     securityContext:
       seccompProfile:
@@ -102,9 +103,9 @@ spec:
       modelFormat:
         name: openvino-graph
       runtime: ovms-gpu-graph
-      # Existing model volume (filled by ovms-llm's model-loader), mounted read-only
-      # at /mnt/models.
-      storageUri: pvc://ovms-llm-models/
+      # Downloaded from Garage on every pod start (about 12 s for ~1 GB) into an
+      # emptyDir. Credentials come from the ovms-models ServiceAccount.
+      storageUri: s3://ovms-models/qwen2.5-1.5b-instruct
       volumeMounts:
         - { name: config, mountPath: /config, readOnly: true }
       resources:

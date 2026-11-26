@@ -2,7 +2,8 @@
 # debian-marmoset Xe = immich-ml + the LLM.
 # 2026-11-26: the qwen2.5-1.5b-instruct LLM is served by KServe (InferenceService
 # qwen-llm in kserve-llm.yaml). This file keeps what callers and the model depend
-# on: the model volume and the stable ovms-llm Service name.
+# on: the stable ovms-llm Service name, and the old model volume (no longer
+# mounted since KServe downloads from Garage; kept as a fallback for now).
 # OpenAI-compatible chat at http://ovms-llm.ovms:8000/v3 (model "qwen2.5-1.5b-instruct")
 # for shared-ai-gateway's auto tier and litellm's local-llama / ollama-llama3.2-3b.
 # Weights: OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov (Apache-2.0) in s3://ovms-models.
