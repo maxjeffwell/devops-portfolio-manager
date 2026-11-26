@@ -1,0 +1,13 @@
+# KServe controller settings (chart kserve-resources, see gitops/applications/kserve.yaml).
+kserve:
+  controller:
+    # Standard = plain Deployments + Services per InferenceService. No Knative,
+    # no service mesh. (Scale-to-zero for HTTP is not available in this mode.)
+    deploymentMode: Standard
+    # Models are called from inside the cluster only; no Ingress/HTTPRoute per model.
+    gateway:
+      disableIngressCreation: true
+    imagePullPolicy: IfNotPresent
+    # Servers only: keep the controller off the GPU laptops and the VPS.
+    nodeSelector:
+      node-role.kubernetes.io/control-plane: "true"

@@ -1,0 +1,64 @@
+# KServe (model serving operator), Standard deployment mode. Added 2026-11-26.
+#
+# Two upstream charts from one release: kserve-crd (the CRDs) and
+# kserve-resources (controller, webhooks, config). The stock serving runtimes
+# (chart kserve-runtime-configs) are NOT installed: the OpenVINO runtime for the
+# models in the ovms namespace lives with them in k8s/ovms.
+#
+# No resources-finalizer on purpose: deleting THIS Application must never
+# cascade-delete the CRDs and with them every InferenceService.
+# Server-side apply is required (the CRDs exceed the last-applied size limit).
+# To upgrade: bump both targetRevision values together.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve
+  namespace: argocd
+  labels:
+    infrastructure: "true"
+spec:
+  project: default
+  sources:
+    - repoURL: ghcr.io/kserve/charts
+      chart: kserve-crd
+      targetRevision: v0.21.0
+      helm:
+        releaseName: kserve-crd
+    - repoURL: ghcr.io/kserve/charts
+      chart: kserve-resources
+      targetRevision: v0.21.0
+      helm:
+        releaseName: kserve
+        valueFiles:
+          - $values/helm-charts/kserve/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  ignoreDifferences:
+    # cert-manager injects the CA into the webhooks after they are applied.
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[].clientConfig.caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[].clientConfig.caBundle
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
