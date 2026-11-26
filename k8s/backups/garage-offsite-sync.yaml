@@ -6,10 +6,13 @@ metadata:
   labels:
     app: garage-offsite-sync
 spec:
-  # Sundays 06:00 UTC — runs after weekly-offsite (04:00) finishes
-  # so the freshest Velero state is included in the off-site copy.
+  # Every day at 06:00 Eastern, after the nightly dump jobs (03:00-05:00) have
+  # written to Garage. Was Sundays only until 2026-11-26: the dumps, the Neon
+  # storage and the laptop repositories change daily, so a weekly off-site copy
+  # could be seven days behind. The sync is incremental, so a daily run only
+  # carries that day's changes.
   timeZone: "America/New_York"
-  schedule: "0 6 * * 0"
+  schedule: "0 6 * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 3
