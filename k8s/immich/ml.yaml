@@ -2,8 +2,12 @@
 # on an Intel iGPU via OpenVINO. The -openvino image needs /dev/dri, which the
 # Intel GPU DRA driver injects via the igpu adminAccess claim (2026-10-07; was the
 # device plugin's gpu.intel.com/i915); the hostname nodeSelector is what
-# limits scheduling to the i915 nodes. 2026-10-02: Xe iGPU nodes only (see
-# nodeSelector) -- 96 EUs vs the UHD 630's 24. The render
+# places it. 2026-11-26: moved from debian-marmoset (Iris Xe) to m920s
+# (UHD 630) to free the laptop GPU and memory for the model server copies.
+# This image bundles Intel's legacy OpenCL driver, so the older GPU works
+# without a custom image. Measured on m920s vs the laptop: CLIP image
+# 0.59 s vs 0.24 s, CLIP text 0.065 s vs 0.050 s, model load after idle
+# about 3x slower; vectors agree to cosine 0.99999. The render
 # group is gid 992 on every iGPU node. Models download from Hugging Face on first
 # use into /cache (replicated Mayastor PVC since 2026-09-30). Runs as uid 1000
 # like the server.
@@ -42,7 +46,7 @@ spec:
           value: "true"
           effect: PreferNoSchedule
       nodeSelector:
-        intel-gpu-gen: gen9   # TRIAL 2026-11-26: was xe / debian-marmoset; image bundles the legacy driver the UHD 630 needs
+        intel-gpu-gen: gen9
         kubernetes.io/hostname: m920s
       securityContext:
         runAsNonRoot: true
