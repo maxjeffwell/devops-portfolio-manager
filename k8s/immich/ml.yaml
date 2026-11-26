@@ -42,8 +42,8 @@ spec:
           value: "true"
           effect: PreferNoSchedule
       nodeSelector:
-        intel-gpu-gen: xe
-        kubernetes.io/hostname: debian-marmoset
+        intel-gpu-gen: gen9   # TRIAL 2026-11-26: was xe / debian-marmoset; image bundles the legacy driver the UHD 630 needs
+        kubernetes.io/hostname: m920s
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
