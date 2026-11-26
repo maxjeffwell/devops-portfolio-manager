@@ -37,8 +37,18 @@ spec:
         - "--rest_port=8000"
         - "--log_level=INFO"
         - "--metrics_enable"
+        # Idle unload (preview feature, needs 2026.4+): after 15 minutes without an
+        # inference request the models are dropped from GPU and system memory and
+        # reloaded on the next request. Probes and metrics scrapes do not count as
+        # requests. Measured wake-up with the cache below: LLM 0.9 s, the three
+        # retrieval models together about 4 s (2026-11-26).
+        - "--idle_unload_timeout_seconds=900"
+        # Compiled-model cache, so a wake-up imports instead of recompiling.
+        - "--cache_dir=/cache"
       ports:
         - { name: rest, containerPort: 8000, protocol: TCP }
+      volumeMounts:
+        - { name: cache, mountPath: /cache }
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:
@@ -58,3 +68,8 @@ spec:
         periodSeconds: 10
         # GPU compile on first load can take minutes.
         failureThreshold: 60
+  # Lives as long as the pod: enough for idle wake-ups; a new pod recompiles once.
+  volumes:
+    - name: cache
+      emptyDir:
+        sizeLimit: 6Gi

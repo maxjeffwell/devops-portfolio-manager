@@ -7,6 +7,8 @@ kserve:
     # Models are called from inside the cluster only; no Ingress/HTTPRoute per model.
     gateway:
       disableIngressCreation: true
+      # No Istio here; stops the VirtualServiceCRDNotFound warning on every InferenceService.
+      disableIstioVirtualHost: true
     imagePullPolicy: IfNotPresent
     # Servers only: keep the controller off the GPU laptops and the VPS.
     nodeSelector:

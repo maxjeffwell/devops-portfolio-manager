@@ -17,17 +17,23 @@ data:
   # KServe downloads each model from Garage into /mnt/models/<name> before the
   # server starts (storageUris in kserve-embeddings.yaml); the graphs reference
   # them by absolute models_path.
+  # Idle unload groups (2026-11-26): the server keeps ONE non-permanent group
+  # loaded at a time. The three retrieval models share a group so they load and
+  # unload together (a search embeds, then reranks); without it each request to a
+  # different model would swap the previous one out. interval_ai is tiny and stays
+  # loaded ("permanent").
   config.json: |
     {
       "mediapipe_config_list": [
-        { "name": "e5-large", "graph_path": "/config/graph.pbtxt" },
-        { "name": "qwen3-embedding-0.6b", "graph_path": "/config/qwen3-embedding-graph.pbtxt" },
-        { "name": "qwen3-reranker-0.6b", "graph_path": "/config/rerank-graph.pbtxt" }
+        { "name": "e5-large", "graph_path": "/config/graph.pbtxt", "group_name": "retrieval" },
+        { "name": "qwen3-embedding-0.6b", "graph_path": "/config/qwen3-embedding-graph.pbtxt", "group_name": "retrieval" },
+        { "name": "qwen3-reranker-0.6b", "graph_path": "/config/rerank-graph.pbtxt", "group_name": "retrieval" }
       ],
       "model_config_list": [
         {
           "config": {
             "name": "interval_ai",
+            "group_name": "permanent",
             "base_path": "/mnt/models/interval_ai",
             "target_device": "GPU",
             "plugin_config": { "INFERENCE_PRECISION_HINT": "f32" }
@@ -49,7 +55,7 @@ data:
       node_options: {
         [type.googleapis.com / mediapipe.EmbeddingsCalculatorOVOptions]: {
           models_path: "/mnt/models/e5-large/1",
-          plugin_config: '{"NUM_STREAMS": "1"}',
+          plugin_config: '{"NUM_STREAMS": "1", "CACHE_DIR": "/cache"}',
           normalize_embeddings: true,
           pooling: CLS,
           target_device: "GPU"   # explicit: bookmarked + intervalai embeddings run on the i915, not the CPU
@@ -75,7 +81,7 @@ data:
       node_options: {
         [type.googleapis.com / mediapipe.EmbeddingsCalculatorOVOptions]: {
           models_path: "/mnt/models/qwen3-embedding-0.6b",
-          plugin_config: '{"NUM_STREAMS": "1"}',
+          plugin_config: '{"NUM_STREAMS": "1", "CACHE_DIR": "/cache"}',
           normalize_embeddings: true,
           pooling: LAST,
           truncate: true,
@@ -108,7 +114,7 @@ data:
           models_path: "/mnt/models/qwen3-reranker-0.6b",
           max_allowed_chunks: 10000,
           target_device: "GPU",
-          plugin_config: '{"NUM_STREAMS": "1"}'
+          plugin_config: '{"NUM_STREAMS": "1", "CACHE_DIR": "/cache"}'
         }
       }
     }
