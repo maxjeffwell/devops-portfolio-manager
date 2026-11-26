@@ -25,7 +25,7 @@
 # Adding a disk to a node = add it to that node's list here.
 
 image:
-  tag: v0.14.0
+  tag: v0.15.0
 
 rbac:
   # chart binds to a PodSecurityPolicy ClusterRole; PSP was removed in k8s 1.25

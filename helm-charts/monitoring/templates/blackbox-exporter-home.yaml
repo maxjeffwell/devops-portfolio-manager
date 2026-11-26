@@ -33,7 +33,7 @@ spec:
             value: "1"
       containers:
       - name: blackbox-exporter
-        image: prom/blackbox-exporter:v0.25.0
+        image: prom/blackbox-exporter:v0.29.1
         args:
           - --config.file=/etc/blackbox/blackbox.yml
           - --log.level=info
