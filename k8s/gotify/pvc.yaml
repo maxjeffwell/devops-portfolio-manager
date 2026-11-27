@@ -15,3 +15,23 @@ spec:
     requests:
       storage: 1Gi
   storageClassName: democratic-synology-iscsi-mp
+---
+# 2026-11-26: Gotify's data moved here, onto the cluster's own replicated
+# storage (two copies on the servers' internal pools). Gotify is the only
+# notification channel, and on the Synology-backed volume above it went down
+# whenever the Synology did (11/9 move, 11/25 DSM update), which is when
+# storage alerts fire. The old claim above is kept for rollback until removed.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    app: gotify
+  name: gotify-data
+  namespace: monitoring
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: mayastor-2-thin

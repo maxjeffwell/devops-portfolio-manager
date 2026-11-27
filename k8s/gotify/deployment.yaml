@@ -6,8 +6,9 @@ metadata:
   labels:
     app: gotify
 spec:
-  replicas: 1
-  # RWO iSCSI volume: old pod must release it before the new one mounts
+  # TEMPORARY 0 (2026-11-26): stopped while its data is copied to the new volume.
+  replicas: 0
+  # RWO volume: old pod must release it before the new one mounts
   strategy:
     type: Recreate
   selector:
@@ -18,8 +19,8 @@ spec:
       labels:
         app: gotify
     spec:
-      # democratic-csi-mp node plugin only runs on these nodes (its DaemonSet
-      # is hostname-pinned); anywhere else the PVC fails MountDevice.
+      # The data volume is replicated cluster storage (Mayastor) since 2026-11-26,
+      # served from the three servers. Kept on those nodes.
       # 2026-10-06: the three servers (debian-marmoset is a GPU node now).
       affinity:
         nodeAffinity:
@@ -53,4 +54,4 @@ spec:
       volumes:
         - name: gotify-data
           persistentVolumeClaim:
-            claimName: gotify-democratic-mp
+            claimName: gotify-data
