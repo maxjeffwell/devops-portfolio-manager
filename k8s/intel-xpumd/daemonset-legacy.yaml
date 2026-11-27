@@ -1,4 +1,4 @@
-# xpumd for the UHD 630 nodes that run GPU workloads: m920s and elitedesk (2026-11-26). Same pod as the stock DaemonSet in
+# xpumd for the UHD 630 nodes that run or can take GPU workloads: m920s, elitedesk and m720q (2026-11-26). Same pod as the stock DaemonSet in
 # rendered-2.2.0.yaml, with two differences: the image carries Intel's legacy
 # Level Zero driver (docker/xpumd-legacy-gpu; the stock image cannot read
 # Gen9 graphics and exports nothing there), and it runs on those nodes only.
@@ -86,6 +86,7 @@ spec:
                 values:
                 - m920s
                 - elitedesk   # 2026-11-26: carries an embeddings copy now
+                - m720q       # 2026-11-26: same UHD 630; made ready to take an embeddings copy
       tolerations:
       - effect: PreferNoSchedule
         key: gpu-priority

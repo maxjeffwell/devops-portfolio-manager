@@ -49,7 +49,7 @@ affinity:
         - matchExpressions:
             - key: kubernetes.io/hostname
               operator: In
-              # Iris Xe only. m920s and elitedesk (UHD 630) get their own DaemonSet with a
+              # Iris Xe only. m920s, elitedesk and m720q (UHD 630) get their own DaemonSet with a
               # legacy-driver image: k8s/intel-xpumd/daemonset-legacy.yaml.
               values: [neonmarmoset, debian-marmoset]
 
