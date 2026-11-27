@@ -1527,6 +1527,13 @@ snmpExporter:
     repository: prom/snmp-exporter
     tag: v0.31.0
   priorityClassName: monitoring
+  # One replica on EACH listed node (required node affinity + anti-affinity),
+  # all behind the one Service, so losing a node does not stop the Synology
+  # scrape. Empty list = a single replica wherever the scheduler puts it.
+  nodes:
+    - elitedesk
+    - m920s
+    - m720q
   resources:
     requests:
       cpu: 25m
@@ -1545,6 +1552,77 @@ snmpExporter:
     authProtocol: SHA
     privProtocol: AES
     passwordSecret: snmp-exporter-auth
+  # Credentials for the other SNMP devices. Each *Env names BOTH a key of the
+  # Secret above and the env var the exporter expands in snmp.yml. The values
+  # are not in git; the source of truth is the device itself:
+  #   ASUSTOR_SNMP_AUTH_PASSWORD = ADM SNMP v3 passphrase (ADM: MD5 auth, no privacy)
+  #   TRENDNET_SNMP_*_PASSWORD   = the switch GUI's SNMPv3 user passwords
+  #   AX86U_SNMP_*_PASSWORD      = generated; the Secret is the only copy (see below)
+  # SNMPv3 only: the exporter cannot read a v2c community from the Secret.
+  extraAuths:
+    asustor_v3:
+      version: 3
+      username: maxjeffwell
+      securityLevel: authNoPriv
+      authProtocol: MD5
+      passwordEnv: ASUSTOR_SNMP_AUTH_PASSWORD
+    # The BE88U's v3 user has NO auth configured on the router (snmpd.conf:
+    # `rwuser maxjeffwell noauth`), so no secret is involved. If v3 auth is
+    # set in the router GUI, add securityLevel/authProtocol/passwordEnv here.
+    be88u_v3:
+      version: 3
+      username: maxjeffwell
+      securityLevel: noAuthNoPriv
+    # AX86U Pro is an AiMesh node (no firmware SNMP page), so it runs Entware
+    # snmpd-ssl: /opt/etc/snmp/snmpd.conf, user keys in /opt/lib/snmp/snmpd.conf.
+    # Passwords were generated 2026-11-26 and exist only in the Secret; to reset,
+    # stop snmpd, add a `createUser maxjeffwell SHA "<a>" AES "<p>"` line to
+    # /opt/lib/snmp/snmpd.conf, start it, and patch the Secret to match.
+    ax86u_v3:
+      version: 3
+      username: maxjeffwell
+      securityLevel: authPriv
+      authProtocol: SHA
+      privProtocol: AES
+      passwordEnv: AX86U_SNMP_AUTH_PASSWORD
+      privPasswordEnv: AX86U_SNMP_PRIV_PASSWORD
+    # TRENDnet 10-port managed switch: v3 user set in the switch GUI (SHA / AES-CFB128).
+    trendnet_v3:
+      version: 3
+      username: maxjeffwell
+      securityLevel: authPriv
+      authProtocol: SHA
+      privProtocol: AES
+      passwordEnv: TRENDNET_SNMP_AUTH_PASSWORD
+      privPasswordEnv: TRENDNET_SNMP_PRIV_PASSWORD
+
+# Extra SNMP scrape targets (one ScrapeConfig `snmp-<name>` each), served by the
+# same snmp-exporter replicas as the Synology job below.
+snmpTargets:
+  - name: asustor
+    target: "192.168.50.142"
+    host: asustor
+    role: nas
+    module: hrstorage
+    auth: asustor_v3
+  - name: be88u
+    target: "192.168.50.1"
+    host: be88u
+    role: router
+    module: hrstorage
+    auth: be88u_v3
+  - name: ax86u
+    target: "192.168.50.103"
+    host: ax86u
+    role: router
+    module: if_mib
+    auth: ax86u_v3
+  # TRENDnet switch (192.168.50.200) target REMOVED 2026-11-27 ~01:35 UTC: the
+  # switch stopped forwarding within about a minute of the first SNMP walks.
+  # SNMP was disabled on the switch afterwards. Do not re-add without the
+  # user's OK and a gentler approach (one client, single GETs, no bulk walks).
+  # The trendnet_v3 auth above is unused and kept only so the live release and
+  # its Secret keys stay consistent.
 
 # SNMP Synology - Scrape target + alerts for the Synology DS423 (boom_boom)
 snmpSynology:

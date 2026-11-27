@@ -19,6 +19,25 @@ data:
         # DSM uses a single passphrase for both auth and privacy
         password: ${SNMP_AUTH_PASSWORD}
         priv_password: ${SNMP_AUTH_PASSWORD}
+      {{- range $name, $a := .Values.snmpExporter.extraAuths }}
+      {{ $name }}:
+        version: {{ $a.version }}
+        {{- /* No v2c community here: snmp_exporter (checked at v0.31.0) expands
+               env vars only in username/password/priv_password, so a community
+               could not come from the Secret. Use SNMPv3. */}}
+        {{- if $a.username }}
+        username: {{ $a.username | quote }}
+        security_level: {{ $a.securityLevel }}
+        {{- end }}
+        {{- if $a.authProtocol }}
+        auth_protocol: {{ $a.authProtocol }}
+        password: {{ printf "${%s}" $a.passwordEnv }}
+        {{- end }}
+        {{- if $a.privProtocol }}
+        priv_protocol: {{ $a.privProtocol }}
+        priv_password: {{ printf "${%s}" ($a.privPasswordEnv | default $a.passwordEnv) }}
+        {{- end }}
+      {{- end }}
     modules:
       hrstorage:
         walk:
@@ -85,4 +104,41 @@ data:
                 labelname: hrStorageDescr
                 oid: 1.3.6.1.2.1.25.2.3.1.3
                 type: DisplayString
+      # Per-port traffic, errors and link state (IF-MIB), for switches/routers.
+      if_mib:
+        walk:
+          - 1.3.6.1.2.1.2.2.1      # ifTable
+          - 1.3.6.1.2.1.31.1.1.1   # ifXTable
+          - 1.3.6.1.2.1.1.3        # sysUpTime
+        metrics:
+          - name: sysUpTime
+            oid: 1.3.6.1.2.1.1.3
+            type: gauge
+          {{- $ifMetrics := list
+                (list "ifOperStatus"   "1.3.6.1.2.1.2.2.1.8"     "gauge")
+                (list "ifAdminStatus"  "1.3.6.1.2.1.2.2.1.7"     "gauge")
+                (list "ifInDiscards"   "1.3.6.1.2.1.2.2.1.13"    "counter")
+                (list "ifInErrors"     "1.3.6.1.2.1.2.2.1.14"    "counter")
+                (list "ifOutDiscards"  "1.3.6.1.2.1.2.2.1.19"    "counter")
+                (list "ifOutErrors"    "1.3.6.1.2.1.2.2.1.20"    "counter")
+                (list "ifHCInOctets"   "1.3.6.1.2.1.31.1.1.1.6"  "counter")
+                (list "ifHCOutOctets"  "1.3.6.1.2.1.31.1.1.1.10" "counter")
+                (list "ifHighSpeed"    "1.3.6.1.2.1.31.1.1.1.15" "gauge") }}
+          {{- range $m := $ifMetrics }}
+          - name: {{ index $m 0 }}
+            oid: {{ index $m 1 }}
+            type: {{ index $m 2 }}
+            indexes:
+              - labelname: ifIndex
+                type: gauge
+            lookups:
+              - labels: [ifIndex]
+                labelname: ifName
+                oid: 1.3.6.1.2.1.31.1.1.1.1
+                type: DisplayString
+              - labels: [ifIndex]
+                labelname: ifAlias
+                oid: 1.3.6.1.2.1.31.1.1.1.18
+                type: DisplayString
+          {{- end }}
 {{- end }}

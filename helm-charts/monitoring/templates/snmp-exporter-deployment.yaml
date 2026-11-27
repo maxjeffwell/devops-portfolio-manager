@@ -7,7 +7,17 @@ metadata:
   labels:
     app.kubernetes.io/name: snmp-exporter
 spec:
-  replicas: 1
+  {{- $nodes := .Values.snmpExporter.nodes | default list }}
+  replicas: {{ max 1 (len $nodes) }}
+  {{- if $nodes }}
+  # One pod per listed node (required anti-affinity below), so a new pod can
+  # only start after the old one on that node is gone: no surge, one at a time.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: snmp-exporter
@@ -22,6 +32,23 @@ spec:
       {{- with .Values.snmpExporter.priorityClassName }}
       priorityClassName: {{ . }}
       {{- end }}
+      {{- if $nodes }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      {{- toYaml $nodes | nindent 22 }}
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: snmp-exporter
+      {{- end }}
       containers:
         - name: snmp-exporter
           image: "{{ .Values.snmpExporter.image.repository }}:{{ .Values.snmpExporter.image.tag }}"
@@ -35,6 +62,15 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.snmpExporter.auth.passwordSecret }}
                   key: SNMP_AUTH_PASSWORD
+            {{- range $name, $a := .Values.snmpExporter.extraAuths }}
+            {{- range (list $a.passwordEnv $a.privPasswordEnv | compact | uniq) }}
+            - name: {{ . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.snmpExporter.auth.passwordSecret }}
+                  key: {{ . }}
+            {{- end }}
+            {{- end }}
           ports:
             - name: http
               containerPort: 9116
