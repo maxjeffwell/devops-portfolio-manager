@@ -47,7 +47,7 @@ the oneshot uncordons and clears the flag. LOWBATT remains the backstop.
 | k3s-agent-after-nfs-gate.conf | /etc/systemd/system/k3s-agent.service.d/ | 0644 |
 
 k3s-agent `Wants=`/`After=` the gate; the gate polls `showmount -e` for
-`192.168.50.149:/mnt/backups`, `192.168.50.149:/volume1/channels-data` and `192.168.50.109:/volume1/k8s-nfs` (TCP 2049
+`192.168.50.149:/mnt/backups` and `192.168.50.149:/volume1/channels-data` (the Synology `k8s-nfs` export was dropped on 2026-11-26: nothing uses Synology NFS or iSCSI at boot any more) (TCP 2049
 fallback if nfs-common is ever absent; m720q got nfs-common 9/16) every 5 s and gives up after
 900 s with a `nfs-gate` WARNING in the journal, so a dead NAS delays k3s by at
 most 15 min. `RemainAfterExit=yes` ⇒ a plain `systemctl restart k3s-agent`

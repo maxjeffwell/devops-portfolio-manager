@@ -8,7 +8,9 @@ INTERVAL=5
 # ip:export pairs. The export must appear in showmount -e (proves exports are
 # loaded, not just nfsd listening). Falls back to a TCP check on 2049 where
 # showmount is not installed.
-TARGETS=${TARGETS:-"192.168.50.149:/mnt/backups 192.168.50.149:/volume1/channels-data 192.168.50.109:/volume1/k8s-nfs"}
+# 2026-11-26: the Synology k8s-nfs export was dropped from this list. Nothing in
+# the cluster uses Synology NFS or iSCSI at boot any more, and the share is being deleted.
+TARGETS=${TARGETS:-"192.168.50.149:/mnt/backups 192.168.50.149:/volume1/channels-data"}
 
 ready() {
   local ip=$1 exp=$2
