@@ -1,4 +1,4 @@
-# Alerts for the monthly full data read of restic repositories kept on a NAS
+# Alerts for the monthly full data read of restic and borg repositories kept on a NAS
 # (added 2026-11-26). Each host runs /usr/local/sbin/restic-nas-fullcheck from a
 # systemd timer (`restic check --read-data`, staggered across the first days of
 # the month) and writes the result to node_exporter's textfile collector.
@@ -21,25 +21,27 @@ spec:
     - name: restic-nas-fullcheck
       rules:
         - alert: ResticNasRepositoryDamaged
-          expr: restic_nas_fullcheck_last_status == 1
+          # restic repositories report restic_nas_fullcheck_*, borg ones borg_fullcheck_*.
+          expr: '{__name__=~"(restic_nas|borg)_fullcheck_last_status"} == 1'
           for: 5m
           labels:
             severity: critical
           annotations:
-            summary: "restic repository {{ $labels.repo }} of {{ $labels.host }} failed its full data read"
+            summary: "backup repository {{ $labels.repo }} of {{ $labels.host }} failed its full data read"
             description: >-
-              `restic check --read-data` reported errors or could not reach the
-              repository. On the host: `journalctl -t restic-nas-fullcheck`.
+              `restic check --read-data` (or `borg check --verify-data`) reported
+              errors or could not reach the repository. On the host:
+              `journalctl -t restic-nas-fullcheck` / `-t borg-home-fullcheck`.
               If pack files are damaged: `restic repair packs <ids>`, then a
               backup, then `restic repair snapshots --forget`, then check again.
         - alert: ResticNasFullCheckOverdue
           # Monthly timer; 40 days allows for a host that was off on its day.
-          expr: (time() - restic_nas_fullcheck_last_success_timestamp_seconds) > 40 * 86400
+          expr: '(time() - {__name__=~"(restic_nas|borg)_fullcheck_last_success_timestamp_seconds"}) > 40 * 86400'
           for: 1h
           labels:
             severity: warning
           annotations:
-            summary: "restic repository {{ $labels.repo }} of {{ $labels.host }} has had no clean full read for {{ $value | humanizeDuration }}"
+            summary: "backup repository {{ $labels.repo }} of {{ $labels.host }} has had no clean full read for {{ $value | humanizeDuration }}"
             description: >-
               The monthly full data read has not succeeded for over 40 days.
               Check `systemctl status restic-nas-fullcheck.timer` on the host.
