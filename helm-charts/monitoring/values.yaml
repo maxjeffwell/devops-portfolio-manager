@@ -619,6 +619,23 @@ kube-prometheus-stack:
           webhook_configs:
             - url: 'http://alertmanager-gotify-bridge.monitoring.svc.cluster.local:8080/gotify_webhook'
               send_resolved: true
+        # 2026-11-26: critical alerts also go to Pushover, a channel outside the
+        # cluster. Gotify runs inside it, and went silent on 11/9 and 11/25 while
+        # its storage was offline. Pushover's default priority here is emergency
+        # while firing (repeats every `retry` until acknowledged, for `expire`)
+        # and normal for the resolved message. Keys are read from files mounted
+        # from the alertmanager-pushover Secret (Doppler -> ExternalSecret in
+        # k8s/platform-external-secrets), listed under alertmanagerSpec.secrets.
+        - name: 'gotify-pushover'
+          webhook_configs:
+            - url: 'http://alertmanager-gotify-bridge.monitoring.svc.cluster.local:8080/gotify_webhook'
+              send_resolved: true
+          pushover_configs:
+            - user_key_file: /etc/alertmanager/secrets/alertmanager-pushover/user-key
+              token_file: /etc/alertmanager/secrets/alertmanager-pushover/token
+              retry: 5m
+              expire: 1h
+              send_resolved: true
       route:
         group_by: ['namespace']
         group_wait: 30s
@@ -639,15 +656,18 @@ kube-prometheus-stack:
           - matchers:
               - alertname =~ "KubeControllerManagerDown|KubeSchedulerDown|KubeProxyDown"
             receiver: 'null'
-          # Route critical alerts to Gotify
+          # Route critical alerts to Gotify and Pushover
           - matchers:
               - severity = "critical"
-            receiver: 'gotify'
+            receiver: 'gotify-pushover'
           # Route warning alerts to Gotify
           - matchers:
               - severity = "warning"
             receiver: 'gotify'
     alertmanagerSpec:
+      # Mounted at /etc/alertmanager/secrets/<name>/ (Pushover keys, read as files).
+      secrets:
+        - alertmanager-pushover
       # 2 gossiping peers on emptyDir instead of 1 pod on a local-path PVC
       # (which bound it to debian-marmoset forever); silences/nflog replicate
       # between peers, chart's default soft anti-affinity spreads them
