@@ -29,6 +29,21 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: In
                     values: ["elitedesk", "m720q", "m920s"]
+      # Fail over quickly when its node dies (2026-11-26). The default is to wait
+      # 300 s before evicting a pod from a not-ready/unreachable node; Gotify is
+      # the main notification channel and cannot run as two copies (one SQLite
+      # file, in-memory push connections), so a fast restart elsewhere is the
+      # redundancy. The volume still has to detach from the dead node, which
+      # Kubernetes forces after about 6 minutes if the node cannot confirm it.
+      tolerations:
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 30
       containers:
         - name: gotify
           # pinned 2026-10-07 (was untagged = latest); = running digest 44fc5bbd
