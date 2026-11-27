@@ -1,0 +1,62 @@
+# Read-only login for Headlamp (2026-11-27). Headlamp asks for a token at login;
+# this service account's token can read everything the built-in `view` role
+# allows (no Secrets) plus Kubescape's results. It cannot change anything, so the
+# Kubescape plugin's editing features (custom frameworks, exceptions) will not
+# work with it.
+#
+# Get the token:
+#   kubectl -n headlamp get secret headlamp-viewer-token -o jsonpath='{.data.token}' | base64 -d
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: headlamp-viewer
+  namespace: headlamp
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: headlamp-viewer-token
+  namespace: headlamp
+  annotations:
+    kubernetes.io/service-account.name: headlamp-viewer
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-viewer-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: headlamp-viewer
+    namespace: headlamp
+---
+# Kubescape stores its results in an aggregated API (spdx.softwarecomposition.
+# kubescape.io) that `view` does not cover.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: headlamp-kubescape-read
+rules:
+  - apiGroups: ["spdx.softwarecomposition.kubescape.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["kubescape.io"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: headlamp-viewer-kubescape
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: headlamp-kubescape-read
+subjects:
+  - kind: ServiceAccount
+    name: headlamp-viewer
+    namespace: headlamp

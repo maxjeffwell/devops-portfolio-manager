@@ -1,0 +1,55 @@
+# Headlamp (Kubernetes web UI) with the Kubescape plugin, added 2026-11-27 to
+# browse what Kubescape produces (compliance, vulnerabilities, generated network
+# policies). Chart: https://kubernetes-sigs.github.io/headlamp/ (version pinned
+# in gitops/applications/headlamp.yaml).
+#
+# Access: ClusterIP only, no ingress. Reach it with
+#   kubectl -n headlamp port-forward svc/headlamp 4466:80   -> http://localhost:4466
+# and log in with the read-only token described in k8s/headlamp/viewer.yaml.
+
+# The pod's own service account gets NO cluster-admin (chart default would bind
+# it). Every user request is made with the token the user logs in with, and
+# unsafeUseServiceAccountToken stays false.
+clusterRoleBinding:
+  create: false
+
+config:
+  inCluster: true
+  unsafeUseServiceAccountToken: false
+  # The Kubescape plugin is copied here by the init container below.
+  pluginsDir: /build/plugins
+
+# Kubescape's documented install for an in-cluster Headlamp
+# (kubescape/headlamp-plugin examples/headlamp-helm-values.yaml): copy the
+# plugin out of its image into a shared emptyDir before Headlamp starts.
+# To upgrade the plugin, bump the image tag.
+initContainers:
+  - name: kubescape-plugin
+    image: quay.io/kubescape/headlamp-plugin:v0.11.2
+    command: ["/bin/sh", "-c", "mkdir -p /build/plugins && cp -r /plugins/* /build/plugins/"]
+    volumeMounts:
+      - name: headlamp-plugins
+        mountPath: /build/plugins
+    resources:
+      requests: { cpu: 10m, memory: 16Mi }
+      limits: { cpu: 200m, memory: 64Mi }
+volumeMounts:
+  - name: headlamp-plugins
+    mountPath: /build/plugins
+volumes:
+  - name: headlamp-plugins
+    emptyDir: {}
+
+resources:
+  requests: { cpu: 20m, memory: 64Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+# Keep it on the three servers, like the other control-plane-ish tools.
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: node-role.kubernetes.io/control-plane
+              operator: In
+              values: ["true"]
