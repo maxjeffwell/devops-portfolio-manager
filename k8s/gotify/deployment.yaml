@@ -6,8 +6,7 @@ metadata:
   labels:
     app: gotify
 spec:
-  # TEMPORARY 0 (2026-11-26): stopped while its data is copied to the new volume.
-  replicas: 0
+  replicas: 1
   # RWO volume: old pod must release it before the new one mounts
   strategy:
     type: Recreate
