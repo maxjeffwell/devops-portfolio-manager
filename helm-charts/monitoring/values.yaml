@@ -317,8 +317,8 @@ kube-prometheus-stack:
     # 2026-10-23: Grafana state moved to the native Patroni HA Postgres (db/role `grafana`,
     # VIP 192.168.50.60:5000, verify-full). Everything else is provisioned (33 dashboards,
     # 6 datasources, plugins reinstalled at start), so /var/lib/grafana is an emptyDir and
-    # Grafana runs 2 replicas. The old SQLite volume grafana-data-v2 (lvmpv, elitedesk) is
-    # left in place, unmounted, as rollback until it is deleted by hand.
+    # Grafana runs 2 replicas. The old SQLite volume grafana-data-v2 (lvmpv, elitedesk),
+    # kept unmounted as rollback, was deleted 2026-11-26.
     persistence:
       enabled: false
 
