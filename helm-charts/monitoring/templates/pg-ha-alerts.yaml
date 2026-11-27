@@ -70,6 +70,26 @@ spec:
           annotations:
             summary: pg-ha off-site mirror to B2 older than 3 h
             description: No successful hourly mirror of pg-ha-backups to B2 garage-offsite. Check `journalctl -u pg-ha-offsite` on the current primary; a run refused by the empty-source guard or stopped by --max-delete 400 also lands here.
+        - alert: PgHaDumpStale
+          # pg-ha-dump.timer (04:00, primary only): pg_dumpall --globals-only + pg_dump -Fc per DB,
+          # independent of barman/Garage. Two targets, one series each, max() across hosts for failovers.
+          expr: |
+            (time() - max(pg_ha_dump_nfs_last_success_timestamp_seconds) > 93600)
+            or absent(pg_ha_dump_nfs_last_success_timestamp_seconds)
+          for: 1h
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha logical dump to the Synology older than 26 h
+            description: No successful nightly pg_dump set in Iron_Wolf/Backups/patroni/pg-ha-dumps (NFS over .109). Check `journalctl -u pg-ha-dump` on the current primary; a Synology outage or a failed pg_dump/pg_restore --list lands here.
+        - alert: PgHaDumpR2Stale
+          expr: |
+            (time() - max(pg_ha_dump_r2_last_success_timestamp_seconds) > 93600)
+            or absent(pg_ha_dump_r2_last_success_timestamp_seconds)
+          for: 1h
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha logical dump upload to Cloudflare R2 older than 26 h
+            description: The Synology copy may be fine but the upload or `rclone check` to R2 bucket pg-ha-dumps failed. Check `journalctl -u pg-ha-dump` on the current primary.
         - alert: PgHaDataDiskFilling
           expr: |
             node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"}
