@@ -80,7 +80,7 @@ spec:
           labels: {severity: warning}
           annotations:
             summary: pg-ha logical dump to the Synology older than 26 h
-            description: No successful nightly pg_dump set in Iron_Wolf/Backups/patroni/pg-ha-dumps (NFS over .109). Check `journalctl -u pg-ha-dump` on the current primary; a Synology outage or a failed pg_dump/pg_restore --list lands here.
+            description: No successful nightly pg_dump set on the Synology. Check `journalctl -u pg-ha-dump` on the current primary; a Synology outage or a failed pg_dump/pg_restore --list lands here.
         - alert: PgHaDumpR2Stale
           expr: |
             (time() - max(pg_ha_dump_r2_last_success_timestamp_seconds) > 93600)
@@ -89,7 +89,7 @@ spec:
           labels: {severity: warning}
           annotations:
             summary: pg-ha logical dump upload to Cloudflare R2 older than 26 h
-            description: The Synology copy may be fine but the upload or `rclone check` to R2 bucket pg-ha-dumps failed. Check `journalctl -u pg-ha-dump` on the current primary.
+            description: The Synology copy may be fine but the upload or `rclone check` to R2 failed. Check `journalctl -u pg-ha-dump` on the current primary.
         - alert: PgHaDataDiskFilling
           expr: |
             node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"}
