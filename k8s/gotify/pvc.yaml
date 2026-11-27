@@ -1,26 +1,10 @@
 # Gotify data volume.
-# Regenerated from the live object 2026-09-26 (the previous version was stale:
-# it named gotify-synology on the retired synology-iscsi class; the live PVC is gotify-democratic-mp). Verified with an empty kubectl diff.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app: gotify
-  name: gotify-democratic-mp
-  namespace: monitoring
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  storageClassName: democratic-synology-iscsi-mp
----
 # 2026-11-26: Gotify's data moved here, onto the cluster's own replicated
 # storage (two copies on the servers' internal pools). Gotify is the only
 # notification channel, and on the Synology-backed volume above it went down
 # whenever the Synology did (11/9 move, 11/25 DSM update), which is when
-# storage alerts fire. The old claim above is kept for rollback until removed.
+# storage alerts fire. The old Synology-backed claim (gotify-democratic-mp) was
+# removed the same night, after Gotify was confirmed working on this volume.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
