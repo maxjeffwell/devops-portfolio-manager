@@ -1,5 +1,5 @@
-# Headlamp web UI with the Kubescape plugin (added 2026-11-27). Internal only:
-# reach it by port-forward (see helm-charts/headlamp/values-override.yaml).
+# Headlamp web UI with the Kubescape plugin (added 2026-11-27), at
+# https://headlamp.el-jefe.me (see helm-charts/headlamp/values-override.yaml).
 # Sources: the upstream chart, this repo's values, and k8s/headlamp (read-only
 # login account).
 apiVersion: argoproj.io/v1alpha1

@@ -3,9 +3,13 @@
 # policies). Chart: https://kubernetes-sigs.github.io/headlamp/ (version pinned
 # in gitops/applications/headlamp.yaml).
 #
-# Access: ClusterIP only, no ingress. Reach it with
-#   kubectl -n headlamp port-forward svc/headlamp 4466:80   -> http://localhost:4466
-# and log in with the read-only token described in k8s/headlamp/viewer.yaml.
+# Access: https://headlamp.el-jefe.me (2026-11-27), the same way as Grafana and
+# NetBox: Cloudflare proxied CNAME -> edge.el-jefe.me -> Traefik, CrowdSec
+# bouncer, cert-manager DNS-01 certificate. Headlamp's own login (a service
+# account token, see k8s/headlamp/viewer.yaml) is the authentication. No basic
+# auth in front: Headlamp sends the token in the Authorization header, which a
+# basic-auth middleware would reject. Port-forward still works:
+#   kubectl -n headlamp port-forward svc/headlamp 4466:80
 
 # The pod's own service account gets NO cluster-admin (chart default would bind
 # it). Every user request is made with the token the user logs in with, and
@@ -53,3 +57,21 @@ affinity:
             - key: node-role.kubernetes.io/control-plane
               operator: In
               values: ["true"]
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-dns
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+  hosts:
+    - host: headlamp.el-jefe.me
+      paths:
+        - path: /
+          type: Prefix
+  tls:
+    - secretName: headlamp-tls
+      hosts:
+        - headlamp.el-jefe.me
