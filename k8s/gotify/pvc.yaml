@@ -1,7 +1,7 @@
 # Gotify data volume.
 # 2026-11-26: Gotify's data moved here, onto the cluster's own replicated
 # storage (two copies on the servers' internal pools). Gotify is the only
-# notification channel, and on the Synology-backed volume above it went down
+# notification channel, and on its previous Synology-backed volume it went down
 # whenever the Synology did (11/9 move, 11/25 DSM update), which is when
 # storage alerts fire. The old Synology-backed claim (gotify-democratic-mp) was
 # removed the same night, after Gotify was confirmed working on this volume.
