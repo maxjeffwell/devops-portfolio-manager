@@ -37,3 +37,10 @@ spec:
       annotations:
         summary: "Zot image store is {{ $value | humanizePercentage }} full"
         description: "/var/lib/zot on m920s. Zot keeps every image it has ever cached; prune old repos or tags before it fills."
+    - alert: ZotOffsiteStale
+      expr: time() - max(zot_offsite_last_success_timestamp_seconds) > 129600
+      for: 1h
+      labels: {severity: warning}
+      annotations:
+        summary: "Zot image store not copied to B2 in 36 h"
+        description: "The off-site copy of the image mirror is falling behind. On m920s: systemctl status zot-offsite; journalctl -u zot-offsite."
