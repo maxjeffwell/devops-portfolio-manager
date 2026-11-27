@@ -26,7 +26,13 @@ clusterName: homelab-k3s
 capabilities:
   configurationScan: enable
   vulnerabilityScan: enable
-  continuousScan: disable
+  # 2026-11-27: enabled. Without it Kubescape stores only per-resource SUMMARIES
+  # (1,819), not the full results, so the Headlamp Kubescape plugin's "fix" view
+  # (the resource YAML with failing fields) was empty; the plugin's README asks
+  # for this. It re-scans resources when they change instead of only on the
+  # schedule. Watch: kubescape pod memory (limit raised below) and the 5Gi
+  # kubescape-storage volume.
+  continuousScan: enable
   nodeScan: enable
   nodeSbomGeneration: disable
   relevancy: enable
@@ -137,3 +143,14 @@ nodeAgent:
     - mountPath: /boot
       name: boot
       readOnly: true
+
+# 2026-11-27: memory headroom for continuous scanning (was the chart's 1Gi limit
+# with ~700Mi in use before enabling it).
+kubescape:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 400Mi
+    limits:
+      cpu: 600m
+      memory: 1536Mi
