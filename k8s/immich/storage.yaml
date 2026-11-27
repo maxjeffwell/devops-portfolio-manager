@@ -52,6 +52,9 @@ metadata:
   namespace: immich
   labels:
     app: immich
+    # Matched by the Velero volume policy (k8s/backups/velero-nas-local-volumepolicy.yaml):
+    # re-downloadable model cache, never backed up or snapshot-uploaded off-site.
+    velero-volume-policy: skip
 spec:
   accessModes:
     - ReadWriteOnce

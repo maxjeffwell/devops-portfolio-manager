@@ -19,6 +19,10 @@
 #                     and kopia treats the resulting readdirent ENOENT as fatal → PVB
 #                     Canceled → backup PartiallyFailed (daily-backup 2026-10-03). Nothing
 #                     restorable is lost by skipping it.
+#   - pvcLabels:      any PVC labelled velero-volume-policy=skip (added 2026-11-26). For
+#                     re-creatable data such as the Immich ML model cache (6.8 GB). The
+#                     pod annotation only opts a volume out of fs-backup; weekly-offsite
+#                     (snapshotMoveData) would still snapshot it and upload it to Backblaze.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -45,5 +49,10 @@ data:
     - conditions:
         pvcLabels:
           app.kubernetes.io/name: mimir
+      action:
+        type: skip
+    - conditions:
+        pvcLabels:
+          velero-volume-policy: skip
       action:
         type: skip

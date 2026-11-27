@@ -2,9 +2,10 @@
 #
 # Reconciled from live drift (2026-05-30): this Schedule existed only in the
 # cluster, not in git. Unlike the other three schedules (in the monitoring Helm
-# chart, using an excludedNamespaces denylist), weekly-offsite uses an
-# includedNamespaces ALLOWLIST and ships kopia FSB data straight to B2 — the
-# rclone garage-offsite-sync job deliberately skips kopia/restic for that reason.
+# chart), weekly-offsite ships kopia FSB data and CSI snapshots straight to B2 —
+# the rclone garage-offsite-sync job deliberately skips kopia/restic for that
+# reason. Until 2026-11-26 it used an includedNamespaces allowlist; it now takes
+# every namespace except velero (see the note at includedNamespaces).
 # Managed here by the `backups` ArgoCD app (adopts the existing resource via
 # server-side apply; not added to the Helm chart, which would choke on a
 # pre-existing resource it didn't create).
@@ -36,29 +37,15 @@ spec:
     resourcePolicy:
       kind: configmap
       name: nas-local-volume-policy
+    # 2026-11-26: every namespace except velero's own, like the daily and weekly
+    # schedules. This used to be an allowlist, which silently left out every
+    # namespace created after it was written (immich, tdarr, netbox, openebs had
+    # home backups but no off-site copy). What keeps the upload small is the
+    # volume policy above (NFS media, Prometheus, Mimir, PVCs labelled
+    # velero-volume-policy=skip), not the namespace list. Volumes that fs-backup
+    # skips by pod annotation are still snapshot-uploaded (snapshotMoveData), so a
+    # new large re-creatable volume needs that label, not just the annotation.
     includedNamespaces:
-      - default
-      - lunary
-      - percona-mongodb
-      - monitoring
-      - kube-system
-      - argocd
-      - microservices
-      - vertex-platform
-      - vaultwarden
-      # tenantflow-neon + tenantflow-neon-tenant-map ConfigMap (maps app tenants
-      # to the Neon tenant IDs stored in neon-storage, synced by
-      # garage-offsite-sync). Neon PVCs hold ~150 MB total (2026-09-27).
-      - neon
-      # qdrant: 5 Gi iSCSI PVC, ~174 MB of vectors. Its only off-site copy since
-      # k8up was removed 2026-10-06 (k8up kept 6 monthly points in garage, on-site).
-      - qdrant
-      # Added 2026-11-26: these had daily and weekly backups at home but no
-      # off-site copy, because this list is an allowlist. Their media volumes
-      # stay excluded by the pods' own annotations; what goes off-site is the
-      # application data (opentodo 5 Gi, jellyfin config 20 Gi, channels-dvr
-      # data 15 Gi, kubescape storage 5 Gi).
-      - opentodo
-      - jellyfin
-      - channels-dvr
-      - kubescape
+      - "*"
+    excludedNamespaces:
+      - velero
