@@ -1,0 +1,45 @@
+# Alerts for the monthly full data read of restic repositories kept on a NAS
+# (added 2026-11-26). Each host runs /usr/local/sbin/restic-nas-fullcheck from a
+# systemd timer (`restic check --read-data`, staggered across the first days of
+# the month) and writes the result to node_exporter's textfile collector.
+#
+# Why: on 2026-11-26 the first full reads ever run found pack files that had
+# been silently damaged on the ASUSTOR for months. The everyday `restic check`
+# only verifies the index and snapshot structure; it never re-reads stored
+# data, so every earlier check had passed.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: restic-nas-fullcheck
+  namespace: monitoring
+  labels:
+    app: restic-nas-fullcheck
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: restic-nas-fullcheck
+      rules:
+        - alert: ResticNasRepositoryDamaged
+          expr: restic_nas_fullcheck_last_status == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "restic repository {{ $labels.repo }} of {{ $labels.host }} failed its full data read"
+            description: >-
+              `restic check --read-data` reported errors or could not reach the
+              repository. On the host: `journalctl -t restic-nas-fullcheck`.
+              If pack files are damaged: `restic repair packs <ids>`, then a
+              backup, then `restic repair snapshots --forget`, then check again.
+        - alert: ResticNasFullCheckOverdue
+          # Monthly timer; 40 days allows for a host that was off on its day.
+          expr: (time() - restic_nas_fullcheck_last_success_timestamp_seconds) > 40 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: "restic repository {{ $labels.repo }} of {{ $labels.host }} has had no clean full read for {{ $value | humanizeDuration }}"
+            description: >-
+              The monthly full data read has not succeeded for over 40 days.
+              Check `systemctl status restic-nas-fullcheck.timer` on the host.
