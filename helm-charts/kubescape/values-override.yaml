@@ -154,3 +154,25 @@ kubescape:
     limits:
       cpu: 600m
       memory: 1536Mi
+
+# 2026-11-27: continuous scanning watches workloads in EVERY namespace. The chart
+# default watches only Deployments in `default`, which left the full results
+# (and Headlamp's "fix" view) empty everywhere else. Empty `namespaces` = all
+# namespaces with one watch (operator v0.2.209 continuousscanning/watchbuilder.go);
+# kube-system etc. are still skipped by the operator's own namespace filter.
+# Kinds limited to what the operator's ClusterRole may watch (RBAC objects,
+# ServiceAccounts and NetworkPolicies are not watchable by it) and to things that
+# do not churn (Jobs and ConfigMaps left out).
+continuousScanning:
+  matchingRules:
+    match:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["deployments", "statefulsets", "daemonsets"]
+      - apiGroups: ["batch"]
+        apiVersions: ["v1"]
+        resources: ["cronjobs"]
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["services"]
+    namespaces: []
