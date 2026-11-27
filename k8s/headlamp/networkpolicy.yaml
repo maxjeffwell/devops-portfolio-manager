@@ -1,0 +1,29 @@
+# Only Traefik may reach Headlamp (2026-11-27). Headlamp runs with
+# unsafeUseServiceAccountToken behind the admin basic auth, so it answers ANY
+# request with its read-only view of the cluster. The basic auth lives on the
+# Traefik router; without this policy any pod in the cluster could call the
+# Service directly and skip it. Ingress only: egress is left open (Headlamp
+# needs the API server). `kubectl port-forward` still works, because it enters
+# the pod's network namespace through the kubelet, not through the pod network.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: headlamp-from-traefik-only
+  namespace: headlamp
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: headlamp
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - port: 4466
+          protocol: TCP
