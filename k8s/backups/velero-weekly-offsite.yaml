@@ -49,3 +49,12 @@ spec:
       - "*"
     excludedNamespaces:
       - velero
+    # 2026-11-27 (owner): no Secrets off-site. Velero stores Kubernetes objects as
+    # plain JSON (only volume data is encrypted), so every Secret would sit in the
+    # Backblaze bucket readable by anyone holding its key. After an off-site-only
+    # restore, External Secrets re-creates the Doppler-backed ones once the
+    # doppler-token-auth bootstrap Secret is put back by hand; operator-generated,
+    # cert-manager and Helm-record Secrets regenerate. The home schedules (daily,
+    # weekly, weekly-local, daily-nas-local) still include Secrets.
+    excludedResources:
+      - secrets

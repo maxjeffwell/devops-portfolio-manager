@@ -19,3 +19,8 @@ spec:
     region: us-east-005
     s3ForcePathStyle: "true"
     s3Url: https://s3.us-east-005.backblazeb2.com
+    # 2026-11-27: ask Backblaze to encrypt every object Velero writes (SSE-B2,
+    # keys held by Backblaze). Protects the data at rest on their side; it does
+    # not stop someone holding the bucket's access key from reading it, which is
+    # why the weekly-offsite schedule also leaves Secrets out.
+    serverSideEncryption: AES256
