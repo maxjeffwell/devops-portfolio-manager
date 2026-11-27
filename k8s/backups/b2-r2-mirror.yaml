@@ -1,0 +1,162 @@
+# Second off-site copy: Backblaze B2 -> Cloudflare R2 (added 2026-11-27).
+#
+# B2 holds every off-site backup (restic, Velero, NAS apps, CNPG barman, Patroni).
+# This job mirrors six B2 buckets to R2 once a day, so losing the B2 account or a
+# bad change there no longer loses the only off-site copy. R2 was seeded once by
+# Cloudflare Super Slurper; this job keeps it current.
+#
+# - Runs on a home server, never the VPS.
+# - B2 key is READ-ONLY (r2-mirror-readonly), so this job cannot change B2.
+# - Files B2 no longer has are MOVED to the R2 bucket b2-mirror-recycle/<bucket>/<date>
+#   (lifecycle: deleted after 30 days) instead of deleted, so a mistake upstream is
+#   recoverable from R2 for a month.
+# - --checksum compares size + MD5, not modification times: Super Slurper did not
+#   copy rclone's mtime metadata, and a modtime compare would rewrite every object.
+# - Empty source listing = skip that bucket and fail the run (guards against a sync
+#   that would move a whole mirror into the recycle bucket).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: b2-r2-mirror
+  namespace: default
+  labels:
+    app: b2-r2-mirror
+spec:
+  # 13:00 Eastern: after the night's writes to B2 (Velero 02:00 UTC, dumps 03:00-05:00,
+  # garage-offsite-sync 06:00), and not overlapping garage-offsite-sync on the uplink.
+  timeZone: "America/New_York"
+  schedule: "0 13 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 43200   # 12 h
+      template:
+        metadata:
+          labels:
+            app: b2-r2-mirror
+        spec:
+          restartPolicy: Never
+          # Home servers only (not the VPS, not the GPU laptops, not marmoset).
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values: ["m920s", "elitedesk", "m720q"]
+          containers:
+          - name: rclone
+            image: rclone/rclone:1.69
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh", "-c"]
+            args:
+            - |
+              set -u
+              export RCLONE_CONFIG_B2_TYPE=s3 RCLONE_CONFIG_B2_PROVIDER=Other
+              export RCLONE_CONFIG_B2_ENDPOINT="${B2_ENDPOINT}" RCLONE_CONFIG_B2_REGION=us-east-005
+              export RCLONE_CONFIG_B2_ACCESS_KEY_ID="${B2_KEY_ID}" RCLONE_CONFIG_B2_SECRET_ACCESS_KEY="${B2_APP_KEY}"
+              export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare
+              export RCLONE_CONFIG_R2_ENDPOINT="${R2_ENDPOINT}" RCLONE_CONFIG_R2_REGION=auto
+              export RCLONE_CONFIG_R2_ACCESS_KEY_ID="${R2_KEY_ID}" RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="${R2_SECRET}"
+              export RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
+              day=$(date -u +%Y-%m-%d); failed=""
+              echo "[$(date -u)] B2 -> R2 mirror starting"
+              for pair in ${BUCKET_PAIRS}; do
+                src=${pair%%:*}; dst=${pair##*:}
+                echo "[$(date -u)] --- b2:${src} -> r2:${dst} ---"
+                if [ -z "$(rclone lsf --max-depth 1 "b2:${src}" 2>/dev/null | head -n 1)" ]; then
+                  echo "ERROR: b2:${src} lists empty or unreadable; skipped"; failed="${failed} ${src}"; continue
+                fi
+                rclone sync "b2:${src}" "r2:${dst}" \
+                  --checksum \
+                  --backup-dir "r2:${RECYCLE_BUCKET}/${dst}/${day}" \
+                  --transfers=8 --checkers=16 \
+                  --bwlimit="${UPLOAD_LIMIT}" \
+                  --retries=3 --low-level-retries=10 \
+                  --stats=5m --stats-one-line --stats-log-level NOTICE \
+                  || failed="${failed} ${src}"
+              done
+              if [ -n "${failed}" ]; then echo "[$(date -u)] FAILED:${failed}"; exit 1; fi
+              echo "[$(date -u)] B2 -> R2 mirror complete"
+            env:
+            # source:destination (R2 bucket names must be lowercase)
+            - name: BUCKET_PAIRS
+              value: >-
+                garage-offsite:garage-offsite
+                AS5402T-Backups:as5402t-backups
+                k3s-velero-eljefe-backups:k3s-velero-eljefe-backups
+                Marmoset:marmoset
+                DS423-Backups:ds423-backups
+                restic-backup-neonmarmoset:restic-backup-neonmarmoset
+            - name: RECYCLE_BUCKET
+              value: "b2-mirror-recycle"
+            # Same ceiling as the other off-site jobs: 2 MiB/s, about half the home uplink.
+            - name: UPLOAD_LIMIT
+              value: "2M"
+            - name: B2_ENDPOINT
+              value: "https://s3.us-east-005.backblazeb2.com"
+            - name: R2_ENDPOINT
+              valueFrom: {secretKeyRef: {name: b2-r2-mirror-credentials, key: r2_endpoint}}
+            - name: B2_KEY_ID
+              valueFrom: {secretKeyRef: {name: b2-r2-mirror-credentials, key: b2_key_id}}
+            - name: B2_APP_KEY
+              valueFrom: {secretKeyRef: {name: b2-r2-mirror-credentials, key: b2_application_key}}
+            - name: R2_KEY_ID
+              valueFrom: {secretKeyRef: {name: b2-r2-mirror-credentials, key: r2_access_key_id}}
+            - name: R2_SECRET
+              valueFrom: {secretKeyRef: {name: b2-r2-mirror-credentials, key: r2_secret_access_key}}
+            resources:
+              requests: {cpu: 100m, memory: 128Mi}
+              limits: {cpu: "1", memory: 1Gi}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: b2-r2-mirror-credentials-eso
+  namespace: default
+spec:
+  refreshInterval: 23h48m42s
+  secretStoreRef:
+    name: doppler-secret-store
+    kind: ClusterSecretStore
+  target:
+    name: b2-r2-mirror-credentials
+    creationPolicy: Owner
+  data:
+  - {secretKey: b2_key_id, remoteRef: {key: B2_MIRROR_B2_KEY_ID}}
+  - {secretKey: b2_application_key, remoteRef: {key: B2_MIRROR_B2_APPLICATION_KEY}}
+  - {secretKey: r2_access_key_id, remoteRef: {key: B2_MIRROR_R2_ACCESS_KEY_ID}}
+  - {secretKey: r2_secret_access_key, remoteRef: {key: B2_MIRROR_R2_SECRET_ACCESS_KEY}}
+  - {secretKey: r2_endpoint, remoteRef: {key: B2_MIRROR_R2_ENDPOINT}}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: b2-r2-mirror
+  namespace: monitoring
+  labels:
+    app: b2-r2-mirror
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: b2-r2-mirror
+    rules:
+    - alert: B2R2MirrorFailed
+      expr: kube_job_status_failed{namespace="default", job_name=~"b2-r2-mirror-.*"} > 0
+      for: 5m
+      labels: {severity: warning}
+      annotations:
+        summary: "B2 -> R2 mirror job failed"
+        description: "Job {{ $labels.job_name }} failed. kubectl logs -n default job/{{ $labels.job_name }} (look for FAILED: and ERROR: lines)."
+    - alert: B2R2MirrorStale
+      expr: time() - kube_cronjob_status_last_successful_time{namespace="default", cronjob="b2-r2-mirror"} > 129600
+      for: 1h
+      labels: {severity: warning}
+      annotations:
+        summary: "No successful B2 -> R2 mirror in 36 h"
+        description: "The second off-site copy in Cloudflare R2 is falling behind B2. Check the b2-r2-mirror CronJob."
