@@ -6,7 +6,7 @@
 # Pools matched by `media: sata` (a second label added 2026-09-26 with
 # `kubectl mayastor label pool <pool> media=sata -n openebs`, mirrored on the
 # DiskPool CRs; the existing tier labels are unchanged):
-#   - m920s-sata-pool     tier=sata  media=sata  (Crucial BX300 120 GB, m920s)
+#   - m920s-sata-pool     REMOVED 2026-11-27 (0 replicas; the BX300 is now the Zot image store)
 #   - elitedesk-usb-pool  tier=usb   media=sata  (Crucial BX500 2 TB over USB, elitedesk)
 # The two pools are on different nodes, so each volume gets one replica on each
 # and survives a single disk or node loss.
