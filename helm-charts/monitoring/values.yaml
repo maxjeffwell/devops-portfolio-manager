@@ -1556,7 +1556,6 @@ snmpExporter:
   # Secret above and the env var the exporter expands in snmp.yml. The values
   # are not in git; the source of truth is the device itself:
   #   ASUSTOR_SNMP_AUTH_PASSWORD = ADM SNMP v3 passphrase (ADM: MD5 auth, no privacy)
-  #   TRENDNET_SNMP_*_PASSWORD   = the switch GUI's SNMPv3 user passwords
   #   AX86U_SNMP_*_PASSWORD      = generated; the Secret is the only copy (see below)
   # SNMPv3 only: the exporter cannot read a v2c community from the Secret.
   extraAuths:
@@ -1586,15 +1585,12 @@ snmpExporter:
       privProtocol: AES
       passwordEnv: AX86U_SNMP_AUTH_PASSWORD
       privPasswordEnv: AX86U_SNMP_PRIV_PASSWORD
-    # TRENDnet 10-port managed switch: v3 user set in the switch GUI (SHA / AES-CFB128).
-    trendnet_v3:
-      version: 3
-      username: maxjeffwell
-      securityLevel: authPriv
-      authProtocol: SHA
-      privProtocol: AES
-      passwordEnv: TRENDNET_SNMP_AUTH_PASSWORD
-      privPasswordEnv: TRENDNET_SNMP_PRIV_PASSWORD
+    # TRENDnet 10-port managed switch at its DEFAULT SNMP settings (user choice,
+    # 2026-11-26): v2c, read community `public`. Not a secret, so it is literal
+    # here. If the switch's read community differs, change it on this line.
+    trendnet_v2c:
+      version: 2
+      community: public
 
 # Extra SNMP scrape targets (one ScrapeConfig `snmp-<name>` each), served by the
 # same snmp-exporter replicas as the Synology job below.
@@ -1617,12 +1613,21 @@ snmpTargets:
     role: router
     module: if_mib
     auth: ax86u_v3
-  # TRENDnet switch (192.168.50.200) target REMOVED 2026-11-27 ~01:35 UTC: the
-  # switch stopped forwarding within about a minute of the first SNMP walks.
-  # SNMP was disabled on the switch afterwards. Do not re-add without the
-  # user's OK and a gentler approach (one client, single GETs, no bulk walks).
-  # The trendnet_v3 auth above is unused and kept only so the live release and
-  # its Secret keys stay consistent.
+  # TRENDnet switch. HISTORY: on 2026-11-27 ~01:30 UTC it stopped forwarding
+  # about a minute after the first SNMP polls (v3 SHA/AES user, if_mib bulk
+  # walks, four clients at once) and needed a power cycle; m920s and both NAS
+  # boxes were cut off. Re-added the same evening at the user's request with the
+  # switch back on default settings, and deliberately gentle: module `system`
+  # (three GETs, no walks, no retries) every 2 minutes. Do NOT switch this to
+  # if_mib or any walking module without the user's OK.
+  - name: trendnet
+    target: "192.168.50.200"
+    host: trendnet-switch
+    role: switch
+    module: system
+    auth: trendnet_v2c
+    scrapeInterval: 120s
+    scrapeTimeout: 10s
 
 # SNMP Synology - Scrape target + alerts for the Synology DS423 (boom_boom)
 snmpSynology:

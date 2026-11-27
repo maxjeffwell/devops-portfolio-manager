@@ -1,0 +1,29 @@
+{{- if .Values.snmpExporter.enabled }}
+# Only Prometheus may call snmp-exporter. /snmp queries whatever target it is
+# handed, using any of the stored device logins, so an unrestricted :9116 lets
+# every pod in the cluster read SNMP data from the NAS boxes and routers
+# through it. Same shape as blackbox-exporter-networkpolicy.yaml. Ingress
+# only: the exporter's own egress (UDP/161 to the devices) is not restricted.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: snmp-exporter-ingress
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: snmp-exporter
+    release: {{ .Release.Name }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: snmp-exporter
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 9116
+          protocol: TCP
+{{- end }}
