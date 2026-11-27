@@ -72,10 +72,11 @@ tempoMonolithic:
     repository: grafana/tempo
     tag: "2.7.2"
   priorityClassName: monitoring
-  # 2026-09-27: moved off elitedesk (spread the monitoring stack across nodes).
-  # The PV is lvm-localpv on m720q, so the pod must stay on that node.
+  # 2026-11-26: the volume is Mayastor with two copies (see persistence), so the
+  # pod is no longer tied to m720q's local disk and can restart on any of the
+  # three servers. Before that (2026-09-27) it was lvm-localpv pinned to m720q.
   nodeSelector:
-    kubernetes.io/hostname: m720q
+    node-role.kubernetes.io/control-plane: "true"
   resources:
     requests:
       cpu: 100m
@@ -84,9 +85,13 @@ tempoMonolithic:
       memory: 1664Mi
     limits:
       memory: 2Gi
+  # WAL + metrics-generator WAL only (about 160 MB in use 2026-11-26); trace
+  # blocks live in Garage. Two thin copies on different nodes so losing one
+  # node does not stop tracing. volumeClaimTemplates are immutable: changing
+  # either value means deleting the StatefulSet and its PVC first.
   persistence:
-    storageClass: openebs-lvmpv
-    size: 20Gi
+    storageClass: mayastor-2-thin
+    size: 10Gi
   storage:
     credentialsSecret: garage-tempo-credentials
     s3:
