@@ -65,7 +65,7 @@ ingress:
     cert-manager.io/cluster-issuer: letsencrypt-prod-dns
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.middlewares: kube-system-crowdsec-bouncer@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: headlamp-headlamp-cdn-only@kubernetescrd,kube-system-crowdsec-bouncer@kubernetescrd
   hosts:
     - host: headlamp.el-jefe.me
       paths:
