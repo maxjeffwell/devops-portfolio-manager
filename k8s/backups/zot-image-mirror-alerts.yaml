@@ -1,0 +1,39 @@
+# Alerts for the Zot image mirror on m920s (added 2026-11-27). Zot runs outside k3s as a
+# pull-through cache for every registry the cluster uses, so a rebuilt node or a deleted
+# upstream tag can still be pulled from home. A nightly warm-up job pulls every running
+# image through Zot and writes node_exporter textfile metrics (zot_warm_*).
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: zot-image-mirror
+  namespace: monitoring
+  labels:
+    app: zot-image-mirror
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: zot-image-mirror
+    rules:
+    - alert: ZotWarmStale
+      expr: time() - max(zot_warm_last_run_timestamp_seconds) > 93600
+      for: 1h
+      labels: {severity: warning}
+      annotations:
+        summary: "Zot image warm-up has not run in 26 h"
+        description: "New cluster images may not be in the mirror. On m920s: systemctl status zot zot-warm; journalctl -u zot-warm."
+    - alert: ZotWarmImagesFailed
+      expr: max(zot_warm_failed) > 0
+      for: 1h
+      labels: {severity: warning}
+      annotations:
+        summary: "{{ $value }} running image(s) could not be copied into Zot"
+        description: "A running image is not in the mirror (removed upstream, auth, or rate limit). The FAIL lines are in journalctl -u zot-warm on m920s."
+    - alert: ZotDiskFilling
+      expr: |
+        1 - node_filesystem_avail_bytes{mountpoint="/var/lib/zot"} / node_filesystem_size_bytes{mountpoint="/var/lib/zot"} > 0.85
+      for: 30m
+      labels: {severity: warning}
+      annotations:
+        summary: "Zot image store is {{ $value | humanizePercentage }} full"
+        description: "/var/lib/zot on m920s. Zot keeps every image it has ever cached; prune old repos or tags before it fills."
