@@ -101,7 +101,11 @@ spec:
               # off-site copy (added 2026-11-25, velero-key has READ-only on it).
               # Pack files are immutable, so copying a live repository is safe
               # apart from a small race with a prune, which the next run fixes.
-              for bucket in ${ZENBOOK_BUCKETS}; do
+              # MODEL_BUCKETS (2026-11-27): the AI model store the KServe/OVMS
+              # servers pull from (converted OpenVINO models, the custom-trained
+              # interval_ai model, the rescued bge-reranker). Only copy at home was
+              # Garage itself. Models are not secret, so a plain copy is fine.
+              for bucket in ${ZENBOOK_BUCKETS} ${MODEL_BUCKETS}; do
                 echo "[$(date -u)] --- syncing bucket: ${bucket} ---"
                 rclone sync \
                   "garage:${bucket}" \
@@ -127,6 +131,8 @@ spec:
             # laptop twice; it stays at home, on the Synology and in Garage.
             - name: ZENBOOK_BUCKETS
               value: "restic-zenbook"
+            - name: MODEL_BUCKETS
+              value: "ovms-models"
             # Upload ceiling for every rclone call in this job (bytes per second,
             # rclone units). 2M = 2 MiB/s, about half of the home uplink, the same
             # ceiling the two NAS sync jobs use. Was 20M until 2026-11-26, which is
