@@ -8,8 +8,20 @@ metadata:
   namespace: default
 spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:14
-  # 2026-10-06: 2 instances (user decision) — replica joins via pg_basebackup.
-  instances: 2
+  # 2026-11-28: 3 instances (user decision; was 2 since 10-06), one per Mayastor
+  # node, with quorum sync replication below. The new replica is cloned from the
+  # latest VolumeSnapshot.
+  instances: 3
+  # Quorum-based synchronous replication (user decision 2026-11-28): a commit
+  # returns once ANY 1 of the 2 standbys has it (RPO 0), so one standby or node can
+  # be down without blocking writes. failoverQuorum: only promote a standby that is
+  # guaranteed to have every committed transaction.
+  postgresql:
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+      failoverQuorum: true
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
