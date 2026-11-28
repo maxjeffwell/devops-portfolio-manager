@@ -41,6 +41,23 @@ spec:
           annotations:
             summary: pg-ha etcd member {{`{{ $labels.instance }}`}} down
             description: Patroni's etcd keeps quorum with 2/3, but one more loss stops all failovers.
+        # etcd-patroni compacts itself every hour since 2026-11-28 (live data ~0.4 MB). Before that it
+        # grew ~13 MB/day uncompacted toward the 2 GB quota; at the quota etcd raises NOSPACE, refuses
+        # writes, and Patroni demotes the primary.
+        - alert: PgHaEtcdCompactionStalled
+          expr: max by (instance) (etcd_mvcc_db_total_size_in_use_in_bytes{job="pg-ha-etcd"}) > 100e6
+          for: 1h
+          labels: {severity: warning}
+          annotations:
+            summary: pg-ha etcd {{`{{ $labels.instance }}`}} holds {{`{{ $value | humanize1024 }}`}}B of live data
+            description: Normal is under 1 MB. Auto-compaction (ETCD_AUTO_COMPACTION_* in /etc/etcd-patroni/etcd.env) has stopped working. See docs/runbooks/pg-ha.md in k3s-cluster-config.
+        - alert: PgHaEtcdDbNearQuota
+          expr: max by (instance) (etcd_mvcc_db_total_size_in_bytes{job="pg-ha-etcd"} / etcd_server_quota_backend_bytes{job="pg-ha-etcd"}) > 0.6
+          for: 15m
+          labels: {severity: critical}
+          annotations:
+            summary: pg-ha etcd {{`{{ $labels.instance }}`}} database at {{`{{ $value | humanizePercentage }}`}} of its quota
+            description: At 100% etcd refuses writes (NOSPACE) and Patroni demotes the primary. Compact and defrag one member at a time (runbook), then disarm any NOSPACE alarm.
         - alert: PgHaVipDown
           expr: |
             up{job="pg-ha-vip"} == 0
