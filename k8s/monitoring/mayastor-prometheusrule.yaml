@@ -139,7 +139,7 @@ spec:
           expr: mayastor_node_cordoned == 1 or mayastor_node_draining == 1
           for: 2h
           labels:
-            severity: info
+            severity: warning   # not info: Alertmanager routes info to the null receiver
             component: storage
           annotations:
             summary: "Mayastor node {{ $labels.node_id }} cordoned/draining for >2h"

@@ -24,6 +24,9 @@
 #   | curl -sf -X POST -H 'Content-Type: application/yaml' --data-binary @- \
 #       http://10.0.0.4:3100/loki/api/v1/rules/mayastor
 # Check:  curl -s http://10.0.0.4:3100/loki/api/v1/rules/mayastor
+# 🪤 11/28: the ruler's alertmanager_url is EMPTY, so these alerts (and
+# JellyfinAuthFailureSpike) evaluate and show in Grafana but notify NOBODY
+# until Loki on the ASUSTOR gets an Alertmanager URL.
 # Remove: curl -X DELETE http://10.0.0.4:3100/loki/api/v1/rules/mayastor/mayastor-events
 groups:
   - name: mayastor-events
@@ -64,7 +67,7 @@ groups:
               [10m])
           ) > 0
         labels:
-          severity: info
+          severity: warning   # not info: Alertmanager routes info to the null receiver
           component: storage
         annotations:
           summary: "Mayastor is rebuilding {{ $value }} replica(s) on targets on {{ $labels.src_node }}"
@@ -135,7 +138,7 @@ groups:
               [10m])
           ) > 0
         labels:
-          severity: info
+          severity: warning   # not info: Alertmanager routes info to the null receiver
           component: storage
         annotations:
           summary: "Mayastor moved volume target(s) to another node (HA switchover)"
