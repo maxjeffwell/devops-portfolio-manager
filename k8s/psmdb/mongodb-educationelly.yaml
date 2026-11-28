@@ -60,6 +60,22 @@ spec:
   crVersion: 1.22.0
   image: percona/percona-server-mongodb:7.0.18-11
   imagePullPolicy: IfNotPresent
+  # PMM Client sidecar in every mongod pod (2026-11-28). Server = ArgoCD app
+  # `pmm` (gitops/applications/pmm.yaml). Auth: PMM_SERVER_TOKEN in the shared
+  # system-users Secret percona-server-mongodb-users (non-empty token = PMM 3);
+  # DB login = MONGODB_CLUSTER_MONITOR_USER/PASSWORD from the same Secret.
+  # 3.8.1 = PMM 3 client certified for operator 1.23 (images.html).
+  # Changing this block rolls the replica set one pod at a time.
+  pmm:
+    enabled: true
+    image: percona/pmm-client:3.8.1
+    serverHost: monitoring-service.pmm.svc
+    resources:
+      requests:
+        cpu: 100m
+        memory: 150Mi
+      limits:
+        memory: 512Mi
   replsets:
   # 2026-10-15: databases must outrank apps when a server is lost (N-1 preemption order)
   - priorityClassName: portfolio-critical
