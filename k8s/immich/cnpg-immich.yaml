@@ -18,9 +18,9 @@ spec:
   # instance 2 was promoted, and scaling back removed instance 1 and its
   # usb-pool-backed volume.
   # 2026-10-06: 2 instances (user: immich/bookmarked/codetalk "should have replicas").
-  # The replica joins via pg_basebackup; required pod anti-affinity puts it on
-  # another Mayastor engine node (m920s is the least loaded).
-  instances: 2
+  # 2026-11-28: 3 instances (user), one per Mayastor engine node (required pod
+  # anti-affinity), with quorum sync replication (postgresql.synchronous below).
+  instances: 3
   enablePDB: false
   priorityClassName: portfolio-critical
   inheritedMetadata:
@@ -55,6 +55,14 @@ spec:
         - CREATE EXTENSION IF NOT EXISTS vchord CASCADE;
         - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE;
   postgresql:
+    # Quorum sync (user decision 2026-11-28), same as cnpg-codetalk: a commit waits
+    # for ANY 1 of the 2 standbys (RPO 0); one node can be down without blocking
+    # writes; failoverQuorum = only promote a standby guaranteed to be current.
+    synchronous:
+      method: any
+      number: 1
+      dataDurability: required
+      failoverQuorum: true
     shared_preload_libraries:
       - vchord.so
     parameters:
