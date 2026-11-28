@@ -48,6 +48,11 @@ spec:
   # namespace's ResourceQuota rejects containers without requests/limits
   # (pod creation failed, 2026-10-01). Observed usage ~70Mi.
   instanceSidecarConfiguration:
+    # See cnpg-codetalk-b2 below: works around the botocore
+    # 'StreamingChecksumBody' ... 'strip' bug behind RetentionPolicyFailed.
+    env:
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
     resources:
       requests:
         cpu: 10m
