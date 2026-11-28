@@ -8,6 +8,9 @@
 # `increase()` cannot see a counter's first sample, so the rules that must fire on a single
 # event also match label sets that did not exist 15 min ago (`unless ... offset`). Sums are
 # taken before comparing, so the counter moving to another Alloy pod is not a "new" series.
+# Prometheus renames the event's `namespace` label to `exported_namespace` (the scrape adds
+# namespace="monitoring"), so the rules group by exported_namespace and copy it back to
+# `namespace` for Alertmanager's group_by.
 # Caveat: when the collector moves (Alloy restart) up to 1 h of events can be re-sent.
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
@@ -22,12 +25,14 @@ spec:
       rules:
         - alert: K8sPodsEvicted
           expr: |
-            (
-              sum by (namespace) (increase(loki_process_custom_k8s_warning_events_total{reason="Evicted"}[15m]))
-              or
-              (sum by (namespace) (loki_process_custom_k8s_warning_events_total{reason="Evicted"})
-                unless sum by (namespace) (loki_process_custom_k8s_warning_events_total{reason="Evicted"} offset 15m))
-            ) > 0
+            label_replace(
+              (
+                sum by (exported_namespace) (increase(loki_process_custom_k8s_warning_events_total{reason="Evicted"}[15m]))
+                or
+                (sum by (exported_namespace) (loki_process_custom_k8s_warning_events_total{reason="Evicted"})
+                  unless sum by (exported_namespace) (loki_process_custom_k8s_warning_events_total{reason="Evicted"} offset 15m))
+              ) > 0
+            , "namespace", "$1", "exported_namespace", "(.*)")
           labels: {severity: warning}
           annotations:
             summary: Pods evicted in {{`{{ $labels.namespace }}`}}
@@ -36,12 +41,14 @@ spec:
               {job="kubernetes-events", namespace="{{`{{ $labels.namespace }}`}}"} | logfmt | reason="Evicted"
         - alert: K8sNodeKernelProblem
           expr: |
-            (
-              sum by (namespace, reason) (increase(loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"}[30m]))
-              or
-              (sum by (namespace, reason) (loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"})
-                unless sum by (namespace, reason) (loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"} offset 15m))
-            ) > 0
+            label_replace(
+              (
+                sum by (exported_namespace, reason) (increase(loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"}[30m]))
+                or
+                (sum by (exported_namespace, reason) (loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"})
+                  unless sum by (exported_namespace, reason) (loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"} offset 15m))
+              ) > 0
+            , "namespace", "$1", "exported_namespace", "(.*)")
           labels: {severity: warning}
           annotations:
             summary: "node-problem-detector: {{`{{ $labels.reason }}`}} on a node"
@@ -52,7 +59,9 @@ spec:
           # One-off "waiting on detach" during a reschedule is normal; a mount that keeps
           # failing retries roughly every 2 min, so >= 4 in 15 min held for 15 min.
           expr: |
-            sum by (namespace) (increase(loki_process_custom_k8s_warning_events_total{reason=~"FailedMount|FailedAttachVolume|FailedMapVolume"}[15m])) >= 4
+            label_replace(
+              sum by (exported_namespace) (increase(loki_process_custom_k8s_warning_events_total{reason=~"FailedMount|FailedAttachVolume|FailedMapVolume"}[15m])) >= 4
+            , "namespace", "$1", "exported_namespace", "(.*)")
           for: 15m
           labels: {severity: warning}
           annotations:
@@ -63,7 +72,9 @@ spec:
         - alert: K8sWarningEventStorm
           # Catch-all for anything repeating fast that has no rule of its own.
           expr: |
-            sum by (namespace, reason) (increase(loki_process_custom_k8s_warning_events_total{reason!~"Evicted|FailedMount|FailedAttachVolume|FailedMapVolume|BackOff|Unhealthy"}[15m])) > 20
+            label_replace(
+              sum by (exported_namespace, reason) (increase(loki_process_custom_k8s_warning_events_total{reason!~"Evicted|FailedMount|FailedAttachVolume|FailedMapVolume|BackOff|Unhealthy"}[15m])) > 20
+            , "namespace", "$1", "exported_namespace", "(.*)")
           for: 10m
           labels: {severity: warning}
           annotations:
