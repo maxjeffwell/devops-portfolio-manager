@@ -82,6 +82,14 @@ spec:
   # namespace's ResourceQuota rejects containers without requests/limits
   # (pod creation failed, 2026-10-01). Observed usage ~70Mi.
   instanceSidecarConfiguration:
+    # botocore 1.42 wraps every GetObject body (B2 sends x-amz-checksum-* headers),
+    # including error responses; the error parser then fails with
+    # "'StreamingChecksumBody' object has no attribute 'strip'" and the request is
+    # not retried, so a transient B2 error fails the whole retention run
+    # (RetentionPolicyFailed, 2026-11-27). when_required = validate only on request.
+    env:
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
     resources:
       requests:
         cpu: 10m
