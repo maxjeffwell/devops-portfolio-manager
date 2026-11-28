@@ -1,0 +1,38 @@
+# Alertmanager for clients OUTSIDE the cluster: the Loki ruler on the ASUSTOR
+# (10.0.0.4). Until 2026-11-28 Loki had alertmanager_url: "" — every Loki
+# alert (JellyfinAuthFailureSpike, the Mayastor event rules) evaluated but
+# notified nobody.
+#
+# Same pattern as mimir-nodeport.yaml (2026-11-22), NOT a NodePort:
+# Alertmanager's API is unauthenticated (anyone who reaches it can post
+# alerts or create SILENCES), so it must stay off the LAN. ClusterIP +
+# externalIPs = kube-proxy answers only for <these overlay addresses>:30093.
+#
+# Three addresses = the three servers' wg0 IPs (m920s 10.0.0.12, elitedesk
+# 10.0.0.10, m720q 10.0.0.11), all reachable from the NAS (checked 11/28).
+# Loki lists all three; it sends each alert to every URL, and the two
+# Alertmanager replicas de-duplicate via gossip, so one server down does not
+# drop Loki alerts. (10.0.0.1 is not used: one address, and a WAN hop.)
+#
+# In-cluster clients keep using prometheus-kube-prometheus-alertmanager:9093.
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager-overlay
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: alertmanager
+spec:
+  type: ClusterIP
+  externalIPs:
+    - 10.0.0.12   # m920s
+    - 10.0.0.10   # elitedesk
+    - 10.0.0.11   # m720q
+  selector:
+    alertmanager: prometheus-kube-prometheus-alertmanager
+    app.kubernetes.io/name: alertmanager
+  ports:
+    - name: http-web
+      port: 30093
+      targetPort: 9093
+      protocol: TCP
