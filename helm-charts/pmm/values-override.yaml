@@ -17,10 +17,13 @@ secret:
 service:
   type: ClusterIP
 
-# VictoriaMetrics + ClickHouse (QAN) + Grafana data. SATA (NVMe is scarce),
-# 2 Mayastor replicas so it survives one node. Mayastor volumes grow online.
+# VictoriaMetrics + ClickHouse (QAN) + Grafana data. SATA (NVMe is scarce).
+# 1 replica on m920s-sata2-pool: mayastor-2-sata-thin CANNOT provision (only
+# ONE pool has media=sata → "Not enough suitable pools available, 1/2", 11/28).
+# Loss of that disk = PMM history lost, re-collected (user chose this 11/28).
+# Mayastor volumes grow online.
 storage:
-  storageClassName: mayastor-2-sata-thin
+  storageClassName: mayastor-sata-thin
   size: 20Gi
 
 # Requests sized for PMM 3 with ~9 monitored services; limit leaves headroom
