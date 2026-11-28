@@ -217,12 +217,32 @@ data:
       }
     }
 
+    // Warning events are also counted (2026-11-28) for alerting: Prometheus scrapes
+    // Alloy, so this becomes loki_process_custom_k8s_warning_events_total{namespace,
+    // reason, kind}, alerted on by the k8s-event-alerts rules. reason and kind are
+    // labels only while counting and are dropped before Loki (few streams there).
+    // An update of a repeating event (count=N) is a new line, so each repeat counts.
     loki.process "k8s_events" {
       stage.logfmt {
-        mapping = { "type" = "" }
+        mapping = { "type" = "", "reason" = "", "kind" = "" }
       }
       stage.labels {
-        values = { type = "" }
+        values = { type = "", reason = "", kind = "" }
+      }
+      stage.match {
+        selector = "{type=\"Warning\"}"
+        stage.metrics {
+          metric.counter {
+            name              = "k8s_warning_events_total"
+            description       = "Kubernetes Warning events seen, by namespace, reason and object kind"
+            match_all         = true
+            action            = "inc"
+            max_idle_duration = "24h"
+          }
+        }
+      }
+      stage.label_drop {
+        values = ["reason", "kind"]
       }
       forward_to = [loki.write.default.receiver]
     }

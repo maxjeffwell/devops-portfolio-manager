@@ -1,0 +1,73 @@
+{{- if .Values.alloy.enabled }}
+# Alerts on Kubernetes Warning events (2026-11-28). Alloy counts them as
+# loki_process_custom_k8s_warning_events_total{namespace, reason, kind} (alloy-config.yaml);
+# the events themselves are in Loki: {job="kubernetes-events", type="Warning"} | logfmt.
+# Only what kube-prometheus does not already cover: crash loops (KubePodCrashLooping) and
+# pods that stay unready (KubePodNotReady) are left out on purpose.
+#
+# `increase()` cannot see a counter's first sample, so the rules that must fire on a single
+# event also match label sets that did not exist 15 min ago (`unless ... offset`). Sums are
+# taken before comparing, so the counter moving to another Alloy pod is not a "new" series.
+# Caveat: when the collector moves (Alloy restart) up to 1 h of events can be re-sent.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: k8s-event-alerts
+  namespace: {{ .Release.Namespace }}
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: k8s-events
+      rules:
+        - alert: K8sPodsEvicted
+          expr: |
+            (
+              sum by (namespace) (increase(loki_process_custom_k8s_warning_events_total{reason="Evicted"}[15m]))
+              or
+              (sum by (namespace) (loki_process_custom_k8s_warning_events_total{reason="Evicted"})
+                unless sum by (namespace) (loki_process_custom_k8s_warning_events_total{reason="Evicted"} offset 15m))
+            ) > 0
+          labels: {severity: warning}
+          annotations:
+            summary: Pods evicted in {{`{{ $labels.namespace }}`}}
+            description: >-
+              A node ran short of memory or disk and evicted pods. Loki:
+              {job="kubernetes-events", namespace="{{`{{ $labels.namespace }}`}}"} | logfmt | reason="Evicted"
+        - alert: K8sNodeKernelProblem
+          expr: |
+            (
+              sum by (namespace, reason) (increase(loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"}[30m]))
+              or
+              (sum by (namespace, reason) (loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"})
+                unless sum by (namespace, reason) (loki_process_custom_k8s_warning_events_total{kind="Node", reason=~"OOMKilling|TaskHung|KernelOops|Ext4Error|IOError|MemoryReadError|UnregisterNetDevice|FilesystemCorruption"} offset 15m))
+            ) > 0
+          labels: {severity: warning}
+          annotations:
+            summary: "node-problem-detector: {{`{{ $labels.reason }}`}} on a node"
+            description: >-
+              The kernel reported {{`{{ $labels.reason }}`}}. Which node and the message:
+              {job="kubernetes-events"} | logfmt | kind="Node" | reason="{{`{{ $labels.reason }}`}}"
+        - alert: K8sVolumeMountFailing
+          # One-off "waiting on detach" during a reschedule is normal; a mount that keeps
+          # failing retries roughly every 2 min, so >= 4 in 15 min held for 15 min.
+          expr: |
+            sum by (namespace) (increase(loki_process_custom_k8s_warning_events_total{reason=~"FailedMount|FailedAttachVolume|FailedMapVolume"}[15m])) >= 4
+          for: 15m
+          labels: {severity: warning}
+          annotations:
+            summary: Volumes keep failing to mount in {{`{{ $labels.namespace }}`}}
+            description: >-
+              A pod is stuck waiting for its volume. Loki:
+              {job="kubernetes-events", namespace="{{`{{ $labels.namespace }}`}}"} | logfmt | reason=~"FailedMount|FailedAttachVolume|FailedMapVolume"
+        - alert: K8sWarningEventStorm
+          # Catch-all for anything repeating fast that has no rule of its own.
+          expr: |
+            sum by (namespace, reason) (increase(loki_process_custom_k8s_warning_events_total{reason!~"Evicted|FailedMount|FailedAttachVolume|FailedMapVolume|BackOff|Unhealthy"}[15m])) > 20
+          for: 10m
+          labels: {severity: warning}
+          annotations:
+            summary: "{{`{{ $value | humanize }}`}} {{`{{ $labels.reason }}`}} warnings in 15 min in {{`{{ $labels.namespace }}`}}"
+            description: >-
+              Loki: {job="kubernetes-events", type="Warning", namespace="{{`{{ $labels.namespace }}`}}"} | logfmt | reason="{{`{{ $labels.reason }}`}}"
+{{- end }}
