@@ -1,0 +1,145 @@
+# Loki ruler alerts on Mayastor's event stream (2026-11-28).
+#
+# Source: the eventing aggregator (openebs/mayastor-eventing-aggregator) logs
+# every event it receives from NATS as one JSON line, e.g.
+#   {"type":"mbus_event","subject":"events.7.<id>","payload":{"category":"NvmePath",
+#    "action":"NvmePathFail","target":"<volume uuid>","metadata":{"source":
+#    {"component":"HaNodeAgent","node":"neonmarmoset",...}}}}
+# Lines start with ANSI colour codes, so match with line filters, not `| json`.
+# The stream label `node` is where the AGGREGATOR runs; the node that raised the
+# event is extracted as `src_node`.
+#
+# Events can arrive late: on 11/26 NvmePathFail events stamped 01:40 UTC were
+# logged at 01:52, after NATS reconnected. Alerts key on log time.
+#
+# Volume state the metrics exporter does not expose (rebuilds = a volume ran
+# degraded) lives here; pool, node and
+# path-count alerts are in k8s/monitoring/mayastor-prometheusrule.yaml.
+#
+# DEPLOY (Loki on the ASUSTOR at 10.0.0.4:3100; rules live in the ruler's
+# bucket, NOT read from disk). The ruler API takes ONE group per POST, without
+# the top-level `groups:` key:
+#   python3 -c "import yaml,sys;print(yaml.safe_dump(yaml.safe_load(open(sys.argv[1]))['groups'][0]))" \
+#     k8s/loki-rules/mayastor-events-rules.yaml \
+#   | curl -sf -X POST -H 'Content-Type: application/yaml' --data-binary @- \
+#       http://10.0.0.4:3100/loki/api/v1/rules/mayastor
+# Check:  curl -s http://10.0.0.4:3100/loki/api/v1/rules/mayastor
+# Remove: curl -X DELETE http://10.0.0.4:3100/loki/api/v1/rules/mayastor/mayastor-events
+groups:
+  - name: mayastor-events
+    interval: 1m
+    rules:
+      - alert: MayastorNvmePathFailed
+        expr: |
+          sum by (src_node) (
+            count_over_time(
+              {namespace="openebs", container="eventing-aggregator"}
+                |= `"action":"NvmePathFail"`
+                | regexp `"source":\{"component":"[^"]+","node":"(?P<src_node>[^"]+)"`
+              [10m])
+          ) > 0
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Mayastor NVMe-oF path failure reported by {{ $labels.src_node }}"
+          description: |
+            The HA node agent on {{ $labels.src_node }} reported failed NVMe paths
+            in the last 10 min. Usually self-heals (11/26: all fixed within ~8 min);
+            MayastorNvmePathNotLive / MayastorNvmePathsMissing fire if it does not.
+            Events: {namespace="openebs", container="eventing-aggregator"} |= `NvmePath`
+          gotify_priority: "5"
+
+      # Nexus StateChange only ever shows init/open/closed (30 days checked
+      # 11/28) — "degraded" is NOT emitted as a nexus state. What IS emitted
+      # when a volume loses a replica is a rebuild: RebuildBegin, then
+      # RebuildEnd with eventDetails.rebuildDetails.rebuildStatus.
+      - alert: MayastorRebuildStarted
+        expr: |
+          sum by (src_node) (
+            count_over_time(
+              {namespace="openebs", container="eventing-aggregator"}
+                |= `"action":"RebuildBegin"`
+                | regexp `"source":\{"component":"[^"]+","node":"(?P<src_node>[^"]+)"`
+              [10m])
+          ) > 0
+        labels:
+          severity: info
+          component: storage
+        annotations:
+          summary: "Mayastor is rebuilding {{ $value }} replica(s) on targets on {{ $labels.src_node }}"
+          description: |
+            A volume lost a replica and is rebuilding it (volume runs degraded
+            until RebuildEnd). MayastorRebuildFailed / MayastorRebuildStuck
+            fire if it does not finish.
+          gotify_priority: "3"
+
+      - alert: MayastorRebuildFailed
+        expr: |
+          sum by (src_node, status) (
+            count_over_time(
+              {namespace="openebs", container="eventing-aggregator"}
+                |= `"action":"RebuildEnd"`
+                !~ `"rebuildStatus":"Completed"`
+                | regexp `"source":\{"component":"[^"]+","node":"(?P<src_node>[^"]+)".*"rebuildStatus":"(?P<status>[^"]+)"`
+              [10m])
+          ) > 0
+        labels:
+          severity: critical
+          component: storage
+        annotations:
+          summary: "Mayastor replica rebuild ended {{ $labels.status }} on {{ $labels.src_node }}"
+          description: |
+            The volume is still missing a replica. Check:
+            kubectl mayastor -n openebs get volumes   (Degraded?)
+          gotify_priority: "8"
+
+      # Begun 30 min to 2 h ago, no RebuildEnd for the same target since.
+      - alert: MayastorRebuildStuck
+        expr: |
+          (
+            sum by (target) (
+              count_over_time(
+                {namespace="openebs", container="eventing-aggregator"}
+                  |= `"action":"RebuildBegin"`
+                  | regexp `"target":"(?P<target>[^"]+)"`
+                [90m] offset 30m)
+            )
+          )
+          unless on (target)
+          (
+            sum by (target) (
+              count_over_time(
+                {namespace="openebs", container="eventing-aggregator"}
+                  |= `"action":"RebuildEnd"`
+                  | regexp `"target":"(?P<target>[^"]+)"`
+                [2h])
+            )
+          )
+        labels:
+          severity: warning
+          component: storage
+        annotations:
+          summary: "Mayastor rebuild on volume target {{ $labels.target }} has not finished after 30 min"
+          description: |
+            kubectl mayastor -n openebs get volume {{ $labels.target }}
+            (target = nexus uuid; see `kubectl mayastor -n openebs get volumes -o yaml`).
+          gotify_priority: "5"
+
+      - alert: MayastorHaSwitchOver
+        expr: |
+          sum (
+            count_over_time(
+              {namespace="openebs", container="eventing-aggregator"}
+                |= `"category":"HighAvailability","action":"SwitchOver"`
+              [10m])
+          ) > 0
+        labels:
+          severity: info
+          component: storage
+        annotations:
+          summary: "Mayastor moved volume target(s) to another node (HA switchover)"
+          description: |
+            {{ $value }} switchover event(s) in 10 min. Expected after a node or
+            network failure; check the cause and that paths are live afterwards.
+          gotify_priority: "3"

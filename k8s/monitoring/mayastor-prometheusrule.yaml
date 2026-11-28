@@ -1,0 +1,204 @@
+# Mayastor alerts (2026-11-28). Before this, nothing alerted on Mayastor at all:
+# the 11/26 NVMe-oF path failures (TRENDnet switch crash + m920s watchdog reset)
+# and the 10/11 "paths dropped to 0 while pods stayed Running" case were only
+# visible afterwards in logs / a Velero PartiallyFailed.
+#
+# Sources (all scraped by kube-prometheus Prometheus → label release: prometheus):
+#   diskpool_* / mayastor_node_*   ServiceMonitor mayastor-io-engine (this dir)
+#   node_nvme_info                 node-exporter; model="Mayastor NVMe controller"
+#                                  = one series per NVMe-oF controller (path) on the
+#                                  consuming node, label state=live|connecting|...
+#   kube_volumeattachment_info     kube-state-metrics
+#
+# diskpool_status: 0 Unknown, 1 Online, 2 Degraded, 3 Faulted, 4 Suspected
+# (openebs/mayastor-extensions docs/metrics.md).
+#
+# Volume-level state (Degraded/Faulted nexus, rebuilds, HA switchovers) is NOT in
+# the exporter; those come from the eventing aggregator log → Loki ruler, see
+# k8s/loki-rules/mayastor-events-rules.yaml.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mayastor
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: mayastor
+    release: prometheus
+spec:
+  groups:
+    - name: mayastor.pools
+      interval: 30s
+      rules:
+        - alert: MayastorExporterDown
+          expr: up{job="mayastor-io-engine"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "Mayastor metrics exporter on {{ $labels.pod }} is not scraped"
+            description: |
+              Pool/node alerts for that io-engine are blind until this recovers.
+              Check: kubectl -n openebs get pod {{ $labels.pod }}
+            gotify_priority: "5"
+
+        - alert: MayastorExporterAbsent
+          expr: absent(up{job="mayastor-io-engine"})
+          for: 15m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "No Mayastor exporter targets at all"
+            description: |
+              ServiceMonitor monitoring/mayastor-io-engine finds no endpoints.
+              Service openebs/mayastor-metrics-exporter-io-engine gone or relabelled?
+            gotify_priority: "5"
+
+        - alert: MayastorPoolNotOnline
+          expr: diskpool_status != 1
+          for: 2m
+          labels:
+            severity: critical
+            component: storage
+          annotations:
+            summary: "Mayastor pool {{ $labels.name }} on {{ $labels.node }} is not Online (status {{ $value }})"
+            description: |
+              0 Unknown, 2 Degraded, 3 Faulted, 4 Suspected.
+              Check: kubectl mayastor -n openebs get pools
+            gotify_priority: "8"
+
+        - alert: MayastorPoolIoStalled
+          expr: diskpool_io_stalled > 0
+          for: 1m
+          labels:
+            severity: critical
+            component: storage
+          annotations:
+            summary: "Mayastor pool {{ $labels.name }} on {{ $labels.node }} has stalled I/O"
+            description: |
+              The io-engine reports stalled I/O on the pool's disk. Check the
+              node's kernel log for the backing device (dmesg / journalctl -k).
+            gotify_priority: "8"
+
+        - alert: MayastorPoolIoErrors
+          expr: delta(diskpool_io_error_count[15m]) > 0
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "Mayastor pool {{ $labels.name }} on {{ $labels.node }} logged new I/O errors"
+            description: |
+              io_error_count rose in the last 15 min (threshold for a pool alert
+              is diskpool_io_error_threshold, currently 64). Check the backing disk.
+            gotify_priority: "5"
+
+        - alert: MayastorPoolIoAlert
+          expr: diskpool_io_alert_status > 0
+          for: 2m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "Mayastor pool {{ $labels.name }} on {{ $labels.node }} raised an I/O alert"
+            description: |
+              Reason labels are on diskpool_alert_{notice,warning,attention,critical}_reason
+              (io_error, io_stalled, io_stall_intermittent, ...).
+            gotify_priority: "5"
+
+        - alert: MayastorPoolFillingUp
+          expr: diskpool_used_size_bytes / diskpool_total_size_bytes > 0.80
+          for: 15m
+          labels:
+            severity: warning
+            component: storage
+          annotations:
+            summary: "Mayastor pool {{ $labels.name }} is {{ $value | humanizePercentage }} full"
+            description: |
+              Thin-provisioned volumes on this pool fail writes when it fills.
+              Check: kubectl mayastor -n openebs get pools (ALLOCATED vs CAPACITY).
+            gotify_priority: "5"
+
+    - name: mayastor.nodes
+      interval: 30s
+      rules:
+        - alert: MayastorNodeOffline
+          expr: mayastor_node_online == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: storage
+          annotations:
+            summary: "Mayastor node {{ $labels.node_id }} is not Online"
+            description: |
+              Replicas on {{ $labels.node_id }} are unreachable; volumes with a
+              replica there run degraded. Check io-engine pod and the node.
+            gotify_priority: "8"
+
+        - alert: MayastorNodeCordonedLong
+          expr: mayastor_node_cordoned == 1 or mayastor_node_draining == 1
+          for: 2h
+          labels:
+            severity: info
+            component: storage
+          annotations:
+            summary: "Mayastor node {{ $labels.node_id }} cordoned/draining for >2h"
+            description: |
+              Reminder: a Mayastor cordon is separate from the k8s cordon.
+              Undo with: kubectl mayastor -n openebs uncordon node {{ $labels.node_id }} <label>
+            gotify_priority: "3"
+
+    - name: mayastor.paths
+      interval: 30s
+      rules:
+        # A consuming node's NVMe-oF controller for a Mayastor volume is not live
+        # (connecting / resetting / deleting). Normal reconnects finish in seconds.
+        - alert: MayastorNvmePathNotLive
+          expr: node_nvme_info{model="Mayastor NVMe controller", state!="live"} == 1
+          for: 5m
+          labels:
+            severity: critical
+            component: storage
+          annotations:
+            summary: "NVMe-oF path {{ $labels.device }} on {{ $labels.instance }} is {{ $labels.state }}"
+            description: |
+              A Mayastor volume path has not been live for 5 min. Pods using it
+              may be getting EIO. See docs: post-reboot checklist (NVMe-oF paths).
+            gotify_priority: "8"
+
+        # 10/11 case: the controller is GONE (not just not-live) while the
+        # VolumeAttachment still says the volume is attached to the node, so
+        # the pod keeps running on a dead device. Fires when a node has fewer
+        # live Mayastor controllers than Mayastor VolumeAttachments.
+        # The `or ... * 0` arm makes a node with ZERO live controllers compare
+        # as 0 instead of dropping out of the comparison.
+        - alert: MayastorNvmePathsMissing
+          expr: |
+            count by (node) (kube_volumeattachment_info{attacher="io.openebs.csi-mayastor"})
+            >
+            (
+              count by (node) (
+                label_replace(
+                  node_nvme_info{model="Mayastor NVMe controller", state="live"}
+                    * on (instance) group_left (nodename) node_uname_info,
+                  "node", "$1", "nodename", "(.*)"
+                )
+              )
+              or on (node)
+              count by (node) (kube_volumeattachment_info{attacher="io.openebs.csi-mayastor"}) * 0
+            )
+          # 15m (user, 11/28): pod moves/attaches create the VolumeAttachment a
+          # few seconds before the NVMe connect; 15 min rides out slow attaches
+          # and HA switchovers. On 10/11 the gap went unnoticed for 2 days.
+          for: 15m
+          labels:
+            severity: critical
+            component: storage
+          annotations:
+            summary: "{{ $labels.node }} has fewer live Mayastor paths than attached volumes"
+            description: |
+              {{ $labels.node }}: {{ $value }} Mayastor VolumeAttachments vs fewer live
+              NVMe-oF controllers. A volume's device is gone while the pod runs
+              (10/11 case). Find it: compare `kubectl get volumeattachment` for the
+              node with /sys/class/nvme-fabrics/ctl/*/state there; fix = restart the pod.
+            gotify_priority: "8"

@@ -1,0 +1,33 @@
+# Scrapes the Mayastor metrics exporter (sidecar in each io-engine pod, :9502).
+# The Service has existed since the Mayastor install but nothing scraped it
+# until 2026-11-28. Same selector the openebs/monitoring chart uses; that chart
+# was NOT installed (it bundles a second kube-prometheus-stack + a hostpath
+# provisioner with analytics on by default).
+#
+# Each endpoint is one io-engine (m920s, elitedesk, m720q) and reports its own
+# pools, replicas and volume targets plus mayastor_node_{online,cordoned,draining}.
+# Scraped by kube-prometheus Prometheus only (no remote_write → not in Mimir),
+# so the rules and dashboards for these metrics use Prometheus, not Mimir.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mayastor-io-engine
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: mayastor-io-engine
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - openebs
+  selector:
+    matchLabels:
+      app: metrics-exporter-io-engine
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      relabelings:
+        # job label = "mayastor-io-engine" instead of the long Service name
+        - targetLabel: job
+          replacement: mayastor-io-engine
