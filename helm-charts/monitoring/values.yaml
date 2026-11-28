@@ -510,6 +510,30 @@ kube-prometheus-stack:
           defaultBucket: k8s-allocation
         secureJsonData:
           token: ${INFLUXDB_GRAFANA_TOKEN}
+      # 2026-11-28: read-only view of the Patroni cluster through HAProxy's read pool (VIP :5001,
+      # leastconn over primary + replicas lagging < 1 MB). Role grafana_ro = pg_monitor only, so it
+      # sees pg_stat_* / pg_stat_statements but no application tables. Grafana's OWN database stays
+      # on :5000 (grafana.ini database.host): it writes.
+      - name: pg-ha (read pool)
+        type: grafana-postgresql-datasource
+        uid: pgha-ro
+        access: proxy
+        url: 192.168.50.60:5001
+        user: grafana_ro
+        editable: false
+        isDefault: false
+        jsonData:
+          database: postgres
+          sslmode: verify-full
+          tlsConfigurationMethod: file-path
+          sslRootCertFile: /etc/pg-ha/ca.crt
+          postgresVersion: 1500
+          timescaledb: false
+          maxOpenConns: 5
+          maxIdleConns: 2
+          connMaxLifetime: 14400
+        secureJsonData:
+          password: ${PGHA_GRAFANA_RO_PASSWORD}
 
     # No local volume any more (2026-10-23), so rolling updates work and keep one replica serving.
     deploymentStrategy:
@@ -526,6 +550,10 @@ kube-prometheus-stack:
       GF_DATABASE_PASSWORD:
         secretKeyRef:
           name: grafana-db
+          key: password
+      PGHA_GRAFANA_RO_PASSWORD:
+        secretKeyRef:
+          name: grafana-pgha-ro
           key: password
       # random secret_key (Doppler GRAFANA_SECRET_KEY); never the built-in default now that the DB is shared infra
       GF_SECURITY_SECRET_KEY:
