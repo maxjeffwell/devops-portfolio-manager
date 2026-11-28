@@ -1,0 +1,347 @@
+# CloudNativePG alerts (2026-11-28) for every CNPG cluster (codetalk, bookmarked,
+# immich; 3 instances each). Before this, no rule referenced cnpg_* at all.
+#
+# Based on cloudnative-pg/charts charts/cluster/prometheus_rules (per-cluster
+# templates), rewritten to cover all clusters by `job` (= "<namespace>/<cluster>",
+# set by the CNPG PodMonitors) and checked against live data on 11/28:
+#   - streaming replicas per primary = 2; quorum sync ANY 1 (cnpg_collector_sync_replicas 1)
+#     → 0 streaming replicas = writes BLOCK (by design, see memory/cnpg quorum note)
+#   - replication lag spikes of days on idle DBs right after a replica starts
+#     (lag = now - last replayed xact); longest spike 1.5 min → `for: 10m`
+#   - codetalk/bookmarked write nothing for many hours → "time since last WAL
+#     archival" is NOT alertable; archive QUEUE (ready files) and failures are
+#   - backups: B2 via barman-cloud plugin (barman_cloud_* metrics, daily 02:10–02:40
+#     UTC) and volumeSnapshot (cnpg_collector_*, daily 03:00–03:25 UTC)
+# Skipped from upstream: logical replication (no subscription metrics in the
+# default queries), zone spread (no zone label in kube-state-metrics).
+#
+# Scraped by kube-prometheus Prometheus only (not in Mimir) → release: prometheus.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cnpg
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: cloudnative-pg
+    release: prometheus
+spec:
+  groups:
+    - name: cnpg.availability
+      interval: 30s
+      rules:
+        # Seen in the last day but no instance of the cluster is scraped now.
+        - alert: CNPGClusterOffline
+          expr: |
+            max_over_time(count by (job) (up{job=~"[^/]+/cnpg-.+"})[1d:5m])
+            unless on (job)
+            count by (job) (up{job=~"[^/]+/cnpg-.+"} == 1)
+          for: 5m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG cluster {{ $labels.job }}: no instance is up"
+            description: |
+              None of the cluster's PostgreSQL instances answer the metrics scrape.
+              The database is most likely down for its apps.
+              Check: kubectl get clusters.postgresql.cnpg.io -A ; kubectl -n <ns> get pods -l cnpg.io/cluster=<name>
+            runbook_url: https://github.com/cloudnative-pg/charts/blob/main/charts/cluster/docs/runbooks/CNPGClusterOffline.md
+
+        - alert: CNPGInstanceDown
+          expr: up{job=~"[^/]+/cnpg-.+"} == 0
+          for: 10m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG instance {{ $labels.pod }} ({{ $labels.job }}) not scraped for 10 min"
+            description: |
+              One instance is down or its metrics endpoint is unreachable.
+              CNPGClusterHA* covers the replication impact.
+
+        # max by job over (streaming - receiver_up): primary = #streaming replicas,
+        # replicas = -1 → the max is the primary's streaming-replica count.
+        - alert: CNPGClusterHAWarning
+          expr: |
+            max by (job) (cnpg_pg_replication_streaming_replicas - cnpg_pg_replication_is_wal_receiver_up) < 2
+              and on (job)
+            max by (job) (cnpg_collector_replica_mode) == 0
+          for: 5m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG cluster {{ $labels.job }} has only {{ $value }} streaming replica(s) (expected 2)"
+            description: |
+              One standby is not streaming. Writes still work (quorum needs ANY 1
+              synchronous standby), but one more loss blocks writes.
+            runbook_url: https://github.com/cloudnative-pg/charts/blob/main/charts/cluster/docs/runbooks/CNPGClusterHAWarning.md
+
+        - alert: CNPGClusterHACritical
+          expr: |
+            max by (job) (cnpg_pg_replication_streaming_replicas - cnpg_pg_replication_is_wal_receiver_up) < 1
+              and on (job)
+            max by (job) (cnpg_collector_replica_mode) == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG cluster {{ $labels.job }} has NO streaming replica — writes are blocked"
+            description: |
+              Quorum synchronous replication (ANY 1) has no standby to confirm
+              commits, so write transactions hang. Reads on the primary still work.
+            runbook_url: https://github.com/cloudnative-pg/charts/blob/main/charts/cluster/docs/runbooks/CNPGClusterHACritical.md
+
+        - alert: CNPGInstancesOnSameNode
+          expr: count by (namespace, created_by_name, node) (kube_pod_info{created_by_kind="Cluster", pod=~"cnpg-.+"}) > 1
+          for: 15m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "{{ $value }} instances of CNPG cluster {{ $labels.created_by_name }} on node {{ $labels.node }}"
+            description: |
+              One node failure would take out more than one instance (and with
+              quorum sync, possibly writes). Usually follows a drain; check placement.
+
+        - alert: CNPGFencingOn
+          expr: max by (job, pod) (cnpg_collector_fencing_on) == 1
+          for: 10m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG instance {{ $labels.pod }} is fenced"
+            description: |
+              A fenced instance does not run PostgreSQL. Expected only during
+              maintenance; remove the cnpg.io/fencedInstances annotation when done.
+
+        - alert: CNPGManualSwitchoverRequired
+          expr: max by (job) (cnpg_collector_manual_switchover_required) == 1
+          for: 10m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG cluster {{ $labels.job }} waits for a manual switchover"
+            description: |
+              An update is waiting for `kubectl cnpg promote` / switchover
+              (primaryUpdateStrategy: supervised).
+
+    - name: cnpg.replication
+      interval: 30s
+      rules:
+        - alert: CNPGReplicationLagWarning
+          expr: max by (job, pod) (cnpg_pg_replication_lag) > 60
+          for: 10m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG replica {{ $labels.pod }} is {{ $value | humanizeDuration }} behind"
+            description: |
+              Sustained replication lag. (Short spikes of hours/days right after a
+              replica starts on an idle DB are a metric artefact and last <2 min.)
+
+        - alert: CNPGReplicationLagCritical
+          expr: max by (job, pod) (cnpg_pg_replication_lag) > 300
+          for: 15m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG replica {{ $labels.pod }} is {{ $value | humanizeDuration }} behind for 15 min"
+            description: |
+              A failover to this replica would lose up to that much data
+              (unless it is the synchronous standby). Check network/storage on its node.
+
+    - name: cnpg.capacity
+      interval: 1m
+      rules:
+        - alert: CNPGHighConnectionsWarning
+          expr: |
+            sum by (job, pod) (cnpg_backends_total)
+              / on (job, pod)
+            max by (job, pod) (cnpg_pg_settings_setting{name="max_connections"}) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG instance {{ $labels.pod }} uses {{ $value | humanize }}% of max_connections"
+            description: "7-day peak on 11/28 was 24% (immich). Check for a connection leak in the app."
+
+        - alert: CNPGHighConnectionsCritical
+          expr: |
+            sum by (job, pod) (cnpg_backends_total)
+              / on (job, pod)
+            max by (job, pod) (cnpg_pg_settings_setting{name="max_connections"}) * 100 > 95
+          for: 5m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG instance {{ $labels.pod }} is at {{ $value | humanize }}% of max_connections"
+            description: "New connections will be refused soon."
+
+        # PVC name = instance name (WAL lives in PGDATA here, no -wal/-tbs volumes).
+        # job="kubelet": the same series is also exported under the apiserver and
+        # kube-etcd jobs, which would duplicate the alert.
+        - alert: CNPGLowDiskSpaceWarning
+          expr: |
+            max by (namespace, persistentvolumeclaim) (
+              1 - kubelet_volume_stats_available_bytes{job="kubelet", persistentvolumeclaim=~"cnpg-.+"}
+                / kubelet_volume_stats_capacity_bytes{job="kubelet", persistentvolumeclaim=~"cnpg-.+"}
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | humanize }}% full"
+            description: "Grow spec.storage.size on the Cluster (Mayastor volumes expand online)."
+
+        - alert: CNPGLowDiskSpaceCritical
+          expr: |
+            max by (namespace, persistentvolumeclaim) (
+              1 - kubelet_volume_stats_available_bytes{job="kubelet", persistentvolumeclaim=~"cnpg-.+"}
+                / kubelet_volume_stats_capacity_bytes{job="kubelet", persistentvolumeclaim=~"cnpg-.+"}
+            ) * 100 > 90
+          for: 5m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG volume {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} is {{ $value | humanize }}% full"
+            description: "PostgreSQL stops (PANIC) when PGDATA/WAL fills. Expand now."
+
+    - name: cnpg.backups
+      interval: 1m
+      rules:
+        # Primary only: (1 - in_recovery) = 1 on the primary, 0 on replicas.
+        - alert: CNPGWALArchivingFailing
+          expr: |
+            max by (job, pod) (
+              increase(cnpg_pg_stat_archiver_failed_count[15m])
+                * on (pod) group_left () (1 - cnpg_pg_replication_in_recovery)
+            ) > 0
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }}: WAL archiving to B2 is failing on {{ $labels.pod }}"
+            description: |
+              archive_command (barman-cloud plugin) failed in the last 15 min.
+              Point-in-time recovery stops advancing; WAL piles up in pg_wal.
+              Check: kubectl -n <ns> logs {{ $labels.pod }} -c plugin-barman-cloud
+
+        - alert: CNPGWALArchiveBacklog
+          expr: |
+            max by (job, pod) (
+              cnpg_collector_pg_wal_archive_status{value="ready"}
+                * on (pod) group_left () (1 - cnpg_pg_replication_in_recovery)
+            ) > 10
+          for: 15m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }}: {{ $value }} WAL files waiting to be archived on {{ $labels.pod }}"
+            description: |
+              The archiver is not keeping up or is stuck (normally 0). pg_wal grows
+              until the volume fills. Check the barman-cloud plugin and B2 reachability.
+
+        - alert: CNPGBackupB2TooOld
+          expr: (time() - max by (job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)) / 3600 > 30
+          for: 15m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }}: last B2 base backup is {{ $value | humanize }} h old"
+            description: "ScheduledBackup <cluster>-b2-daily runs daily 02:10–02:40 UTC; one run was missed."
+
+        - alert: CNPGBackupSnapshotTooOld
+          expr: (time() - max by (job) (cnpg_collector_last_available_backup_timestamp)) / 3600 > 30
+          for: 15m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }}: last volume-snapshot backup is {{ $value | humanize }} h old"
+            description: "ScheduledBackup <cluster>-daily (volumeSnapshot) runs daily 03:00–03:25 UTC; one run was missed."
+
+        - alert: CNPGBackupFailed
+          expr: |
+            max by (job) (barman_cloud_cloudnative_pg_io_last_failed_backup_timestamp)
+              > on (job) max by (job) (barman_cloud_cloudnative_pg_io_last_available_backup_timestamp)
+            or
+            max by (job) (cnpg_collector_last_failed_backup_timestamp)
+              > on (job) max by (job) (cnpg_collector_last_available_backup_timestamp)
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }}: the most recent backup attempt failed"
+            description: |
+              The last failed backup is newer than the last successful one.
+              Check: kubectl -n <ns> get backups.postgresql.cnpg.io --sort-by=.metadata.creationTimestamp
+
+    - name: cnpg.health
+      interval: 1m
+      rules:
+        # Wraparound at 2^31 (~2.1e9); autovacuum forces freezing from 2e8.
+        - alert: CNPGTransactionIDAgeHigh
+          expr: max by (job, datname) (cnpg_pg_database_xid_age) > 1e9
+          for: 15m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }} db {{ $labels.datname }}: XID age {{ $value | humanize }}"
+            description: |
+              Autovacuum is not freezing this database. At ~2.1e9 PostgreSQL stops
+              accepting writes to prevent wraparound. Run VACUUM (FREEZE) and look for
+              long-running transactions or abandoned replication slots.
+
+        - alert: CNPGTransactionIDWraparoundImminent
+          expr: max by (job, datname) (cnpg_pg_database_xid_age) > 1.5e9
+          for: 5m
+          labels:
+            severity: critical
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }} db {{ $labels.datname }}: XID age {{ $value | humanize }} — wraparound shutdown approaching"
+            description: "Vacuum NOW. PostgreSQL refuses writes at ~2.1e9."
+
+        - alert: CNPGLongRunningTransaction
+          expr: max by (job, pod, datname, state) (cnpg_backends_max_tx_duration_seconds{state=~"active|idle in transaction.*"}) > 3600
+          for: 5m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.pod }} db {{ $labels.datname }}: a transaction ({{ $labels.state }}) open for {{ $value | humanizeDuration }}"
+            description: |
+              Long transactions hold back vacuum (bloat, XID age). 7-day max on 11/28
+              was 7.5 min (immich, active).
+
+        - alert: CNPGBackendsWaiting
+          expr: max by (job, pod) (cnpg_backends_waiting_total) > 5
+          for: 10m
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.pod }}: {{ $value }} backends blocked on locks for 10 min"
+            description: "7-day max on 11/28 was 0. Find the blocker in pg_stat_activity / pg_locks."
+
+        - alert: CNPGDeadlocks
+          expr: sum by (job, datname) (increase(cnpg_pg_stat_database_deadlocks[15m])) > 0
+          labels:
+            severity: warning
+            component: database
+          annotations:
+            summary: "CNPG {{ $labels.job }} db {{ $labels.datname }}: {{ $value | humanize }} deadlock(s) in 15 min"
+            description: "Usually an application bug (inconsistent lock order)."
