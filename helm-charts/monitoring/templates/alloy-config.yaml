@@ -199,6 +199,34 @@ data:
       labels        = { job = "systemd-journal" }
     }
 
+    // --- Kubernetes Events (2026-11-28) ---
+    // k3s keeps events for 1 h only, so FailedAttachVolume, OOMKilled, evictions,
+    // RetentionPolicyFailed or node-problem-detector reports were gone by morning.
+    // clustering + no `namespaces` list = exactly ONE Alloy instance in the cluster
+    // watches all namespaces (no 7x duplicates). A handover after an Alloy restart
+    // can re-send up to 1 h of events (alloy#3717). Lines are logfmt
+    // (type=, reason=, kind=, name=, msg=...); only `type` (Normal/Warning) is a
+    // label, the rest is filtered with `| logfmt` at query time.
+    loki.source.kubernetes_events "cluster" {
+      job_name   = "kubernetes-events"
+      log_format = "logfmt"
+      forward_to = [loki.process.k8s_events.receiver]
+
+      clustering {
+        enabled = true
+      }
+    }
+
+    loki.process "k8s_events" {
+      stage.logfmt {
+        mapping = { "type" = "" }
+      }
+      stage.labels {
+        values = { type = "" }
+      }
+      forward_to = [loki.write.default.receiver]
+    }
+
     // --- Blackbox Probes (VPS -> Home Network) ---
     prometheus.exporter.blackbox "home_network" {
       config = "{ modules: { icmp_probe: { prober: icmp, timeout: 5s }, http_2xx: { prober: http, timeout: 10s, http: { valid_http_versions: ['HTTP/1.1', 'HTTP/2.0'], valid_status_codes: [200, 301, 302] } }, tcp_connect: { prober: tcp, timeout: 5s } } }"
