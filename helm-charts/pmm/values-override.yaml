@@ -1,0 +1,51 @@
+# Values for percona/pmm 1.11.1 (PMM Server 3.11.0), ArgoCD app `pmm`
+# (gitops/applications/pmm.yaml). 2026-11-28.
+
+image:
+  tag: "3.11.0"
+
+# Admin password comes from Doppler (portfolio/prd PMM_ADMIN_PASSWORD) through
+# k8s/pmm/pmm-admin-externalsecret.yaml. create: false, or the chart would
+# render a NEW random password on every ArgoCD sync.
+secret:
+  create: false
+  name: pmm-secret
+
+# Chart default is NodePort (= PMM UI on every node's LAN address). In-cluster
+# clients (the mongod sidecars) use monitoring-service.pmm.svc:443; people reach
+# the UI over the tailnet through k8s/pmm/tailnet-service.yaml.
+service:
+  type: ClusterIP
+
+# VictoriaMetrics + ClickHouse (QAN) + Grafana data. SATA (NVMe is scarce),
+# 2 Mayastor replicas so it survives one node. Mayastor volumes grow online.
+storage:
+  storageClassName: mayastor-2-sata-thin
+  size: 20Gi
+
+# Requests sized for PMM 3 with ~9 monitored services; limit leaves headroom
+# for ClickHouse merges. Do not shrink to idle usage.
+pmmResources:
+  requests:
+    cpu: 500m
+    memory: 2Gi
+  limits:
+    memory: 4Gi
+
+# CPU-heavy workload: PREFER m920s, never hard-pin (memory rule).
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["m920s"]
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            # home servers only: not the VPS edge node, not the GPU laptops
+            - key: kubernetes.io/hostname
+              operator: In
+              values: ["m920s", "elitedesk", "m720q"]

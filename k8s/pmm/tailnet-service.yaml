@@ -1,0 +1,33 @@
+# PMM web UI over the tailnet only (2026-11-28, user chose "tailnet-only").
+#
+# NOT a Traefik ingress + ipAllowList: tailnet traffic reaches Traefik through
+# svclb and is SNATed to the svclb pod IP, so a 100.64.0.0/10 allowlist never
+# matches (see vaultwarden /admin, 11/21). Instead the same pattern as
+# k8s/monitoring/alertmanager-overlay.yaml: ClusterIP + externalIPs on the three
+# servers' Tailscale addresses. kube-proxy answers only for these addresses, so
+# the UI is not on the LAN and not public.
+#
+#   https://100.64.0.2:8443   (m920s; .8 elitedesk and .11 m720q work too)
+#
+# PMM serves HTTPS itself with a self-signed certificate → the browser warns once.
+apiVersion: v1
+kind: Service
+metadata:
+  name: pmm-tailnet
+  namespace: pmm
+  labels:
+    app.kubernetes.io/name: pmm
+spec:
+  type: ClusterIP
+  externalIPs:
+    - 100.64.0.2    # m920s
+    - 100.64.0.8    # elitedesk
+    - 100.64.0.11   # m720q
+  selector:
+    app.kubernetes.io/name: pmm
+    app.kubernetes.io/instance: pmm
+  ports:
+    - name: https
+      port: 8443
+      targetPort: https
+      protocol: TCP

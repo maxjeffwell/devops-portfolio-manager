@@ -1,0 +1,50 @@
+# Percona Monitoring and Management (PMM 3) server, added 2026-11-28, for the
+# three Percona Server for MongoDB clusters in percona-mongodb (PMM Client runs
+# as a sidecar in each mongod pod, enabled per cluster with spec.pmm in
+# k8s/psmdb/*.yaml).
+#
+# ONE PMM Server for the whole cluster (StatefulSet, 1 replica). Sources: the
+# upstream chart, this repo's values (helm-charts/pmm/values-override.yaml) and
+# k8s/pmm (admin-password ExternalSecret + tailnet-only Service).
+#
+# No resources-finalizer: deleting this Application must not delete the PVC
+# with PMM's history by accident.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pmm
+  namespace: argocd
+  labels:
+    infrastructure: "true"
+spec:
+  project: default
+  sources:
+    - repoURL: https://percona.github.io/percona-helm-charts
+      chart: pmm
+      targetRevision: 1.11.1
+      helm:
+        releaseName: pmm
+        valueFiles:
+          - $values/helm-charts/pmm/values-override.yaml
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/maxjeffwell/devops-portfolio-manager.git
+      targetRevision: main
+      path: k8s/pmm
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pmm
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
