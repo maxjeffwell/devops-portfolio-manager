@@ -107,6 +107,13 @@ spec:
             topologyKey: kubernetes.io/hostname
     annotations:
       backup.velero.io/backup-volumes-excludes: mongod-data
+    # 2026-11-28: MongoDB profiler for PMM Query Analytics (qan_mongodb_profiler_agent,
+    # spec.pmm.querySource default = profiler). slowOp = only operations slower than
+    # slowOpThresholdMs land in system.profile (user choice: 100 ms). Rolls the replset.
+    configuration: |
+      operationProfiling:
+        mode: slowOp
+        slowOpThresholdMs: 100
     name: rs0
     readinessProbe:
       timeoutSeconds: 5
