@@ -10,7 +10,7 @@ strategy:
 image:
   client:
     repository: maxjeffwell/portfolio-gatsby
-    tag: 20261126-122802-727f03a
+    tag: 20261128-034318-4625843
     pullPolicy: IfNotPresent
 
 service:
